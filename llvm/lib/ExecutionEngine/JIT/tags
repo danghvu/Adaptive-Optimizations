@@ -1,0 +1,264 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+Add	JIT.cpp	/^  void Add(JIT *jit) {$/;"	f	class:__anon2::JitPool
+AddCallSite	JITEmitter.cpp	/^    void AddCallSite(const MutexGuard &locked, void *CallSite, Function *F) {$/;"	f	class:__anon3::JITResolverState
+AddToFreeList	JITMemoryManager.cpp	/^    void AddToFreeList(FreeRangeHeader *FreeList) {$/;"	f	struct:__anon4::FreeRangeHeader
+AllJits	JIT.cpp	/^ManagedStatic<JitPool> AllJits;$/;"	m	namespace:__anon2	file:
+Allocate	JITMemoryManager.cpp	/^MemSlab *JITSlabAllocator::Allocate(size_t Size) {$/;"	f	class:JITSlabAllocator
+AllocateBlock	JITMemoryManager.cpp	/^FreeRangeHeader *FreeRangeHeader::AllocateBlock() {$/;"	f	class:FreeRangeHeader
+AllocateGOT	JITMemoryManager.cpp	/^void DefaultJITMemoryManager::AllocateGOT() {$/;"	f	class:DefaultJITMemoryManager
+AllocateGVsWithCode	JIT.h	/^  bool AllocateGVsWithCode;$/;"	m	class:llvm::JIT
+AtExitHandlers	JITMemoryManager.cpp	/^static std::vector<void (*)()> AtExitHandlers;$/;"	v	file:
+BasicBlockAddressMap	JIT.h	/^  BasicBlockAddressMapTy BasicBlockAddressMap;$/;"	m	class:llvm::JIT
+BasicBlockAddressMapTy	JIT.h	/^      BasicBlockAddressMapTy;$/;"	t	class:llvm::JIT
+BlockSize	JITMemoryManager.cpp	/^    uintptr_t BlockSize : (sizeof(intptr_t)*CHAR_BIT - 2);$/;"	m	struct:__anon4::MemoryRangeHeader	file:
+BumpSlabAllocator	JITMemoryManager.cpp	/^    JITSlabAllocator BumpSlabAllocator;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+CallSiteToFunctionMap	JITEmitter.cpp	/^    CallSiteToFunctionMapTy CallSiteToFunctionMap;$/;"	m	class:__anon3::JITResolverState	file:
+CallSiteToFunctionMapTy	JITEmitter.cpp	/^    typedef JITResolverState::CallSiteToFunctionMapTy CallSiteToFunctionMapTy;$/;"	t	class:__anon3::JITResolver	file:
+CallSiteToFunctionMapTy	JITEmitter.cpp	/^    typedef std::map<void*, AssertingVH<Function> > CallSiteToFunctionMapTy;$/;"	t	class:__anon3::JITResolverState	file:
+CallSiteValueMapConfig	JITEmitter.cpp	/^  struct CallSiteValueMapConfig : public NoRAUWValueMapConfig<Function*> {$/;"	s	namespace:__anon3	file:
+CheckInvariants	JITMemoryManager.cpp	/^bool DefaultJITMemoryManager::CheckInvariants(std::string &ErrorStr) {$/;"	f	class:DefaultJITMemoryManager
+Code	JITEmitter.cpp	/^      void *Code;  \/\/ The address the function's code actually starts at.$/;"	m	struct:__anon3::JITEmitter::EmittedCode	file:
+CodeSlabs	JITMemoryManager.cpp	/^    std::vector<sys::MemoryBlock> CodeSlabs;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+ConstPoolAddresses	JITEmitter.cpp	/^    SmallVector<uintptr_t, 8> ConstPoolAddresses;$/;"	m	class:__anon3::JITEmitter	file:
+ConstantPool	JITEmitter.cpp	/^    MachineConstantPool *ConstantPool;$/;"	m	class:__anon3::JITEmitter	file:
+ConstantPoolBase	JITEmitter.cpp	/^    void *ConstantPoolBase;$/;"	m	class:__anon3::JITEmitter	file:
+CreateDefaultMemManager	JITMemoryManager.cpp	/^JITMemoryManager *JITMemoryManager::CreateDefaultMemManager() {$/;"	f	class:JITMemoryManager
+CurBlock	JITMemoryManager.cpp	/^    MemoryRangeHeader *CurBlock;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+CurFn	JITEmitter.cpp	/^    const Function *CurFn;$/;"	m	class:__anon3::JITEmitter	file:
+DEBUG_TYPE	JITEmitter.cpp	15;"	d	file:
+DEBUG_TYPE	JITMemoryManager.cpp	14;"	d	file:
+DataAllocator	JITMemoryManager.cpp	/^    BumpPtrAllocator DataAllocator;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+Deallocate	JITMemoryManager.cpp	/^void JITSlabAllocator::Deallocate(MemSlab *Slab) {$/;"	f	class:JITSlabAllocator
+DefaultCodeSlabSize	JITMemoryManager.cpp	/^    static const size_t DefaultCodeSlabSize;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+DefaultCodeSlabSize	JITMemoryManager.cpp	/^const size_t DefaultJITMemoryManager::DefaultCodeSlabSize = 512 * 1024;$/;"	m	class:DefaultJITMemoryManager	file:
+DefaultJITMemoryManager	JITMemoryManager.cpp	/^  class DefaultJITMemoryManager : public JITMemoryManager {$/;"	c	namespace:__anon5	file:
+DefaultJITMemoryManager	JITMemoryManager.cpp	/^DefaultJITMemoryManager::DefaultJITMemoryManager()$/;"	f	class:DefaultJITMemoryManager
+DefaultSizeThreshold	JITMemoryManager.cpp	/^    static const size_t DefaultSizeThreshold;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+DefaultSizeThreshold	JITMemoryManager.cpp	/^const size_t DefaultJITMemoryManager::DefaultSizeThreshold = 16 * 1024;$/;"	m	class:DefaultJITMemoryManager	file:
+DefaultSlabSize	JITMemoryManager.cpp	/^    static const size_t DefaultSlabSize;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+DefaultSlabSize	JITMemoryManager.cpp	/^const size_t DefaultJITMemoryManager::DefaultSlabSize = 64 * 1024;$/;"	m	class:DefaultJITMemoryManager	file:
+ENABLE_SPARC_JIT	Makefile	/^  ENABLE_SPARC_JIT = 1$/;"	m
+ENABLE_X86_JIT	Makefile	/^  ENABLE_X86_JIT = 1$/;"	m
+EmissionDetails	JITEmitter.cpp	/^    JITEvent_EmittedFunctionDetails EmissionDetails;$/;"	m	class:__anon3::JITEmitter	file:
+EmittedCode	JITEmitter.cpp	/^      EmittedCode() : FunctionBody(0), Code(0), ExceptionTable(0) {}$/;"	f	struct:__anon3::JITEmitter::EmittedCode
+EmittedCode	JITEmitter.cpp	/^    struct EmittedCode {$/;"	s	class:__anon3::JITEmitter	file:
+EmittedFunctionConfig	JITEmitter.cpp	/^    struct EmittedFunctionConfig : public ValueMapConfig<const Function*> {$/;"	s	class:__anon3::JITEmitter	file:
+EmittedFunctions	JITEmitter.cpp	/^             EmittedFunctionConfig> EmittedFunctions;$/;"	m	class:__anon3::JITEmitter	file:
+EraseAllCallSitesForPrelocked	JITEmitter.cpp	/^void JITResolverState::EraseAllCallSitesForPrelocked(Function *F) {$/;"	f	class:JITResolverState
+EraseAllCallSitesPrelocked	JITEmitter.cpp	/^void JITResolverState::EraseAllCallSitesPrelocked() {$/;"	f	class:JITResolverState
+EventListeners	JIT.h	/^  std::vector<JITEventListener*> EventListeners;$/;"	m	class:llvm::JIT
+ExceptionTable	JITEmitter.cpp	/^      void *ExceptionTable;$/;"	m	struct:__anon3::JITEmitter::EmittedCode	file:
+ExternalFnToStubMap	JITEmitter.cpp	/^    std::map<void*, void*> ExternalFnToStubMap;$/;"	m	class:__anon3::JITResolver	file:
+ExtraData	JITEmitter.cpp	/^      typedef JITEmitter *ExtraData;$/;"	t	struct:__anon3::JITEmitter::EmittedFunctionConfig	file:
+ExtraData	JITEmitter.cpp	/^    typedef JITResolverState *ExtraData;$/;"	t	struct:__anon3::CallSiteValueMapConfig	file:
+ExtraData	JITEmitter.cpp	/^    typedef JITResolverState *ExtraData;$/;"	t	struct:__anon3::NoRAUWValueMapConfig	file:
+FreeBlock	JITMemoryManager.cpp	/^FreeRangeHeader *MemoryRangeHeader::FreeBlock(FreeRangeHeader *FreeList) {$/;"	f	class:MemoryRangeHeader
+FreeMemoryList	JITMemoryManager.cpp	/^    FreeRangeHeader *FreeMemoryList;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+FreeRangeHeader	JITMemoryManager.cpp	/^  struct FreeRangeHeader : public MemoryRangeHeader {$/;"	s	namespace:__anon4	file:
+FunctionBody	JITEmitter.cpp	/^      void *FunctionBody;  \/\/ Beginning of the function's allocation.$/;"	m	struct:__anon3::JITEmitter::EmittedCode	file:
+FunctionToCallSitesMap	JITEmitter.cpp	/^    FunctionToCallSitesMapTy FunctionToCallSitesMap;$/;"	m	class:__anon3::JITResolverState	file:
+FunctionToCallSitesMapTy	JITEmitter.cpp	/^                     CallSiteValueMapConfig> FunctionToCallSitesMapTy;$/;"	t	class:__anon3::JITResolverState	file:
+FunctionToLazyStubMap	JITEmitter.cpp	/^    FunctionToLazyStubMapTy FunctionToLazyStubMap;$/;"	m	class:__anon3::JITResolverState	file:
+FunctionToLazyStubMapTy	JITEmitter.cpp	/^      FunctionToLazyStubMapTy;$/;"	t	class:__anon3::JITResolverState	file:
+FunctionToLazyStubMapTy	JITEmitter.cpp	/^    typedef JITResolverState::FunctionToLazyStubMapTy FunctionToLazyStubMapTy;$/;"	t	class:__anon3::JITResolver	file:
+GOTBase	JITMemoryManager.cpp	/^    uint8_t *GOTBase;     \/\/ Target Specific reserved memory$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+GetConstantPoolSizeInBytes	JITEmitter.cpp	/^static unsigned GetConstantPoolSizeInBytes(MachineConstantPool *MCP,$/;"	f	file:
+GetDefaultCodeSlabSize	JITMemoryManager.cpp	/^    size_t GetDefaultCodeSlabSize() { return DefaultCodeSlabSize; }$/;"	f	class:__anon5::DefaultJITMemoryManager
+GetDefaultDataSlabSize	JITMemoryManager.cpp	/^    size_t GetDefaultDataSlabSize() { return DefaultSlabSize; }$/;"	f	class:__anon5::DefaultJITMemoryManager
+GetDefaultStubSlabSize	JITMemoryManager.cpp	/^    size_t GetDefaultStubSlabSize() { return DefaultSlabSize; }$/;"	f	class:__anon5::DefaultJITMemoryManager
+GetNumCodeSlabs	JITMemoryManager.cpp	/^    unsigned GetNumCodeSlabs() { return CodeSlabs.size(); }$/;"	f	class:__anon5::DefaultJITMemoryManager
+GetNumDataSlabs	JITMemoryManager.cpp	/^    unsigned GetNumDataSlabs() { return DataAllocator.GetNumSlabs(); }$/;"	f	class:__anon5::DefaultJITMemoryManager
+GetNumStubSlabs	JITMemoryManager.cpp	/^    unsigned GetNumStubSlabs() { return StubAllocator.GetNumSlabs(); }$/;"	f	class:__anon5::DefaultJITMemoryManager
+GlobalToIndirectSymMap	JITEmitter.cpp	/^    GlobalToIndirectSymMapTy GlobalToIndirectSymMap;$/;"	m	class:__anon3::JITResolverState	file:
+GlobalToIndirectSymMapTy	JITEmitter.cpp	/^    typedef JITResolverState::GlobalToIndirectSymMapTy GlobalToIndirectSymMapTy;$/;"	t	class:__anon3::JITResolver	file:
+GlobalToIndirectSymMapTy	JITEmitter.cpp	/^    typedef std::map<AssertingVH<GlobalValue>, void*> GlobalToIndirectSymMapTy;$/;"	t	class:__anon3::JITResolverState	file:
+GrowBlock	JITMemoryManager.cpp	/^void FreeRangeHeader::GrowBlock(uintptr_t NewSize) {$/;"	f	class:FreeRangeHeader
+HAVE___DSO_HANDLE	JIT.cpp	50;"	d	file:
+JCE	JIT.h	/^  JITCodeEmitter *JCE;     \/\/ JCE object$/;"	m	class:llvm::JIT
+JE	JITEmitter.cpp	/^    JITEmitter &JE;$/;"	m	class:__anon3::JITResolver	file:
+JIT	JIT.cpp	/^JIT::JIT(Module *M, TargetMachine &tm, TargetJITInfo &tji,$/;"	f	class:JIT
+JIT	JIT.h	/^class JIT : public ExecutionEngine {$/;"	c	namespace:llvm
+JITCompilerFn	JITEmitter.cpp	/^void *JITResolver::JITCompilerFn(void *Stub) {$/;"	f	class:JITResolver
+JITEmitter	JITEmitter.cpp	/^    JITEmitter(JIT &jit, JITMemoryManager *JMM, TargetMachine &TM)$/;"	f	class:__anon3::JITEmitter
+JITEmitter	JITEmitter.cpp	/^  class JITEmitter : public JITCodeEmitter {$/;"	c	namespace:__anon3	file:
+JITRegistrator	JIT.cpp	/^} JITRegistrator;$/;"	m	namespace:__anon1	typeref:struct:__anon1::RegisterJIT	file:
+JITResolver	JITEmitter.cpp	/^    explicit JITResolver(JIT &jit, JITEmitter &je)$/;"	f	class:__anon3::JITResolver
+JITResolver	JITEmitter.cpp	/^  class JITResolver {$/;"	c	namespace:__anon3	file:
+JITResolverState	JITEmitter.cpp	/^    JITResolverState(JIT *jit) : FunctionToLazyStubMap(this),$/;"	f	class:__anon3::JITResolverState
+JITResolverState	JITEmitter.cpp	/^  class JITResolverState {$/;"	c	namespace:__anon3	file:
+JITSlabAllocator	JITMemoryManager.cpp	/^    JITSlabAllocator(DefaultJITMemoryManager &jmm) : JMM(jmm) { }$/;"	f	class:__anon5::JITSlabAllocator
+JITSlabAllocator	JITMemoryManager.cpp	/^  class JITSlabAllocator : public SlabAllocator {$/;"	c	namespace:__anon5	file:
+JITState	JIT.h	/^  explicit JITState(Module *M) : PM(M), M(M) {}$/;"	f	class:llvm::JITState
+JITState	JIT.h	/^class JITState {$/;"	c	namespace:llvm
+JIT_H	JIT.h	15;"	d
+JITs	JIT.cpp	/^  SmallPtrSet<JIT*, 1> JITs;  \/\/ Optimize for process containing just 1 JIT.$/;"	m	class:__anon2::JitPool	file:
+JMM	JIT.h	/^  JITMemoryManager *JMM;$/;"	m	class:llvm::JIT
+JMM	JITMemoryManager.cpp	/^    DefaultJITMemoryManager &JMM;$/;"	m	class:__anon5::JITSlabAllocator	file:
+JitPool	JIT.cpp	/^class JitPool {$/;"	c	namespace:__anon2	file:
+JumpTable	JITEmitter.cpp	/^    MachineJumpTableInfo *JumpTable;$/;"	m	class:__anon3::JITEmitter	file:
+JumpTableBase	JITEmitter.cpp	/^    void *JumpTableBase;$/;"	m	class:__anon3::JITEmitter	file:
+LEVEL	Makefile	/^LEVEL = ..\/..\/..$/;"	m
+LIBRARYNAME	Makefile	/^LIBRARYNAME = LLVMJIT$/;"	m
+LLVMLinkInJIT	JIT.cpp	/^extern "C" void LLVMLinkInJIT() {$/;"	f
+LabelLocations	JITEmitter.cpp	/^    DenseMap<MCSymbol*, uintptr_t> LabelLocations;$/;"	m	class:__anon3::JITEmitter	file:
+LastSlab	JITMemoryManager.cpp	/^    sys::MemoryBlock LastSlab;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+LazyResolverFn	JITEmitter.cpp	/^    TargetJITInfo::LazyResolverFn LazyResolverFn;$/;"	m	class:__anon3::JITResolver	file:
+Lock	JIT.cpp	/^  mutable sys::Mutex Lock;$/;"	m	class:__anon2::JitPool	file:
+Lock	JITEmitter.cpp	/^    mutable sys::Mutex Lock;$/;"	m	class:__anon3::StubToResolverMapTy	file:
+LookupFunctionFromCallSite	JITEmitter.cpp	/^    std::pair<void *, Function *> LookupFunctionFromCallSite($/;"	f	class:__anon3::JITResolverState
+M	JIT.h	/^  Module *M;               \/\/ Module used to create the PM$/;"	m	class:llvm::JITState
+MBBLocations	JITEmitter.cpp	/^    std::vector<uintptr_t> MBBLocations;$/;"	m	class:__anon3::JITEmitter	file:
+MMI	JITEmitter.cpp	/^    MachineModuleInfo* MMI;$/;"	m	class:__anon3::JITEmitter	file:
+Map	JITEmitter.cpp	/^    std::map<void*, JITResolver*> Map;$/;"	m	class:__anon3::StubToResolverMapTy	file:
+MemMgr	JITEmitter.cpp	/^    JITMemoryManager *MemMgr;$/;"	m	class:__anon3::JITEmitter	file:
+MemoryRangeHeader	JITMemoryManager.cpp	/^  struct MemoryRangeHeader {$/;"	s	namespace:__anon4	file:
+Next	JITMemoryManager.cpp	/^    FreeRangeHeader *Next;$/;"	m	struct:__anon4::FreeRangeHeader	file:
+NoRAUWValueMapConfig	JITEmitter.cpp	/^  struct NoRAUWValueMapConfig : public ValueMapConfig<ValueTy> {$/;"	s	namespace:__anon3	file:
+NotifyFreeingMachineCode	JIT.cpp	/^void JIT::NotifyFreeingMachineCode(void *OldPtr) {$/;"	f	class:JIT
+NotifyFunctionEmitted	JIT.cpp	/^void JIT::NotifyFunctionEmitted($/;"	f	class:JIT
+PM	JIT.h	/^  FunctionPassManager PM;  \/\/ Passes to compile a function$/;"	m	class:llvm::JITState
+PendingFunctions	JIT.h	/^  std::vector<AssertingVH<Function> > PendingFunctions;$/;"	m	class:llvm::JITState
+PoisonMemory	JITMemoryManager.cpp	/^    bool PoisonMemory;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+Prev	JITMemoryManager.cpp	/^    FreeRangeHeader *Prev;$/;"	m	struct:__anon4::FreeRangeHeader	file:
+PrevAllocated	JITMemoryManager.cpp	/^    unsigned PrevAllocated : 1;$/;"	m	struct:__anon4::MemoryRangeHeader	file:
+PrevDL	JITEmitter.cpp	/^    DebugLoc PrevDL;$/;"	m	class:__anon3::JITEmitter	file:
+Register	JIT.h	/^  static void Register() {$/;"	f	class:llvm::JIT
+RegisterJIT	JIT.cpp	/^  RegisterJIT() { JIT::Register(); }$/;"	f	struct:__anon1::RegisterJIT
+RegisterJIT	JIT.cpp	/^static struct RegisterJIT {$/;"	s	namespace:__anon1	file:
+RegisterJITEventListener	JIT.cpp	/^void JIT::RegisterJITEventListener(JITEventListener *L) {$/;"	f	class:JIT
+RegisterStubResolver	JITEmitter.cpp	/^    void RegisterStubResolver(void *Stub, JITResolver *Resolver) {$/;"	f	class:__anon3::StubToResolverMapTy
+Relocations	JITEmitter.cpp	/^    std::vector<MachineRelocation> Relocations;$/;"	m	class:__anon3::JITEmitter	file:
+Remove	JIT.cpp	/^  void Remove(JIT *jit) {$/;"	f	class:__anon2::JitPool
+RemoveFromFreeList	JITMemoryManager.cpp	/^    FreeRangeHeader *RemoveFromFreeList() {$/;"	f	struct:__anon4::FreeRangeHeader
+Resolver	JITEmitter.cpp	/^    JITResolver Resolver;$/;"	m	class:__anon3::JITEmitter	file:
+ResolverHasStubs	JITEmitter.cpp	/^    bool ResolverHasStubs(JITResolver* Resolver) const {$/;"	f	class:__anon3::StubToResolverMapTy
+SavedBufferBegin	JITEmitter.cpp	/^    uint8_t *SavedBufferBegin, *SavedBufferEnd, *SavedCurBufferPtr;$/;"	m	class:__anon3::JITEmitter	file:
+SavedBufferEnd	JITEmitter.cpp	/^    uint8_t *SavedBufferBegin, *SavedBufferEnd, *SavedCurBufferPtr;$/;"	m	class:__anon3::JITEmitter	file:
+SavedCurBufferPtr	JITEmitter.cpp	/^    uint8_t *SavedBufferBegin, *SavedBufferEnd, *SavedCurBufferPtr;$/;"	m	class:__anon3::JITEmitter	file:
+SetEndOfBlockSizeMarker	JITMemoryManager.cpp	/^    void SetEndOfBlockSizeMarker() {$/;"	f	struct:__anon4::FreeRangeHeader
+SizeEstimate	JITEmitter.cpp	/^    uintptr_t SizeEstimate;$/;"	m	class:__anon3::JITEmitter	file:
+StartMachineBasicBlock	JITEmitter.cpp	/^    virtual void StartMachineBasicBlock(MachineBasicBlock *MBB) {$/;"	f	class:__anon3::JITEmitter
+StatSymbols	JITMemoryManager.cpp	/^  StatSymbols() {$/;"	f	class:__anon6::StatSymbols
+StatSymbols	JITMemoryManager.cpp	/^class StatSymbols {$/;"	c	namespace:__anon6	file:
+StubAllocator	JITMemoryManager.cpp	/^    BumpPtrAllocator StubAllocator;$/;"	m	class:__anon5::DefaultJITMemoryManager	file:
+StubToResolverMap	JITEmitter.cpp	/^  ManagedStatic<StubToResolverMapTy> StubToResolverMap;$/;"	m	namespace:__anon3	file:
+StubToResolverMapTy	JITEmitter.cpp	/^  class StubToResolverMapTy {$/;"	c	namespace:__anon3	file:
+TJI	JIT.h	/^  TargetJITInfo &TJI;      \/\/ The JITInfo for the target we are compiling to$/;"	m	class:llvm::JIT
+TM	JIT.h	/^  TargetMachine &TM;       \/\/ The current target we are compiling to$/;"	m	class:llvm::JIT
+TheJIT	JITEmitter.cpp	/^    JIT *TheJIT;$/;"	m	class:__anon3::JITEmitter	file:
+TheJIT	JITEmitter.cpp	/^    JIT *TheJIT;$/;"	m	class:__anon3::JITResolver	file:
+TheJIT	JITEmitter.cpp	/^    JIT *TheJIT;$/;"	m	class:__anon3::JITResolverState	file:
+ThisAllocated	JITMemoryManager.cpp	/^    unsigned ThisAllocated : 1;$/;"	m	struct:__anon4::MemoryRangeHeader	file:
+TrimAllocationToSize	JITMemoryManager.cpp	/^TrimAllocationToSize(FreeRangeHeader *FreeList, uint64_t NewSize) {$/;"	f	class:MemoryRangeHeader
+UnregisterJITEventListener	JIT.cpp	/^void JIT::UnregisterJITEventListener(JITEventListener *L) {$/;"	f	class:JIT
+UnregisterStubResolver	JITEmitter.cpp	/^    void UnregisterStubResolver(void *Stub) {$/;"	f	class:__anon3::StubToResolverMapTy
+addModule	JIT.cpp	/^void JIT::addModule(Module *M) {$/;"	f	class:JIT
+addPendingFunction	JIT.cpp	/^void JIT::addPendingFunction(Function *F) {$/;"	f	class:JIT
+addPointerToBasicBlock	JIT.cpp	/^void JIT::addPointerToBasicBlock(const BasicBlock *BB, void *Addr) {$/;"	f	class:JIT
+addRelocation	JITEmitter.cpp	/^    virtual void addRelocation(const MachineRelocation &MR) {$/;"	f	class:__anon3::JITEmitter
+allocIndirectGV	JITEmitter.cpp	/^void *JITEmitter::allocIndirectGV(const GlobalValue *GV,$/;"	f	class:JITEmitter
+allocateCodeSection	JITMemoryManager.cpp	/^    uint8_t *allocateCodeSection(uintptr_t Size, unsigned Alignment,$/;"	f	class:__anon5::DefaultJITMemoryManager
+allocateDataSection	JITMemoryManager.cpp	/^    uint8_t *allocateDataSection(uintptr_t Size, unsigned Alignment,$/;"	f	class:__anon5::DefaultJITMemoryManager
+allocateGlobal	JITEmitter.cpp	/^void *JITEmitter::allocateGlobal(uintptr_t Size, unsigned Alignment) {$/;"	f	class:JITEmitter
+allocateGlobal	JITMemoryManager.cpp	/^    uint8_t *allocateGlobal(uintptr_t Size, unsigned Alignment) {$/;"	f	class:__anon5::DefaultJITMemoryManager
+allocateNewCodeSlab	JITMemoryManager.cpp	/^    FreeRangeHeader *allocateNewCodeSlab(size_t MinSize) {$/;"	f	class:__anon5::DefaultJITMemoryManager
+allocateNewSlab	JITMemoryManager.cpp	/^sys::MemoryBlock DefaultJITMemoryManager::allocateNewSlab(size_t size) {$/;"	f	class:DefaultJITMemoryManager
+allocateSpace	JITEmitter.cpp	/^void *JITEmitter::allocateSpace(uintptr_t Size, unsigned Alignment) {$/;"	f	class:JITEmitter
+allocateSpace	JITMemoryManager.cpp	/^    uint8_t *allocateSpace(intptr_t Size, unsigned Alignment) {$/;"	f	class:__anon5::DefaultJITMemoryManager
+allocateStub	JITMemoryManager.cpp	/^    uint8_t *allocateStub(const GlobalValue* F, unsigned StubSize,$/;"	f	class:__anon5::DefaultJITMemoryManager
+clearPointerToBasicBlock	JIT.cpp	/^void JIT::clearPointerToBasicBlock(const BasicBlock *BB) {$/;"	f	class:JIT
+create	JIT.h	/^  static ExecutionEngine *create(Module *M,$/;"	f	class:llvm::JIT
+createEmitter	JITEmitter.cpp	/^JITCodeEmitter *JIT::createEmitter(JIT &jit, JITMemoryManager *JMM,$/;"	f	class:JIT
+createJIT	JIT.cpp	/^ExecutionEngine *JIT::createJIT(Module *M,$/;"	f	class:JIT
+deallocateBlock	JITMemoryManager.cpp	/^    void deallocateBlock(void *Block) {$/;"	f	class:__anon5::DefaultJITMemoryManager
+deallocateFunctionBody	JITMemoryManager.cpp	/^    void deallocateFunctionBody(void *Body) {$/;"	f	class:__anon5::DefaultJITMemoryManager
+deallocateMemForFunction	JITEmitter.cpp	/^void JITEmitter::deallocateMemForFunction(const Function *F) {$/;"	f	class:JITEmitter
+emitConstantPool	JITEmitter.cpp	/^void JITEmitter::emitConstantPool(MachineConstantPool *MCP) {$/;"	f	class:JITEmitter
+emitJumpTableInfo	JITEmitter.cpp	/^void JITEmitter::emitJumpTableInfo(MachineJumpTableInfo *MJTI) {$/;"	f	class:JITEmitter
+emitLabel	JITEmitter.cpp	/^    virtual void emitLabel(MCSymbol *Label) {$/;"	f	class:__anon3::JITEmitter
+endFunctionBody	JITMemoryManager.cpp	/^    void endFunctionBody(const Function *F, uint8_t *FunctionStart,$/;"	f	class:__anon5::DefaultJITMemoryManager
+finalizeMemory	JITMemoryManager.cpp	/^    bool finalizeMemory(std::string *ErrMsg) {$/;"	f	class:__anon5::DefaultJITMemoryManager
+finishFunction	JITEmitter.cpp	/^bool JITEmitter::finishFunction(MachineFunction &F) {$/;"	f	class:JITEmitter
+finishGVStub	JITEmitter.cpp	/^void JITEmitter::finishGVStub() {$/;"	f	class:JITEmitter
+freeMachineCodeForFunction	JITEmitter.cpp	/^void JIT::freeMachineCodeForFunction(Function *F) {$/;"	f	class:JIT
+getBasicBlockAddressMap	JIT.h	/^  getBasicBlockAddressMap(const MutexGuard &) {$/;"	f	class:llvm::JIT
+getBlockAfter	JITMemoryManager.cpp	/^    MemoryRangeHeader &getBlockAfter() const {$/;"	f	struct:__anon4::MemoryRangeHeader
+getCodeEmitter	JIT.h	/^  JITCodeEmitter *getCodeEmitter() const { return JCE; }$/;"	f	class:llvm::JIT
+getConstantPoolEntryAddress	JITEmitter.cpp	/^uintptr_t JITEmitter::getConstantPoolEntryAddress(unsigned ConstantNum) const {$/;"	f	class:JITEmitter
+getExternalFunctionStub	JITEmitter.cpp	/^void *JITResolver::getExternalFunctionStub(void *FnAddr) {$/;"	f	class:JITResolver
+getFreeBlockBefore	JITMemoryManager.cpp	/^    FreeRangeHeader *getFreeBlockBefore() const {$/;"	f	struct:__anon4::MemoryRangeHeader
+getFunctionToLazyStubMap	JITEmitter.cpp	/^    FunctionToLazyStubMapTy& getFunctionToLazyStubMap($/;"	f	class:__anon3::JITResolverState
+getGOTBase	JITMemoryManager.cpp	/^    uint8_t *getGOTBase() const {$/;"	f	class:__anon5::DefaultJITMemoryManager
+getGOTIndexForAddr	JITEmitter.cpp	/^unsigned JITResolver::getGOTIndexForAddr(void* addr) {$/;"	f	class:JITResolver
+getGlobalToIndirectSymMap	JITEmitter.cpp	/^    GlobalToIndirectSymMapTy& getGlobalToIndirectSymMap(const MutexGuard& lck) {$/;"	f	class:__anon3::JITResolverState
+getGlobalValueIndirectSym	JITEmitter.cpp	/^void *JITResolver::getGlobalValueIndirectSym(GlobalValue *GV, void *GVAddress) {$/;"	f	class:JITResolver
+getJITInfo	JIT.h	/^  TargetJITInfo &getJITInfo() const { return TJI; }$/;"	f	class:llvm::JIT
+getJITResolver	JITEmitter.cpp	/^    JITResolver &getJITResolver() { return Resolver; }$/;"	f	class:__anon3::JITEmitter
+getJumpTableEntryAddress	JITEmitter.cpp	/^uintptr_t JITEmitter::getJumpTableEntryAddress(unsigned Index) const {$/;"	f	class:JITEmitter
+getLabelAddress	JITEmitter.cpp	/^    virtual uintptr_t getLabelAddress(MCSymbol *Label) const {$/;"	f	class:__anon3::JITEmitter
+getLabelLocations	JITEmitter.cpp	/^    virtual DenseMap<MCSymbol*, uintptr_t> *getLabelLocations() {$/;"	f	class:__anon3::JITEmitter
+getLazyFunctionStub	JITEmitter.cpp	/^void *JITResolver::getLazyFunctionStub(Function *F) {$/;"	f	class:JITResolver
+getLazyFunctionStubIfAvailable	JITEmitter.cpp	/^void *JITResolver::getLazyFunctionStubIfAvailable(Function *F) {$/;"	f	class:JITResolver
+getMachineBasicBlockAddress	JITEmitter.cpp	/^    virtual uintptr_t getMachineBasicBlockAddress(MachineBasicBlock *MBB) const{$/;"	f	class:__anon3::JITEmitter
+getMemoryForGV	JIT.cpp	/^char* JIT::getMemoryForGV(const GlobalVariable* GV) {$/;"	f	class:JIT
+getMinBlockSize	JITMemoryManager.cpp	/^    static unsigned getMinBlockSize() {$/;"	f	struct:__anon4::FreeRangeHeader
+getModule	JIT.h	/^  Module *getModule() const { return M; }$/;"	f	class:llvm::JITState
+getOrEmitGlobalVariable	JIT.cpp	/^void *JIT::getOrEmitGlobalVariable(const GlobalVariable *GV) {$/;"	f	class:JIT
+getPM	JIT.h	/^  FunctionPassManager &getPM(const MutexGuard &L) {$/;"	f	class:llvm::JITState
+getPendingFunctions	JIT.h	/^  std::vector<AssertingVH<Function> > &getPendingFunctions(const MutexGuard &L){$/;"	f	class:llvm::JITState
+getPointerToBasicBlock	JIT.cpp	/^void *JIT::getPointerToBasicBlock(BasicBlock *BB) {$/;"	f	class:JIT
+getPointerToFunction	JIT.cpp	/^void *JIT::getPointerToFunction(Function *F) {$/;"	f	class:JIT
+getPointerToFunctionOrStub	JITEmitter.cpp	/^void *JIT::getPointerToFunctionOrStub(Function *F) {$/;"	f	class:JIT
+getPointerToGVIndirectSym	JITEmitter.cpp	/^void *JITEmitter::getPointerToGVIndirectSym(GlobalValue *V, void *Reference) {$/;"	f	class:JITEmitter
+getPointerToGlobal	JITEmitter.cpp	/^void *JITEmitter::getPointerToGlobal(GlobalValue *V, void *Reference,$/;"	f	class:JITEmitter
+getPointerToNamedFunction	JIT.cpp	/^  void *getPointerToNamedFunction(const char *Name) const {$/;"	f	class:__anon2::JitPool
+getPointerToNamedFunction	JIT.cpp	/^  void *getPointerToNamedFunction(const char *Name) {$/;"	f
+getPointerToNamedFunction	JIT.cpp	/^void *JIT::getPointerToNamedFunction(const std::string &Name,$/;"	f	class:JIT
+getPointerToNamedFunction	JITMemoryManager.cpp	/^void *DefaultJITMemoryManager::getPointerToNamedFunction(const std::string &Name,$/;"	f	class:DefaultJITMemoryManager
+getResolverFromStub	JITEmitter.cpp	/^    JITResolver *getResolverFromStub(void *Stub) const {$/;"	f	class:__anon3::StubToResolverMapTy
+initJumpTableInfo	JITEmitter.cpp	/^void JITEmitter::initJumpTableInfo(MachineJumpTableInfo *MJTI) {$/;"	f	class:JITEmitter
+initStatSymbols	JITMemoryManager.cpp	/^static StatSymbols initStatSymbols;$/;"	v	file:
+isAlreadyCodeGenerating	JIT.h	/^  bool isAlreadyCodeGenerating;$/;"	m	class:llvm::JIT
+isNonGhostDeclaration	JITEmitter.cpp	/^static bool isNonGhostDeclaration(const Function *F) {$/;"	f	file:
+jitTheFunction	JIT.cpp	/^void JIT::jitTheFunction(Function *F, const MutexGuard &locked) {$/;"	f	class:JIT
+jit_atexit	JITMemoryManager.cpp	/^static int jit_atexit(void (*Fn)()) {$/;"	f	file:
+jit_exit	JITMemoryManager.cpp	/^static void jit_exit(int Status) {$/;"	f	file:
+jit_noop	JITMemoryManager.cpp	/^static int jit_noop() {$/;"	f	file:
+jitstate	JIT.h	/^  JITState *jitstate;$/;"	m	class:llvm::JIT
+llvm	JIT.h	/^namespace llvm {$/;"	n
+nextGOTIndex	JITEmitter.cpp	/^    unsigned nextGOTIndex;$/;"	m	class:__anon3::JITResolver	file:
+onDelete	JITEmitter.cpp	/^void CallSiteValueMapConfig::onDelete(JITResolverState *JRS, Function *F) {$/;"	f	class:CallSiteValueMapConfig
+onDelete	JITEmitter.cpp	/^void JITEmitter::EmittedFunctionConfig::onDelete($/;"	f	class:JITEmitter::EmittedFunctionConfig
+onRAUW	JITEmitter.cpp	/^    static void onRAUW(JITResolverState *, Value *Old, Value *New) {$/;"	f	struct:__anon3::NoRAUWValueMapConfig
+onRAUW	JITEmitter.cpp	/^void JITEmitter::EmittedFunctionConfig::onRAUW($/;"	f	class:JITEmitter::EmittedFunctionConfig
+processDebugLoc	JITEmitter.cpp	/^void JITEmitter::processDebugLoc(DebugLoc DL, bool BeforePrintingInsn) {$/;"	f	class:JITEmitter
+recompileAndRelinkFunction	JIT.cpp	/^void *JIT::recompileAndRelinkFunction(Function *F) {$/;"	f	class:JIT
+removeModule	JIT.cpp	/^bool JIT::removeModule(Module *M) {$/;"	f	class:JIT
+retryWithMoreMemory	JITEmitter.cpp	/^void JITEmitter::retryWithMoreMemory(MachineFunction &F) {$/;"	f	class:JITEmitter
+revGOTMap	JITEmitter.cpp	/^    std::map<void*, unsigned> revGOTMap;$/;"	m	class:__anon3::JITResolver	file:
+runAtExitHandlers	JITMemoryManager.cpp	/^static void runAtExitHandlers() {$/;"	f	file:
+runFunction	JIT.cpp	/^GenericValue JIT::runFunction(Function *F,$/;"	f	class:JIT
+runJITOnFunction	JIT.cpp	/^void JIT::runJITOnFunction(Function *F, MachineCodeInfo *MCI) {$/;"	f	class:JIT
+runJITOnFunctionUnlocked	JIT.cpp	/^void JIT::runJITOnFunctionUnlocked(Function *F, const MutexGuard &locked) {$/;"	f	class:JIT
+setMemoryExecutable	JITMemoryManager.cpp	/^    void setMemoryExecutable()$/;"	f	class:__anon5::DefaultJITMemoryManager
+setMemoryWritable	JITMemoryManager.cpp	/^    void setMemoryWritable()$/;"	f	class:__anon5::DefaultJITMemoryManager
+setModuleInfo	JITEmitter.cpp	/^    virtual void setModuleInfo(MachineModuleInfo* Info) {$/;"	f	class:__anon3::JITEmitter
+setPoisonMemory	JITMemoryManager.cpp	/^    void setPoisonMemory(bool poison) {$/;"	f	class:__anon5::DefaultJITMemoryManager
+startFunction	JITEmitter.cpp	/^void JITEmitter::startFunction(MachineFunction &F) {$/;"	f	class:JITEmitter
+startFunctionBody	JITMemoryManager.cpp	/^    uint8_t *startFunctionBody(const Function *F, uintptr_t &ActualSize) {$/;"	f	class:__anon5::DefaultJITMemoryManager
+startGVStub	JITEmitter.cpp	/^void JITEmitter::startGVStub(const GlobalValue* GV,$/;"	f	class:JITEmitter
+startGVStub	JITEmitter.cpp	/^void JITEmitter::startGVStub(void *Buffer, unsigned StubSize) {$/;"	f	class:JITEmitter
+state	JITEmitter.cpp	/^    JITResolverState state;$/;"	m	class:__anon3::JITResolver	file:
+updateFunctionStub	JITEmitter.cpp	/^void JIT::updateFunctionStub(Function *F) {$/;"	f	class:JIT
+~DefaultJITMemoryManager	JITMemoryManager.cpp	/^DefaultJITMemoryManager::~DefaultJITMemoryManager() {$/;"	f	class:DefaultJITMemoryManager
+~JIT	JIT.cpp	/^JIT::~JIT() {$/;"	f	class:JIT
+~JITEmitter	JITEmitter.cpp	/^    ~JITEmitter() {$/;"	f	class:__anon3::JITEmitter
+~JITEventListener	JIT.cpp	/^JITEventListener::~JITEventListener() {}$/;"	f	class:JITEventListener
+~JITMemoryManager	JITMemoryManager.cpp	/^JITMemoryManager::~JITMemoryManager() {}$/;"	f	class:JITMemoryManager
+~JITResolver	JITEmitter.cpp	/^JITResolver::~JITResolver() {$/;"	f	class:JITResolver
+~JITSlabAllocator	JITMemoryManager.cpp	/^    virtual ~JITSlabAllocator() { }$/;"	f	class:__anon5::JITSlabAllocator
