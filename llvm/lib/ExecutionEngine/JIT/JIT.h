@@ -207,6 +207,9 @@ public:
     return BasicBlockAddressMap;
   }
 
+  virtual FunctionPassManager *getFPM();
+
+  virtual void *reoptimizeAndRelinkFunction(Function *F);
 
 private:
   static JITCodeEmitter *createEmitter(JIT &J, JITMemoryManager *JMM,

@@ -35,6 +35,8 @@
 #include "llvm/Target/TargetMachine.h"
 
 #include "llvm/Support/Debug.h"
+#include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/Scalar.h"
 
 using namespace llvm;
 
@@ -134,6 +136,12 @@ extern "C" {
     return AllJits->getPointerToNamedFunction(Name);
   }
 }
+
+FunctionPassManager* JIT::getFPM() {
+    MutexGuard locked(lock);
+    return &(jitstate->getPM(locked));
+}
+
 
 JIT::JIT(Module *M, TargetMachine &tm, TargetJITInfo &tji,
          JITMemoryManager *jmm, bool GVsWithCode)
@@ -653,6 +661,44 @@ void *JIT::recompileAndRelinkFunction(Function *F) {
   TJI.replaceMachineCodeForFunction(OldAddr, Addr);
   return Addr;
 }
+
+void *JIT::reoptimizeAndRelinkFunction(Function *F) {
+  void *OldAddr = getPointerToGlobalIfAvailable(F);
+
+  // If it's not already compiled there is no reason to patch it up.
+  if (OldAddr == 0) { return getPointerToFunction(F); }
+
+  int stat = 0;
+  for (unsigned I = 0, S = EventListeners.size(); I < S; ++I) {
+    stat += EventListeners[I]->getStat(F);
+  }
+
+  if (stat < 6) return OldAddr;
+
+  MutexGuard locked(lock);
+  FunctionPassManager *FPM = new FunctionPassManager(jitstate->getModule());
+  FPM->add(new DataLayout(*TM.getDataLayout()));
+  FPM->add(createCFGSimplificationPass());
+  FPM->add(createInstructionCombiningPass());
+  FPM->doInitialization();
+  FPM->run(*F);
+  delete FPM;
+
+  DEBUG( dbgs() << F->getName() << " " << stat << " recompiling ... \n" );
+
+  // Delete the old function mapping.
+  addGlobalMapping(F, 0);
+
+  // Recodegen the function
+  runJITOnFunction(F);
+
+  // Update state, forward the old function to the new function.
+  void *Addr = getPointerToGlobalIfAvailable(F);
+  assert(Addr && "Code generation didn't add function to GlobalAddress table!");
+  TJI.replaceMachineCodeForFunction(OldAddr, Addr);
+  return Addr;
+}
+
 
 /// getMemoryForGV - This method abstracts memory allocation of global
 /// variable so that the JIT can allocate thread local variables depending

@@ -1,4 +1,4 @@
-//===-- OnlineProfileJITEventListener.cpp - Tell OnlineProfile about JITted code ----===//
+//===-- OProfileJITEventListener.cpp - Tell OProfile about JITted code ----===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,7 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file defines a JITEventListener object that uses OnlineProfileWrapper to tell
+// This file defines a JITEventListener object that uses OProfileWrapper to tell
 // oprofile about JITted functions, including source line information.
 //
 //===----------------------------------------------------------------------===//
@@ -21,6 +21,7 @@
 #include "llvm/ADT/OwningPtr.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/ExecutionEngine/ObjectImage.h"
+#include "llvm/ExecutionEngine/OProfileWrapper.h"
 #include "llvm/Object/ObjectFile.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
@@ -35,22 +36,18 @@ using namespace llvm::jitprofiling;
 
 namespace {
 
-struct debug_line_info{
-  unsigned long vma;
-  unsigned int lineno;
-  const char *filename;
-};
-
-class OnlineProfileJITEventListener : public JITEventListener {
+class OProfileJITEventListener : public JITEventListener {
+  OProfileWrapper& Wrapper;
 
   void initialize();
 
 public:
-  OnlineProfileJITEventListener(){
+  OProfileJITEventListener(OProfileWrapper& LibraryWrapper)
+  : Wrapper(LibraryWrapper) {
     initialize();
   }
 
-  ~OnlineProfileJITEventListener() {};
+  ~OProfileJITEventListener();
 
   virtual void NotifyFunctionEmitted(const Function &F,
                                 void *FnStart, size_t FnSize,
@@ -61,29 +58,30 @@ public:
   virtual void NotifyObjectEmitted(const ObjectImage &Obj);
 
   virtual void NotifyFreeingObject(const ObjectImage &Obj);
-
-  virtual void NotifyFunctionExecute(const Function *fp);
-
-  virtual void dump();
-
-  virtual int getStat(const Function *F) { return funcFreq[F]; }
-
-private:
-  std::map<const Function *, int> funcFreq;
 };
 
-void OnlineProfileJITEventListener::initialize() {
-  funcFreq.clear();
+void OProfileJITEventListener::initialize() {
+  if (!Wrapper.op_open_agent()) {
+    const std::string err_str = sys::StrError();
+    DEBUG(dbgs() << "Failed to connect to OProfile agent: " << err_str << "\n");
+  } else {
+    DEBUG(dbgs() << "Connected to OProfile agent.\n");
+  }
 }
 
-void OnlineProfileJITEventListener::dump() {
-  for (std::map<const Function *,int>::iterator it=funcFreq.begin();
-      it!=funcFreq.end(); ++it)
-    dbgs() << it->first->getName() << " => " << it->second << '\n';
-  dbgs() << " end profiling \n";
+OProfileJITEventListener::~OProfileJITEventListener() {
+  if (Wrapper.isAgentAvailable()) {
+    if (Wrapper.op_close_agent() == -1) {
+      const std::string err_str = sys::StrError();
+      DEBUG(dbgs() << "Failed to disconnect from OProfile agent: "
+                   << err_str << "\n");
+    } else {
+      DEBUG(dbgs() << "Disconnected from OProfile agent.\n");
+    }
+  }
 }
 
-static debug_line_info LineStartToOnlineProfileFormat(
+static debug_line_info LineStartToOProfileFormat(
     const MachineFunction &MF, FilenameCache &Filenames,
     uintptr_t Address, DebugLoc Loc) {
   debug_line_info Result;
@@ -96,36 +94,24 @@ static debug_line_info LineStartToOnlineProfileFormat(
   return Result;
 }
 
-void OnlineProfileJITEventListener::NotifyFunctionExecute(const Function *fp) {
-  if (funcFreq.find(fp) == funcFreq.end()) {
-    funcFreq[fp] = 1;
-  } else {
-    int cur = funcFreq[fp];
-    funcFreq[fp] = cur+1;
-  }
-  return;
-}
-
 // Adds the just-emitted function to the symbol table.
-void OnlineProfileJITEventListener::NotifyFunctionEmitted(
+void OProfileJITEventListener::NotifyFunctionEmitted(
     const Function &F, void *FnStart, size_t FnSize,
     const JITEvent_EmittedFunctionDetails &Details) {
   assert(F.hasName() && FnStart != 0 && "Bad symbol to add");
-
-  DEBUG( dbgs() << "OnlineProfile: " << F.getName() << " emitted \n" );
-  /*const Function *fp = &F;
-  if (funcFreq.find(fp) == funcFreq.end()) {
-    funcFreq[fp] = 1;
-  } else {
-    int cur = funcFreq[fp];
-    funcFreq[fp] = cur+1;
-  }*/
-  return;
+  if (Wrapper.op_write_native_code(F.getName().data(),
+                           reinterpret_cast<uint64_t>(FnStart),
+                           FnStart, FnSize) == -1) {
+    DEBUG(dbgs() << "Failed to tell OProfile about native function "
+          << F.getName() << " at ["
+          << FnStart << "-" << ((char*)FnStart + FnSize) << "]\n");
+    return;
+  }
 
   if (!Details.LineStarts.empty()) {
     // Now we convert the line number information from the address/DebugLoc
-    // format in Details to the address/filename/lineno format that OnlineProfile
-    // expects.  Note that OnlineProfile 0.9.4 has a bug that causes it to ignore
+    // format in Details to the address/filename/lineno format that OProfile
+    // expects.  Note that OProfile 0.9.4 has a bug that causes it to ignore
     // line numbers for addresses above 4G.
     FilenameCache Filenames;
     std::vector<debug_line_info> LineInfo;
@@ -151,7 +137,7 @@ void OnlineProfileJITEventListener::NotifyFunctionEmitted(
     for (std::vector<EmittedFunctionDetails::LineStart>::const_iterator
            I = Details.LineStarts.begin(), E = Details.LineStarts.end();
          I != E; ++I) {
-      LineInfo.push_back(LineStartToOnlineProfileFormat(
+      LineInfo.push_back(LineStartToOProfileFormat(
                            *Details.MF, Filenames, I->Address, I->Loc));
     }
 
@@ -159,21 +145,30 @@ void OnlineProfileJITEventListener::NotifyFunctionEmitted(
     // line info's address to include the start of the function.
     LineInfo[0].vma = reinterpret_cast<uintptr_t>(FnStart);
 
-    for (std::vector<debug_line_info>::iterator i = LineInfo.begin(),
-        ie = LineInfo.end(); i!=ie;i++) {
-      debug_line_info info = *i;
-      dbgs() << "OnlineProfile: " << info.lineno << " " << info.filename << "\n";
+    if (Wrapper.op_write_debug_line_info(FnStart, LineInfo.size(),
+                                      &*LineInfo.begin()) == -1) {
+      DEBUG(dbgs()
+            << "Failed to tell OProfile about line numbers for native function "
+            << F.getName() << " at ["
+            << FnStart << "-" << ((char*)FnStart + FnSize) << "]\n");
     }
   }
 }
 
 // Removes the being-deleted function from the symbol table.
-void OnlineProfileJITEventListener::NotifyFreeingMachineCode(void *FnStart) {
+void OProfileJITEventListener::NotifyFreeingMachineCode(void *FnStart) {
   assert(FnStart && "Invalid function pointer");
+  if (Wrapper.op_unload_native_code(reinterpret_cast<uint64_t>(FnStart)) == -1) {
+    DEBUG(dbgs()
+          << "Failed to tell OProfile about unload of native function at "
+          << FnStart << "\n");
+  }
 }
 
-void OnlineProfileJITEventListener::NotifyObjectEmitted(const ObjectImage &Obj) {
-  dbgs() << "OnlineProfile: " << "Object\n";
+void OProfileJITEventListener::NotifyObjectEmitted(const ObjectImage &Obj) {
+  if (!Wrapper.isAgentAvailable()) {
+    return;
+  }
 
   // Use symbol info to iterate functions in the object.
   error_code ec;
@@ -190,12 +185,23 @@ void OnlineProfileJITEventListener::NotifyObjectEmitted(const ObjectImage &Obj) 
       if (I->getName(Name)) continue;
       if (I->getAddress(Addr)) continue;
       if (I->getSize(Size)) continue;
+
+      if (Wrapper.op_write_native_code(Name.data(), Addr, (void*)Addr, Size)
+                        == -1) {
+        DEBUG(dbgs() << "Failed to tell OProfile about native function "
+          << Name << " at ["
+          << (void*)Addr << "-" << ((char*)Addr + Size) << "]\n");
+        continue;
+      }
       // TODO: support line number info (similar to IntelJITEventListener.cpp)
     }
   }
 }
 
-void OnlineProfileJITEventListener::NotifyFreeingObject(const ObjectImage &Obj) {
+void OProfileJITEventListener::NotifyFreeingObject(const ObjectImage &Obj) {
+  if (!Wrapper.isAgentAvailable()) {
+    return;
+  }
 
   // Use symbol info to iterate functions in the object.
   error_code ec;
@@ -208,6 +214,13 @@ void OnlineProfileJITEventListener::NotifyFreeingObject(const ObjectImage &Obj) 
     if (SymType == object::SymbolRef::ST_Function) {
       uint64_t   Addr;
       if (I->getAddress(Addr)) continue;
+
+      if (Wrapper.op_unload_native_code(Addr) == -1) {
+        DEBUG(dbgs()
+          << "Failed to tell OProfile about unload of native function at "
+          << (void*)Addr << "\n");
+        continue;
+      }
     }
   }
 }
@@ -215,9 +228,15 @@ void OnlineProfileJITEventListener::NotifyFreeingObject(const ObjectImage &Obj) 
 }  // anonymous namespace.
 
 namespace llvm {
+JITEventListener *JITEventListener::createOProfileJITEventListener() {
+  static OwningPtr<OProfileWrapper> JITProfilingWrapper(new OProfileWrapper);
+  return new OProfileJITEventListener(*JITProfilingWrapper);
+}
 
-JITEventListener *JITEventListener::createOnlineProfileJITEventListener() {
-  return new OnlineProfileJITEventListener();
+// for testing
+JITEventListener *JITEventListener::createOProfileJITEventListener(
+                                      OProfileWrapper* TestImpl) {
+  return new OProfileJITEventListener(*TestImpl);
 }
 
 } // namespace llvm

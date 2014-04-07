@@ -1,4 +1,4 @@
-;===- ./lib/ExecutionEngine/LLVMBuild.txt ----------------------*- Conf -*--===;
+;===- ./tools/lli/LLVMBuild.txt --------------------------------*- Conf -*--===;
 ;
 ;                     The LLVM Compiler Infrastructure
 ;
@@ -16,10 +16,10 @@
 ;===------------------------------------------------------------------------===;
 
 [common]
-subdirectories = Interpreter JIT MCJIT RuntimeDyld IntelJITEvents OProfileJIT OnlineProfileJIT
+subdirectories = ChildTarget
 
 [component_0]
-type = Library
-name = ExecutionEngine
-parent = Libraries
-required_libraries = Core MC Support Target IPO
+type = Tool
+name = lli
+parent = Tools
+required_libraries = AsmParser BitReader IRReader Instrumentation Interpreter JIT MCJIT NativeCodeGen SelectionDAG Native

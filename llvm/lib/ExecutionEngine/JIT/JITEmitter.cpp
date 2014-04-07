@@ -51,6 +51,7 @@
 #ifndef NDEBUG
 #include <iomanip>
 #endif
+
 using namespace llvm;
 
 STATISTIC(NumBytes, "Number of bytes of machine code compiled");
@@ -657,6 +658,8 @@ void *JITResolver::JITCompilerFn(void *Stub) {
     (void)ActualPtr;
 
     Result = JR->TheJIT->getPointerToFunction(F);
+  } else {
+    JR->TheJIT->reoptimizeAndRelinkFunction(F);
   }
 
   // Reacquire the lock to update the GOT map.

@@ -126,6 +126,7 @@ public:
   static JITEventListener *createOnlineProfileJITEventListener();
   virtual void NotifyFunctionExecute(const Function *F) {};
   virtual void dump() {};
+  virtual int getStat(const Function *) { return 0; };
 
 };
 

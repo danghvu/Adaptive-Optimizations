@@ -29,6 +29,8 @@
 #include <string>
 #include <vector>
 
+#include "llvm/PassManager.h"
+
 namespace llvm {
 
 struct GenericValue;
@@ -232,7 +234,7 @@ public:
   ///
   /// This function is deprecated for the MCJIT execution engine.
   ///
-  /// FIXME: the JIT and MCJIT interfaces should be disentangled or united 
+  /// FIXME: the JIT and MCJIT interfaces should be disentangled or united
   /// again, if possible.
   ///
   virtual void *getPointerToNamedFunction(const std::string &Name,
@@ -402,6 +404,10 @@ public:
   /// VM::getPointerToFunction().
   virtual void *recompileAndRelinkFunction(Function *F) = 0;
 
+  virtual void *reoptimizeAndRelinkFunction(Function *F) { return recompileAndRelinkFunction(F); }
+
+  virtual FunctionPassManager* getFPM() {return NULL;};
+
   /// freeMachineCodeForFunction - Release memory in the ExecutionEngine
   /// corresponding to the machine code emitted to execute this function, useful
   /// for garbage-collecting generated code.
@@ -550,7 +556,7 @@ public:
     WhichEngine = w;
     return *this;
   }
-  
+
   /// setMCJITMemoryManager - Sets the MCJIT memory manager to use. This allows
   /// clients to customize their memory allocation policies for the MCJIT. This
   /// is only appropriate for the MCJIT; setting this and configuring the builder
