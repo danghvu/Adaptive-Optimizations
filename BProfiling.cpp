@@ -50,7 +50,7 @@ namespace {
   class BProfiling : public FunctionPass {
   public:
     static char ID;
-    BProfiling () : FunctionPass(ID) { 
+    BProfiling () : FunctionPass(ID) {
       initializeBProfilingPass(*PassRegistry::getPassRegistry());
     }
 
@@ -228,70 +228,20 @@ void BProfiling::insertInstructions() {
 
     fprintf(stderr,"\n\n");
 
-    // Create a new alloca instruction for the address of the basic block
-    AllocaInst* BBAllocaInst = new AllocaInst(IntPtrTy);
-    B->getInstList().push_back(BBAllocaInst);
-
-    BBAllocaInst->dump();
-
-    // Create a new alloca instruction for the address of the function
-    AllocaInst* FuncAllocaInst = new AllocaInst(IntPtrTy);
-    B->getInstList().push_back(FuncAllocaInst);
-
-    FuncAllocaInst->dump();
-
-    // Create a new alloca instruction for the function
-    AllocaInst* FuncPtrAllocaInst = new AllocaInst(FunctionPtrTy);
-    B->getInstList().push_back(FuncPtrAllocaInst);
-
-    FuncPtrAllocaInst->dump();
-
-    // Store the address of the current basic block
-    intptr_t BBAddr = (intptr_t)B;
-    StoreInst* BBStoreInst = new StoreInst(ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, BBAddr)), BBAllocaInst);
-    B->getInstList().push_back(BBStoreInst);
-
-    BBStoreInst->dump();
-
-    // Load the address of the basic block
-    LoadInst* BBLoadInst = new LoadInst(BBAllocaInst);
-    B->getInstList().push_back(BBLoadInst);
-
-    BBLoadInst->dump();
-
-    // Store the address of the function to be called
+    // FuncLoadInst->dump();
     intptr_t FuncAddr = (intptr_t)MyEmittedFunction;
-    StoreInst* FuncStoreInst = new StoreInst(ConstantInt::get(IntPtrTy, APInt(sizeof(intptr_t)*CHAR_BIT, FuncAddr)), FuncAllocaInst);
-    B->getInstList().push_back(FuncStoreInst);
-
-    FuncStoreInst->dump();
-
-    // Load the address of the function
-    LoadInst* FuncLoadInst = new LoadInst(FuncAllocaInst);
-    B->getInstList().push_back(FuncLoadInst);
-
-    FuncLoadInst->dump();
+    intptr_t BBAddr = (intptr_t)B;
+    Value* callptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FuncAddr));
+    Value* bbptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, BBAddr));
 
     // Perform inttoptr on function address
-    IntToPtrInst* FuncAddrToPtrInst = new IntToPtrInst(FuncLoadInst, FunctionPtrTy);
+    IntToPtrInst* FuncAddrToPtrInst = new IntToPtrInst(callptr, FunctionPtrTy);
     B->getInstList().push_back(FuncAddrToPtrInst);
 
     FuncAddrToPtrInst->dump();
 
-    // Store the cast
-    StoreInst* FuncPtrStoreInst = new StoreInst(FuncAddrToPtrInst, FuncPtrAllocaInst);
-    B->getInstList().push_back(FuncPtrStoreInst);
-
-    FuncPtrStoreInst->dump();
-
-    // Load the function pointer
-    LoadInst* FuncPtrLoadInst = new LoadInst(FuncPtrAllocaInst);
-    B->getInstList().push_back(FuncPtrLoadInst);
-
-    FuncPtrLoadInst->dump();
-
     // Perform inttoptr on the basic block
-    IntToPtrInst* BBAddrToPtrInst = new IntToPtrInst(BBLoadInst, VoidPointerTy);
+    IntToPtrInst* BBAddrToPtrInst = new IntToPtrInst(bbptr, VoidPointerTy);
     B->getInstList().push_back(BBAddrToPtrInst);
 
     BBAddrToPtrInst->dump();
@@ -299,7 +249,7 @@ void BProfiling::insertInstructions() {
     // Make the function call
     std::vector<Value*> ArrayRefVec;
     ArrayRefVec.push_back(BBAddrToPtrInst);
-    CallInst* FuncCallInst = CallInst::Create(FuncPtrLoadInst, ArrayRef<Value*>(ArrayRefVec));
+    CallInst* FuncCallInst = CallInst::Create(FuncAddrToPtrInst, ArrayRef<Value*>(ArrayRefVec));
     B->getInstList().push_back(FuncCallInst);
 
     // Insert a branch instruction to the successor
