@@ -185,78 +185,75 @@ void BProfiling::insertInstructions() {
   fprintf(stderr, "\n");
 
   for (SetVector<Edge>::iterator I = InsertionEdges.begin(), E = InsertionEdges.end(); I != E; ++I) {
-    BasicBlock* B = I->first;
-    BasicBlock::iterator BI = B->getInstList().begin();
+    // Create a new BasicBlock
+    BasicBlock* B = BasicBlock::Create(F->getContext());
+    B->moveAfter(I->first);
 
     // Create a new alloca instruction for the address of the basic block
     AllocaInst* BBAllocaInst = new AllocaInst(IntPtrTy);
-    BI = B->getInstList().insertAfter(BI, BBAllocaInst);
+    B->getInstList().push_back(BBAllocaInst);
 
     BBAllocaInst->dump();
 
     // Create a new alloca instruction for the address of the function
     AllocaInst* FuncAllocaInst = new AllocaInst(IntPtrTy);
-    BI = B->getInstList().insertAfter(BI, FuncAllocaInst);
+    B->getInstList().push_back(FuncAllocaInst);
 
     FuncAllocaInst->dump();
 
     // Create a new alloca instruction for the function
     AllocaInst* FuncPtrAllocaInst = new AllocaInst(FunctionPtrTy);
-    BI = B->getInstList().insertAfter(BI, FuncPtrAllocaInst);
+    B->getInstList().push_back(FuncPtrAllocaInst);
 
     FuncPtrAllocaInst->dump();
-
 
     // Store the address of the current basic block
     intptr_t BBAddr = (intptr_t)B;
     StoreInst* BBStoreInst = new StoreInst(ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, BBAddr)), BBAllocaInst);
-    BI = B->getInstList().insertAfter(BI, BBStoreInst);
+    B->getInstList().push_back(BBStoreInst);
 
     BBStoreInst->dump();
 
-
     // Load the address of the basic block
     LoadInst* BBLoadInst = new LoadInst(BBAllocaInst);
-    BI = B->getInstList().insertAfter(BI, BBLoadInst);
+    B->getInstList().push_back(BBLoadInst);
 
     BBLoadInst->dump();
 
     // Store the address of the function to be called
     intptr_t FuncAddr = (intptr_t)MyEmittedFunction;
     StoreInst* FuncStoreInst = new StoreInst(ConstantInt::get(IntPtrTy, APInt(sizeof(intptr_t)*CHAR_BIT, FuncAddr)), FuncAllocaInst);
-    BI = B->getInstList().insertAfter(BI, FuncStoreInst);
-
-//    fprintf(stderr, "Function address: %p\n", MyEmittedFunction);
+    B->getInstList().push_back(FuncStoreInst);
 
     FuncStoreInst->dump();
 
     // Load the address of the function
     LoadInst* FuncLoadInst = new LoadInst(FuncAllocaInst);
-    BI = B->getInstList().insertAfter(BI, FuncLoadInst);
+    B->getInstList().push_back(FuncLoadInst);
 
     FuncLoadInst->dump();
 
     // Perform inttoptr on function address
     IntToPtrInst* FuncAddrToPtrInst = new IntToPtrInst(FuncLoadInst, FunctionPtrTy);
-    BI = B->getInstList().insertAfter(BI, FuncAddrToPtrInst);
+    B->getInstList().push_back(FuncAddrToPtrInst);
 
     FuncAddrToPtrInst->dump();
 
     // Store the cast
     StoreInst* FuncPtrStoreInst = new StoreInst(FuncAddrToPtrInst, FuncPtrAllocaInst);
-    BI = B->getInstList().insertAfter(BI, FuncPtrStoreInst);
+    B->getInstList().push_back(FuncPtrStoreInst);
 
     FuncPtrStoreInst->dump();
 
     // Load the function pointer
     LoadInst* FuncPtrLoadInst = new LoadInst(FuncPtrAllocaInst);
-    BI = B->getInstList().insertAfter(BI, FuncPtrLoadInst);
+    B->getInstList().push_back(FuncPtrLoadInst);
 
     FuncPtrLoadInst->dump();
 
     // Perform inttoptr on the basic block
     IntToPtrInst* BBAddrToPtrInst = new IntToPtrInst(BBLoadInst, VoidPointerTy);
-    BI = B->getInstList().insertAfter(BI, BBAddrToPtrInst);
+    B->getInstList().push_back(BBAddrToPtrInst);
 
     BBAddrToPtrInst->dump();
 
@@ -264,7 +261,11 @@ void BProfiling::insertInstructions() {
     std::vector<Value*> ArrayRefVec;
     ArrayRefVec.push_back(BBAddrToPtrInst);
     CallInst* FuncCallInst = CallInst::Create(FuncPtrLoadInst, ArrayRef<Value*>(ArrayRefVec));
-    BI = B->getInstList().insertAfter(BI, FuncCallInst);
+    B->getInstList().push_back(FuncCallInst);
+
+    // Insert a branch instruction to the successor
+    BranchInst* Branch = BranchInst::Create(I->second);
+    B->getInstList().push_back(Branch);
 
     FuncCallInst->dump();
   }
