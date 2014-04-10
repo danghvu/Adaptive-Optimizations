@@ -34,6 +34,7 @@
 #include "llvm/Support/InstIterator.h"
 #include <stdio.h>
 #include <queue>
+#include <string>
 
 using namespace llvm;
 
@@ -184,10 +185,48 @@ void BProfiling::insertInstructions() {
 
   fprintf(stderr, "\n");
 
-  for (SetVector<Edge>::iterator I = InsertionEdges.begin(), E = InsertionEdges.end(); I != E; ++I) {
+  int i = 0;
+  for (SetVector<Edge>::iterator I = InsertionEdges.begin(), E = InsertionEdges.end(); I != E; ++I, ++i) {
     // Create a new BasicBlock
-    BasicBlock* B = BasicBlock::Create(F->getContext());
-    B->moveAfter(I->first);
+    char str[20];
+    sprintf(str, "ProfileBB%d", i);
+    BasicBlock* E1 = I->first;
+    BasicBlock* E2 = I->second;
+    BasicBlock* B = BasicBlock::Create(F->getContext(), Twine(str), F, I->second);
+    Instruction* LastInst = &E1->getInstList().back();
+
+    fprintf(stderr, "Last instruction of first bb in edge:\n");
+    LastInst->dump();
+
+    // If the last instruction of the first BB is a return, we need to create another empty
+    // BB to move the return to
+    if (dyn_cast<ReturnInst>(LastInst)) {
+      E1->getInstList().remove(E1->getInstList().back());
+      ++i;
+      char str2[20];
+      sprintf(str2, "ProfileBBEnd%d", i);
+      BasicBlock* B2 = BasicBlock::Create(F->getContext(), Twine(str2), F, B);
+      B2->getInstList().push_back(LastInst);
+      E2 = B2;
+
+      BranchInst* E1BranchInst = BranchInst::Create(B);
+      E1->getInstList().push_back(E1BranchInst);
+    }
+    else if (dyn_cast<BranchInst>(LastInst)) {
+      BranchInst* BI = dyn_cast<BranchInst>(LastInst);
+      int numSucc = BI->getNumSuccessors();
+      fprintf(stderr, "First block of edge is a branch [%d]:\n", numSucc);
+      BI->dump();
+      for (int j = 0; j < numSucc; ++j) {
+        if (E2 == BI->getSuccessor(j))
+          BI->setSuccessor(j, B);
+      }
+    }
+    else {
+      assert(0 && "Unknown terminator instruction of basic block");
+    }
+
+    fprintf(stderr,"\n\n");
 
     // Create a new alloca instruction for the address of the basic block
     AllocaInst* BBAllocaInst = new AllocaInst(IntPtrTy);
@@ -264,8 +303,11 @@ void BProfiling::insertInstructions() {
     B->getInstList().push_back(FuncCallInst);
 
     // Insert a branch instruction to the successor
-    BranchInst* Branch = BranchInst::Create(I->second);
+    BranchInst* Branch = BranchInst::Create(E2);
     B->getInstList().push_back(Branch);
+
+    B->moveAfter(E1);
+    E2->moveAfter(B);
 
     FuncCallInst->dump();
   }
