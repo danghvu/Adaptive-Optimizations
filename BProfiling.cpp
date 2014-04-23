@@ -69,6 +69,8 @@ namespace {
 
     void* CallbackFunction(BasicBlock* B);
 
+    PointerType* FunctionPtrTy;
+
   private:
     Function* F;
     LoopInfo* LI;
@@ -160,13 +162,38 @@ bool BProfiling::runOnFunction(Function& F) {
   fprintf(stderr, "*** Function after pass ***\n");
   this->F->dump();
 
+
   return result;
 }
 
 void* BProfiling::CallbackFunction(BasicBlock* B) {
   // A profiling block is guaranteed to only have one predecessor and one successor
   printf("In BProfiling callback function! [%s]\n", B->getName().str().c_str());
-  Edge E = std::make_pair(*pred_begin(B), *succ_begin(B));
+  Edge E;
+  if (B->getName().str().find("ProfileBB") != std::string::npos)
+    E = std::make_pair(*pred_begin(B), *succ_begin(B));
+  else {
+    // If the basic block name does not contain ProfileBB, it is either at the end of
+    // a basic block with a single successor or at the beginning of a block (with a single
+    // predecessor)
+    IntToPtrInst* I = dyn_cast<IntToPtrInst>(&B->getInstList().front());
+    if (I != NULL) {
+      fprintf(stderr, "1\n");
+      ConstantInt* CI = dyn_cast<ConstantInt>(I->getOperand(0));
+      if (CI != NULL && CI->getValue() == (intptr_t)B) {
+      fprintf(stderr, "2\n");
+        E = std::make_pair(*pred_begin(B), B);
+      }
+      else {
+      fprintf(stderr, "3\n");
+        E = std::make_pair(B, *succ_begin(B));
+      }
+    }
+    else {
+      fprintf(stderr, "4\n");
+      E = std::make_pair(B, *succ_begin(B));
+    }
+  }
   printEdge(E);
   (*EdgeCounts)[E] += 1;
   updateEdgeCounts();
@@ -275,26 +302,49 @@ bool BProfiling::insertInstructions() {
   FunctionType* FunctionTy = FunctionType::get(VoidPointerTy, FunctionArgsTy, false);
 
   // Create the function-pointer type
-  PointerType* FunctionPtrTy = PointerType::get(FunctionTy, 0);
+  FunctionPtrTy = PointerType::get(FunctionTy, 0);
 
-  int i = 0;
-//  intptr_t FuncAddr = (intptr_t)std::bind(&LLVMCallbackFunction, this, std::placeholders::_1);
-//  FunctionPtr FP = &BProfiling::LLVMCallbackFunction;
+  // Insert the inttoptr instructions for the function callback and this function pass
+  // (both never change)
   intptr_t FP      = reinterpret_cast<intptr_t>(MyCallbackFunction);
   intptr_t ThisObj = reinterpret_cast<intptr_t>(this);
-  for (EdgeSet::iterator I = ProfileEdges->begin(), E = ProfileEdges->end(); I != E; ++I, ++i) {
+
+  Value* fnptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FP));
+  Value* bpptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, ThisObj));
+
+  IntToPtrInst* FuncAddrToPtrInst = new IntToPtrInst(fnptr, FunctionPtrTy);
+  IntToPtrInst* BPAddrToPtrInst = new IntToPtrInst(bpptr, VoidPointerTy);
+
+  F->getEntryBlock().getInstList().push_front(BPAddrToPtrInst);
+  F->getEntryBlock().getInstList().push_front(FuncAddrToPtrInst);
+
+  int i = 0;
+  for (EdgeSet::iterator I = ProfileEdges->begin(), E = ProfileEdges->end(); I != E; ++I) {
     insertedInsts = true;
     ++NumProfileBlocks;
     // Create a new BasicBlock
-    char str[20];
-    sprintf(str, "ProfileBB%d", i);
     BasicBlock* E1 = I->first;
     BasicBlock* E2 = I->second;
-    BasicBlock* B = BasicBlock::Create(F->getContext(), Twine(str), F, E2);
+    BasicBlock* B;
+
     Instruction* LastInst = &E1->getInstList().back();
 
     if (TerminatorInst* TI = dyn_cast<TerminatorInst>(LastInst)) {
-        // Replace any phi nodes that use E1 in E2
+      // If E2 is the only successor of E1, we are going to put all of the profiling
+      // instructions at the end of E1.
+      if (TI->getNumSuccessors() == 1)
+        B = E1;
+      // Otherwise if E1 is the only predecessor of E2, then we are going to put all of
+      // the profiling instructions at the beginning of E2
+      else if (E2->getSinglePredecessor())
+        B = E2;
+      // Otherwise we need to create a new basic block for the profiling instructions
+      else {
+        char str[20];
+        sprintf(str, "ProfileBB%d", i);
+        B = BasicBlock::Create(F->getContext(), Twine(str), F, E2);
+
+        // Replace any phi nodes that use E1 in E2 since B will be the new predecessor of E2
         for (BasicBlock::iterator II = E2->begin(), IE = E2->end(); II != IE; ++II) {
           PHINode* PN = dyn_cast<PHINode>(II);
           if (!PN)
@@ -309,47 +359,54 @@ bool BProfiling::insertInstructions() {
           if (E2 == TI->getSuccessor(j))
             TI->setSuccessor(j, B);
         }
+        ++i;
+      }
     }
-    else {
+    else
       assert(0 && "Not well-formed basic block!\n");
-    }
 
     intptr_t BBAddr = reinterpret_cast<intptr_t>(B);
-    Value* fnptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FP));
     Value* bbptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, BBAddr));
-    Value* bpptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, ThisObj));
-
-    // Perform inttoptr on function address
-    IntToPtrInst* FuncAddrToPtrInst = new IntToPtrInst(fnptr, FunctionPtrTy);
-    B->getInstList().push_back(FuncAddrToPtrInst);
-
-    // Perform inttoptr on the BProfiling object
-    IntToPtrInst* BPAddrToPtrInst = new IntToPtrInst(bpptr, VoidPointerTy);
-    B->getInstList().push_back(BPAddrToPtrInst);
 
     // Perform inttoptr on the basic block
     IntToPtrInst* BBAddrToPtrInst = new IntToPtrInst(bbptr, VoidPointerTy);
-    B->getInstList().push_back(BBAddrToPtrInst);
 
     // Make the function call
     std::vector<Value*> ArrayRefVec;
     ArrayRefVec.push_back(BPAddrToPtrInst);
     ArrayRefVec.push_back(BBAddrToPtrInst);
     CallInst* FuncCallInst = CallInst::Create(FuncAddrToPtrInst, ArrayRef<Value*>(ArrayRefVec));
-    B->getInstList().push_back(FuncCallInst);
 
-    // Move the basic block to the correct location
-    B->moveAfter(E1);
-
-    // Insert a branch instruction to the successor
-    BranchInst* Branch = BranchInst::Create(E2);
-    B->getInstList().push_back(Branch);
-
-    E2->moveAfter(B);
+    // Insert the instructions
+    if (B == E1) {
+      // Remove the old branch and push all of the instructions just created onto E1
+      // (the old and new branch are exactly the same, btw)
+      B->getInstList().pop_back();
+      B->getInstList().push_back(BBAddrToPtrInst);
+      B->getInstList().push_back(FuncCallInst);
+      B->getInstList().push_back(BranchInst::Create(E2));
+    }
+    else if (B == E2) {
+      // Push everything to the front of E2 (everything has to be pushed in reverse)
+      B->getInstList().push_front(FuncCallInst);
+      B->getInstList().push_front(BBAddrToPtrInst);
+    }
+    else {
+      // Otherwise the instructions go into the new basic block and we need to move E1 and
+      // E2 into the correct locations
+      B->moveAfter(E1);
+      B->getInstList().push_back(BBAddrToPtrInst);
+      B->getInstList().push_back(FuncCallInst);
+      B->getInstList().push_back(BranchInst::Create(E2));
+      E2->moveAfter(B);
+    }
   }
-  // Need to make sure Exit->Entry is added to successors/predecessors
-  (*OrigPredecessors)[&F->getEntryBlock()].insert(ExitBB);
-  (*OrigSuccessors)[ExitBB].insert(&F->getEntryBlock());
+
+  // If we inserted no profiling code, remove the inttoptr instructions in the entry block
+  if (!insertedInsts) {
+    F->getEntryBlock().getInstList().pop_front();
+    F->getEntryBlock().getInstList().pop_front();
+  }
 
   return insertedInsts;
 }
@@ -430,6 +487,7 @@ void BProfiling::getWeights() {
   BlockWeights[ExitBB] = 1.0;
   Worklist.push_back(&F->getEntryBlock());
 
+  // Add successors and predecessors to data structures (to be used in callback)
   for (df_iterator<BasicBlock*> DI = df_begin(&F->getEntryBlock()), DE = df_end(&F->getEntryBlock()); DI != DE; ++DI) {
     for (pred_iterator PI = pred_begin(*DI), PE = pred_end(*DI); PI != PE; ++PI) {
       (*OrigPredecessors)[*DI].insert(*PI);
@@ -438,6 +496,10 @@ void BProfiling::getWeights() {
       (*OrigSuccessors)[*DI].insert(*SI);
     }
   }
+
+  // Need to make sure Exit->Entry is added to successors/predecessors
+  (*OrigPredecessors)[&F->getEntryBlock()].insert(ExitBB);
+  (*OrigSuccessors)[ExitBB].insert(&F->getEntryBlock());
 
   F->getEntryBlock().dump();
   for (unsigned i = 0; i < Worklist.size(); ++i) {
