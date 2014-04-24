@@ -426,6 +426,7 @@ int main(int argc, char **argv, char * const *envp) {
   if (OnlineProfile) {
     oprofile = JITEventListener::createOnlineProfileJITEventListener();
     EE->RegisterJITEventListener(oprofile);
+    EE->setProfileInfo(oprofile->getProfileInfo());
   }
 
   if (!NoLazyCompilation && RemoteMCJIT) {
@@ -485,20 +486,6 @@ int main(int argc, char **argv, char * const *envp) {
           EE->getPointerToFunction(Fn);
       }
     }
-
-    FunctionPassManager *FP = new FunctionPassManager(Mod);
-
-    dbgs() << "before\n";
-    EntryFn->dump();
-
-    FP->add(createUnifyFunctionExitNodesPass());
-    // FP->add(new LoopInfoPass());
-    FP->add(createBProfilingPass());
-    FP->doInitialization();
-    FP->run(*EntryFn);
-
-    dbgs() << "after\n";
-    EntryFn->dump();
 
     // Trigger compilation separately so code regions that need to be
     // invalidated will be known.
