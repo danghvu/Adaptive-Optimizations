@@ -16,6 +16,7 @@
 
 #define DEBUG_TYPE "brooks8"
 #include "llvm/Transforms/Scalar.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Analysis/LoopInfo.h"
@@ -32,7 +33,6 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/InstIterator.h"
-//#include "llvm/ExecutionEngine/JIT.h"
 #include <stdio.h>
 #include <queue>
 #include <string>
@@ -63,10 +63,9 @@ namespace {
     BProfiling () : FunctionPass(ID) {
       initializeBProfilingPass(*PassRegistry::getPassRegistry());
     }
-    BProfiling(void* J) : FunctionPass(ID) {
+    BProfiling(ExecutionEngine* J) : FunctionPass(ID) {
       initializeBProfilingPass(*PassRegistry::getPassRegistry());
       this->TheJIT = J;
-      fprintf(stderr, "The JIT: %p\n", this->TheJIT);
     }
 
     void* CallbackFunction(BasicBlock* B);
@@ -86,7 +85,7 @@ namespace {
     // Specific to keeping track of edge/block counts
     EdgeCountSet*      EdgeCounts;
     BlockCountSet*     BlockCounts;
-    void*               TheJIT;
+    ExecutionEngine* TheJIT;
 
     struct EdgeWeightCompare {
       bool operator()(const EdgeWeight& l, EdgeWeight& r) const {
@@ -127,7 +126,7 @@ namespace {
 char BProfiling::ID = 0;
 INITIALIZE_PASS(BProfiling, "bprofiling", "Brooks8 - Profiling", false, false)
 FunctionPass *llvm::createBProfilingPass() { return new BProfiling(); }
-FunctionPass *llvm::createBProfilingPass(void* J) { return new BProfiling(J); }
+FunctionPass *llvm::createBProfilingPass(ExecutionEngine* J) { return new BProfiling(J); }
 
 typedef void* (BProfiling::*FunctionPtr)(BasicBlock*);
 
@@ -193,7 +192,7 @@ void* BProfiling::CallbackFunction(BasicBlock* B) {
     }
   }
   printEdge(E);
-  int threshold = 5;
+  int threshold = (TheJIT->getProfileInfo())->TH_ENABLE_APPLY_OPT;
   (*EdgeCounts)[E] += 1;
 //  if ((*EdgeCounts)[E] >= threshold) {
     // Update edge counts and keep track of basic blocks above threshold
