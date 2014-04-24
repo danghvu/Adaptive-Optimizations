@@ -16,8 +16,10 @@
 
 #define DEBUG_TYPE "brooks8"
 #include "llvm/Transforms/Scalar.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
+#include "llvm/Transforms/IPO.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/ADT/DepthFirstIterator.h"
@@ -32,7 +34,6 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/InstIterator.h"
-//#include "llvm/ExecutionEngine/JIT.h"
 #include <stdio.h>
 #include <queue>
 #include <string>
@@ -63,10 +64,9 @@ namespace {
     BProfiling () : FunctionPass(ID) {
       initializeBProfilingPass(*PassRegistry::getPassRegistry());
     }
-    BProfiling(void* J) : FunctionPass(ID) {
+    BProfiling(ExecutionEngine* J) : FunctionPass(ID) {
       initializeBProfilingPass(*PassRegistry::getPassRegistry());
       this->TheJIT = J;
-      fprintf(stderr, "The JIT: %p\n", this->TheJIT);
     }
 
     void* CallbackFunction(BasicBlock* B);
@@ -82,11 +82,12 @@ namespace {
     EdgeWeightMap  EdgeWeights;   // Map holding weight values of each edge
     EdgeSet*       MaxSpanningTree; // Edges in the maximum spanning tree
     EdgeSet*       ProfileEdges;
+    BlockSet*      ProfileBlocks;
 
     // Specific to keeping track of edge/block counts
     EdgeCountSet*      EdgeCounts;
     BlockCountSet*     BlockCounts;
-    void*               TheJIT;
+    ExecutionEngine*   TheJIT;
 
     struct EdgeWeightCompare {
       bool operator()(const EdgeWeight& l, EdgeWeight& r) const {
@@ -106,9 +107,11 @@ namespace {
     void getWeights();
     void constructMaxSpanTree();
     bool insertInstructions();
+    void removeInstructions();
+    void removeProfiling(BasicBlock* B);
     void initializeEdgeCounts();
-    void updateBlockCounts();
-    void updateEdgeCounts();
+    void updateBlockCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsigned thresh);
+    void updateCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsigned thresh);
     void updateEdgeCountsDFS(BasicBlock* B, Edge E);
 
     bool ExitEdgesContains(SmallVector<ConstEdge, 16> vec, ConstEdge elem);
@@ -127,7 +130,7 @@ namespace {
 char BProfiling::ID = 0;
 INITIALIZE_PASS(BProfiling, "bprofiling", "Brooks8 - Profiling", false, false)
 FunctionPass *llvm::createBProfilingPass() { return new BProfiling(); }
-FunctionPass *llvm::createBProfilingPass(void* J) { return new BProfiling(J); }
+FunctionPass *llvm::createBProfilingPass(ExecutionEngine* J) { return new BProfiling(J); }
 
 typedef void* (BProfiling::*FunctionPtr)(BasicBlock*);
 
@@ -139,6 +142,7 @@ bool BProfiling::runOnFunction(Function& F) {
 
   MaxSpanningTree  = new EdgeSet();
   ProfileEdges     = new EdgeSet();
+  ProfileBlocks    = new BlockSet();
   EdgeCounts       = new EdgeCountSet();
   BlockCounts      = new BlockCountSet();
 
@@ -192,21 +196,40 @@ void* BProfiling::CallbackFunction(BasicBlock* B) {
       E = std::make_pair(B, *succ_begin(B));
     }
   }
-  printEdge(E);
-  int threshold = 5;
+  unsigned threshold = (TheJIT->getProfileInfo())->TH_ENABLE_APPLY_OPT;
   (*EdgeCounts)[E] += 1;
-//  if ((*EdgeCounts)[E] >= threshold) {
-    // Update edge counts and keep track of basic blocks above threshold
-    // Create a function pass manager
-    // -- Add remove profiling pass
-    // -- iterate through hot basic blocks and perform inlining
-    // -- decide whether to do other optimizations
-    // -- Add profiling back to B->getParent();
-//  }
-  //Function* F = B->getParent();
+  fprintf(stderr, "Threshold: %u | Edge count: ", threshold);
+  printEdge(E, (*EdgeCounts)[E]);
 
-  updateEdgeCounts();
-  return 0;
+  if ((*EdgeCounts)[E] >= threshold) {
+    // Update counts and keep track of basic blocks above threshold
+    SmallPtrSet<BasicBlock*, 8> HotBlocks;
+    updateCounts(HotBlocks, threshold);
+
+    fprintf(stderr, "An edge is now higher than the threshold! Removing profiling...\n");
+    // Remove profiling instructions
+    removeInstructions();
+//    F->dump();
+
+    // Setup pass manager for the function and the hot blocks and run the passes
+    FunctionPassManager* FPM = new FunctionPassManager(F->getParent());
+
+    fprintf(stderr, "Before SCCP:\n");
+    F->dump();
+    FPM->add(createBBInlinerPass());
+    FPM->doInitialization();
+    FPM->run(*F);
+    FPM->doFinalization();
+    delete FPM;
+
+    TheJIT->recompileAndRelinkFunction(F);
+    // Rerun profiling pass (and return it)
+    fprintf(stderr, "After SCCP:\n");
+    F->dump();
+  }
+
+  // If no optimizations were run, the profiling pass does not change
+  return this;
 }
 
 void BProfiling::initializeEdgeCounts() {
@@ -232,7 +255,7 @@ void* MyCallbackFunction(BProfiling* BP, BasicBlock* B) {
   return BP->CallbackFunction(B);
 }
 
-void BProfiling::updateEdgeCounts() {
+void BProfiling::updateCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsigned thresh) {
   Edge E = std::make_pair((BasicBlock*)NULL, (BasicBlock*)NULL);
   // Clear the counts of the edges which don't have counters
   for (EdgeSet::iterator ESI = MaxSpanningTree->begin(), ESE = MaxSpanningTree->end(); ESI != ESE; ++ESI) {
@@ -247,7 +270,7 @@ void BProfiling::updateEdgeCounts() {
 
   // Update everything
   updateEdgeCountsDFS(&F->getEntryBlock(), E);
-  updateBlockCounts();
+  updateBlockCounts(HotBlocks, thresh);
   // Print the results
   fprintf(stderr,"\n\n");
   printEdgeCounts();
@@ -320,7 +343,7 @@ void BProfiling::updateEdgeCountsDFS(BasicBlock* B, Edge E) {
   }
 }
 
-void BProfiling::updateBlockCounts() {
+void BProfiling::updateBlockCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsigned thresh) {
   for (df_iterator<BasicBlock*> I = df_begin(&F->getEntryBlock()), E = df_end(&F->getEntryBlock()); I != E; ++I) {
     BasicBlock* B = *I;
     if (B == &F->getEntryBlock())
@@ -335,8 +358,92 @@ void BProfiling::updateBlockCounts() {
       else
         E1 = std::make_pair(*PI, B);
       (*BlockCounts)[B] += (*EdgeCounts)[E1];
+      if ((*BlockCounts)[B] >= thresh) {
+        HotBlocks.insert(B);
+      }
     }
   }
+}
+
+void BProfiling::removeProfiling(BasicBlock* B) {
+  // If the block was inserted for specifically profiling (A -> B -> C), change
+  // such that A -> C and remove B from function
+  if (B->getName().str().find("ProfileBB") != std::string::npos) {
+    fprintf(stderr, "BasicBlock [%s] was added by us\n", B->getName().str().c_str());
+    BasicBlock* Succ = *succ_begin(B);
+    TerminatorInst* TermA = (*pred_begin(B))->getTerminator();
+    unsigned numSuccA = TermA->getNumSuccessors();
+    for (unsigned i = 0; i < numSuccA; ++i) {
+      if (TermA->getSuccessor(i) == B)
+        TermA->setSuccessor(i, Succ);
+    }
+    B->eraseFromParent();
+  }
+  // Otherwise the instructions are either the first two, or the last two (before the terminator inst);
+  else {
+    fprintf(stderr, "Existing BasicBlock [%s] has profiling instructions\n", B->getName().str().c_str());
+    IntToPtrInst* I = dyn_cast<IntToPtrInst>(&B->getInstList().front());
+
+    // If the first instruction is an inttoptr
+    if (I != NULL) {
+      ConstantInt* CI = dyn_cast<ConstantInt>(I->getOperand(0));
+      // And the inttoptr is specifically for the address of B, remove the first two instructions
+      if (CI != NULL && CI->getValue() == (intptr_t)B) {
+        fprintf(stderr, "\tIn the beginning!\n");
+        B->getInstList().front().eraseFromParent();
+        B->getInstList().front().eraseFromParent();
+      }
+      // Otherwise remove the two instructions before the terminator
+      else {
+        fprintf(stderr, "\tIn the end!\n");
+        BasicBlock::iterator ILT = B->getInstList().end();
+        ILT--; ILT--;
+        fprintf(stderr, "Removing instruction: ");
+        (*ILT).dump();
+        ILT = B->getInstList().erase(ILT);
+        ILT--;
+        fprintf(stderr, "Removing instruction: ");
+        (*ILT).dump();
+        ILT = B->getInstList().erase(ILT);
+//        Instruction* TermInst = &B->getInstList().back();
+//        B->getInstList().pop_back();
+        //TermInst->dump();
+//        B->getInstList().back().eraseFromParent();
+//        B->getInstList().back().eraseFromParent();
+//        B->getInstList().push_back(TermInst);
+      }
+    }
+    // Otherwise remove the two instructions before the terminator
+    else {
+        fprintf(stderr, "\tIn the end!\n");
+        BasicBlock::iterator ILT = B->getInstList().end();
+        ILT--; ILT--;
+        fprintf(stderr, "Removing instruction: ");
+        (*ILT).dump();
+        ILT = B->getInstList().erase(ILT);
+        ILT--;
+        fprintf(stderr, "Removing instruction: ");
+        (*ILT).dump();
+        ILT = B->getInstList().erase(ILT);
+//        Instruction* TermInst = &B->getInstList().back();
+//        B->getInstList().pop_back();
+        //TermInst->dump();
+//        B->getInstList().back().eraseFromParent();
+//        B->getInstList().back().eraseFromParent();
+//        B->getInstList().push_back(TermInst);
+    }
+    B->dump();
+  }
+}
+
+void BProfiling::removeInstructions() {
+  for (BlockSet::iterator BSI = ProfileBlocks->begin(), BSE = ProfileBlocks->end(); BSI != BSE; ++BSI) {
+    fprintf(stderr, "Removing profiling from BB : %s\n", (*BSI)->getName().str().c_str());
+    removeProfiling(*BSI);
+  }
+  // Remove the two inttoptrs for the pass and the function
+  F->getEntryBlock().getInstList().front().eraseFromParent();
+  F->getEntryBlock().getInstList().front().eraseFromParent();
 }
 
 bool BProfiling::insertInstructions() {
@@ -453,6 +560,7 @@ bool BProfiling::insertInstructions() {
       B->getInstList().push_back(BranchInst::Create(E2));
       E2->moveAfter(B);
     }
+    ProfileBlocks->insert(B);
   }
 
   // If we inserted no profiling code, remove the inttoptr instructions in the entry block
