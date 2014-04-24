@@ -160,7 +160,7 @@ Pass *createLoopRotatePass();
 // LoopIdiom - This pass recognizes and replaces idioms in loops.
 //
 Pass *createLoopIdiomPass();
-  
+
 //===----------------------------------------------------------------------===//
 //
 // PromoteMemoryToRegister - This pass is used to promote memory references to
@@ -199,7 +199,7 @@ FunctionPass *createReassociatePass();
 // preds always go to some succ.
 //
 FunctionPass *createJumpThreadingPass();
-  
+
 //===----------------------------------------------------------------------===//
 //
 // CFGSimplification - Merge basic blocks, eliminate unreachable blocks,
@@ -288,10 +288,10 @@ extern char &LCSSAID;
 // tree.
 //
 FunctionPass *createEarlyCSEPass();
-  
+
 //===----------------------------------------------------------------------===//
 //
-// GVN - This pass performs global value numbering and redundant load 
+// GVN - This pass performs global value numbering and redundant load
 // elimination cotemporaneously.
 //
 FunctionPass *createGVNPass(bool NoLoads = false);
@@ -309,7 +309,7 @@ FunctionPass *createMemCpyOptPass();
 // can prove are dead.
 //
 Pass *createLoopDeletionPass();
-  
+
 //===----------------------------------------------------------------------===//
 //
 // CodeGenPrepare - This pass prepares a function for instruction selection.
@@ -322,7 +322,7 @@ FunctionPass *createCodeGenPreparePass(const TargetMachine *TM = 0);
 //
 FunctionPass *createInstructionNamerPass();
 extern char &InstructionNamerID;
-  
+
 //===----------------------------------------------------------------------===//
 //
 // Sink - Code Sinking
@@ -370,8 +370,9 @@ FunctionPass *createPartiallyInlineLibCallsPass();
 FunctionPass *createSampleProfileLoaderPass();
 FunctionPass *createSampleProfileLoaderPass(StringRef Name);
 
+class ExecutionEngine;
 FunctionPass* createBProfilingPass();
-FunctionPass* createBProfilingPass(void* J);
+FunctionPass* createBProfilingPass(ExecutionEngine* jit);
 
 FunctionPass* createRemoveBProfilingPass();
 

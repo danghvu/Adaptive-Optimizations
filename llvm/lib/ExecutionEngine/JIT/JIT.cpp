@@ -676,13 +676,13 @@ void *JIT::reoptimizeAndRelinkFunction(Function *F) {
   }
 
   fprintf(stderr, "Stat: %d\n", stat);
-  if (stat != 2) return OldAddr;
+  if (stat != ((JITOnlineProfileInfo*) getProfileInfo())->TH_ENABLE_BB_PROFILE) return OldAddr;
 
   DEBUG( dbgs() << F->getName() << " " << stat << " recompiling ... \n" );
 
   FunctionPassManager *FPM = new FunctionPassManager(jitstate->getModule());
   fprintf(stderr, "JIT pointer: %p\n", (void*)this);
-  FunctionPass* FP = createBProfilingPass((void*)this);
+  FunctionPass* FP = createBProfilingPass(this);
   FPM->add(new DataLayout(*TM.getDataLayout()));
   FPM->add(createUnifyFunctionExitNodesPass());
   FPM->add(FP);

@@ -71,13 +71,13 @@ bool RemoveBProfiling::removeBasicBlocks() {
   for (SmallVectorImpl<BasicBlock*>::iterator I = Worklist.begin(), E = Worklist.end(); I != E; ++I) {
     BasicBlock* B = *I;
     fprintf(stderr, "%lu\n", B->getInstList().size());
-    InstList.clear();
+    // InstList.clear();
 
     // If there are only 5 instructions in the basic block, it only
     // contains profiling code and is safe to completely remove
     if (B->getInstList().size() == 5) {
       BasicBlock* Succ = *succ_begin(B);
-      BasicBlock* Pred = B->getSinglinePredecessor();
+      BasicBlock* Pred = B->getSinglePredecessor();
       TerminatorInst* PredTerm = Pred->getTerminator();
       unsigned PredNumSucc = PredTerm->getNumSuccessors();
       for (unsigned i = 0; i < PredNumSucc; ++i) {
@@ -98,9 +98,10 @@ bool RemoveBProfiling::removeBasicBlocks() {
  return removed;
 }
 
+/*
 void RemoveBProfiling::putBackInsts(BasicBlock* B, SmallVector<Instruction*, 8> InstList) {
   for (SmallVectorImpl<Instruction*>::reverse_iterator I = InstList.rbegin(), E = InstList.rend(); I != E; ++I) {
     Instruction* Inst = *I;
     B->getInstList().push_back(Inst);
   }
-}
+}*/
