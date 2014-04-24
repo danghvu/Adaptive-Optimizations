@@ -32,20 +32,30 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/InstIterator.h"
+//#include "llvm/ExecutionEngine/JIT.h"
 #include <stdio.h>
 #include <queue>
 #include <string>
+#include <functional>
 
 using namespace llvm;
+
+STATISTIC(NumProfileBlocks , "Number of profiling basic blocks");
 
 namespace {
   typedef std::pair<const BasicBlock*, const BasicBlock*> ConstEdge;
   typedef std::pair<BasicBlock*, BasicBlock*> Edge;
   typedef std::pair<Edge, float>              EdgeWeight;
   typedef SetVector<Edge>                     EdgeSet;
+  typedef SetVector<BasicBlock*>              BlockSet;
   typedef DenseMap<Edge, float>               EdgeWeightMap;
   typedef DenseMap<BasicBlock*, float>        BlockWeightMap;
-  typedef DenseMap<BasicBlock*, SmallVector<BasicBlock*, 8> > BlockEdgeMap;
+  typedef DenseMap<BasicBlock*, BlockSet>     BlockMap;
+
+  // Specific to keeping track of edge/block counts
+  typedef DenseMap<Edge, unsigned>            EdgeCountSet;
+  typedef DenseMap<BasicBlock*, unsigned>     BlockCountSet;
+  // ----------------------------------------------
 
   class BProfiling : public FunctionPass {
   public:
@@ -53,6 +63,13 @@ namespace {
     BProfiling () : FunctionPass(ID) {
       initializeBProfilingPass(*PassRegistry::getPassRegistry());
     }
+    BProfiling(void* J) : FunctionPass(ID) {
+      initializeBProfilingPass(*PassRegistry::getPassRegistry());
+      this->TheJIT = J;
+      fprintf(stderr, "The JIT: %p\n", this->TheJIT);
+    }
+
+    void* CallbackFunction(BasicBlock* B);
 
   private:
     Function* F;
@@ -61,16 +78,15 @@ namespace {
 
     int LoopMultiplier; // Assumption on number of iterations for each loop
 
-    BlockEdgeMap   Predecessors;  // Is this needed?
-    BlockEdgeMap   Successors;    // Is this needed?
-    BlockWeightMap BlockWeights;
-    EdgeWeightMap  EdgeWeights;
-    EdgeSet        MaxSpanningTree;
+    BlockWeightMap BlockWeights;  // Map holding weight values of each basic block
+    EdgeWeightMap  EdgeWeights;   // Map holding weight values of each edge
+    EdgeSet*       MaxSpanningTree; // Edges in the maximum spanning tree
+    EdgeSet*       ProfileEdges;
 
-    SmallPtrSet<Loop*, 8> Loops;
-    DenseMap<Loop*, SetVector<Edge> > LoopEdges;
-    DenseMap<Loop*, SetVector<Edge> > LoopEdgesAdded;
-
+    // Specific to keeping track of edge/block counts
+    EdgeCountSet*      EdgeCounts;
+    BlockCountSet*     BlockCounts;
+    void*               TheJIT;
 
     struct EdgeWeightCompare {
       bool operator()(const EdgeWeight& l, EdgeWeight& r) const {
@@ -83,38 +99,37 @@ namespace {
     virtual bool runOnFunction(Function& F);
 
     virtual void getAnalysisUsage(AnalysisUsage& AU) const {
-      //AU.addRequiredID(LoopSimplifyID);
-      //AU.addPreservedID(LoopSimplifyID);
-      //AU.setPreservesCFG();
       AU.addRequired<UnifyFunctionExitNodes>();
       AU.addRequired<LoopInfo>();
     }
 
     void getWeights();
-    void generateLoopEdges();
     void constructMaxSpanTree();
-    bool addPotentialLoopEdge(Edge E);
-    bool createsCycle(Loop* L, Edge E);
-    void insertInstructions();
+    bool insertInstructions();
+    void initializeEdgeCounts();
+    void updateBlockCounts();
+    void updateEdgeCounts();
+    void updateEdgeCountsDFS(BasicBlock* B, Edge E);
 
     bool ExitEdgesContains(SmallVector<ConstEdge, 16> vec, ConstEdge elem);
 
     void printAllWeights();
-    void printAllLoops();
     void printMaxSpanTree();
+    void printInsertionEdges();
+    void printEdge(Edge E);
+    void printEdge(Edge E, float F);
+    void printEdge(Edge E, unsigned U);
+    void printEdgeCounts();
+    void printBlockCounts();
   };
 }
 
 char BProfiling::ID = 0;
 INITIALIZE_PASS(BProfiling, "bprofiling", "Brooks8 - Profiling", false, false)
 FunctionPass *llvm::createBProfilingPass() { return new BProfiling(); }
+FunctionPass *llvm::createBProfilingPass(void* J) { return new BProfiling(J); }
 
-typedef void* (*FunctionPtr)(void*);
-
-static void* MyEmittedFunction(void* args) {
-  printf("Hello! [%p]\n", args);
-  return 0;
-}
+typedef void* (BProfiling::*FunctionPtr)(BasicBlock*);
 
 bool BProfiling::runOnFunction(Function& F) {
   this->F  = &F;
@@ -122,47 +137,218 @@ bool BProfiling::runOnFunction(Function& F) {
   this->ExitBB = getAnalysis<UnifyFunctionExitNodes>().getReturnBlock();
   this->LoopMultiplier = 10;
 
+  MaxSpanningTree  = new EdgeSet();
+  ProfileEdges     = new EdgeSet();
+  EdgeCounts       = new EdgeCountSet();
+  BlockCounts      = new BlockCountSet();
+
+  if (this->F->size() == 1) {
+    fprintf(stderr, "*** Function only has one basic block - no profiling code needed ***\n");
+    return false;
+  }
+
+  fprintf(stderr, "*** Function before pass ***\n");
+  this->F->dump();
   fprintf(stderr, "Exit Basic Block: %s\n", this->ExitBB->getName().str().c_str());
 
   getWeights();
   printAllWeights();
 
-  generateLoopEdges();
-  printAllLoops();
-
   constructMaxSpanTree();
   printMaxSpanTree();
+  printInsertionEdges();
+  bool result = insertInstructions();
 
-  insertInstructions();
+  initializeEdgeCounts();
 
-  // What do we return?
-  return true;
+  fprintf(stderr, "*** Function after pass ***\n");
+  this->F->dump();
+
+
+  return result;
 }
 
-void BProfiling::insertInstructions() {
-  // Insert allocation for profiling variables
-  SmallPtrSet<Instruction*, 16> Instructions;
-  SetVector<Edge> InsertionEdges;
+void* BProfiling::CallbackFunction(BasicBlock* B) {
+  // A profiling block is guaranteed to only have one predecessor and one successor
+  printf("In BProfiling callback function! [%s]\n", B->getName().str().c_str());
+  Edge E;
+  if (B->getName().str().find("ProfileBB") != std::string::npos)
+    E = std::make_pair(*pred_begin(B), *succ_begin(B));
+  else {
+    // If the basic block name does not contain ProfileBB, it is either at the end of
+    // a basic block with a single successor or at the beginning of a block (with a single
+    // predecessor)
+    IntToPtrInst* I = dyn_cast<IntToPtrInst>(&B->getInstList().front());
+    if (I != NULL) {
+      ConstantInt* CI = dyn_cast<ConstantInt>(I->getOperand(0));
+      if (CI != NULL && CI->getValue() == (intptr_t)B) {
+        E = std::make_pair(*pred_begin(B), B);
+      }
+      else {
+        E = std::make_pair(B, *succ_begin(B));
+      }
+    }
+    else {
+      E = std::make_pair(B, *succ_begin(B));
+    }
+  }
+  printEdge(E);
+  int threshold = 5;
+  (*EdgeCounts)[E] += 1;
+//  if ((*EdgeCounts)[E] >= threshold) {
+    // Update edge counts and keep track of basic blocks above threshold
+    // Create a function pass manager
+    // -- Add remove profiling pass
+    // -- iterate through hot basic blocks and perform inlining
+    // -- decide whether to do other optimizations
+    // -- Add profiling back to B->getParent();
+//  }
+  //Function* F = B->getParent();
 
-  // Iterate through all edges to find the insertion edges
-  for (DenseMap<Edge, float>::iterator DI = EdgeWeights.begin(), DE = EdgeWeights.end(); DI != DE; ++DI) {
-    Edge E = DI->first;
-    if (MaxSpanningTree.count(E) == 0) {
-      InsertionEdges.insert(E);
+  updateEdgeCounts();
+  return 0;
+}
+
+void BProfiling::initializeEdgeCounts() {
+  EdgeCounts->clear();
+
+  // Set all edges to have 0 frequency
+  for (EdgeSet::iterator ESI = MaxSpanningTree->begin(), ESE = MaxSpanningTree->end(); ESI != ESE; ++ESI) {
+    (*EdgeCounts)[*ESI] = 0;
+  }
+  for (EdgeSet::iterator ESI = ProfileEdges->begin(), ESE = ProfileEdges->end(); ESI != ESE; ++ESI) {
+    (*EdgeCounts)[*ESI] = 0;
+  }
+/*
+  fprintf(stderr, "*** Edge Count set: ***\n");
+  for (EdgeCountSet::iterator ECI = EdgeCounts->begin(), ECE = EdgeCounts->end(); ECI != ECE; ++ECI) {
+    Edge Temp = ECI->first;
+    printEdge(Temp);
+  }*/
+}
+
+void* MyCallbackFunction(BProfiling* BP, BasicBlock* B) {
+  printf("In callback function!\n");
+  return BP->CallbackFunction(B);
+}
+
+void BProfiling::updateEdgeCounts() {
+  Edge E = std::make_pair((BasicBlock*)NULL, (BasicBlock*)NULL);
+  // Clear the counts of the edges which don't have counters
+  for (EdgeSet::iterator ESI = MaxSpanningTree->begin(), ESE = MaxSpanningTree->end(); ESI != ESE; ++ESI) {
+    //printEdge(*ESI);
+    (*EdgeCounts)[*ESI] = 0;
+  }
+
+  // Clear the counts of all basic blocks
+  for (BlockCountSet::iterator BSI = BlockCounts->begin(), BSE = BlockCounts->end(); BSI != BSE; ++BSI) {
+    BSI->second = 0;
+  }
+
+  // Update everything
+  updateEdgeCountsDFS(&F->getEntryBlock(), E);
+  updateBlockCounts();
+  // Print the results
+  fprintf(stderr,"\n\n");
+  printEdgeCounts();
+  printBlockCounts();
+}
+
+void BProfiling::updateEdgeCountsDFS(BasicBlock* B, Edge E) {
+  Edge E1;
+  /*
+  fprintf(stderr, "DFS: %s, ", B->getName().str().c_str());
+  if (E.first == NULL)
+    fprintf(stderr, "NULL\n");
+  else
+    printEdge(E);
+
+  fprintf(stderr, "\tIn: { ");
+  for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
+    if ((*PI)->getName().str().find("ProfileBB") != std::string::npos)
+      fprintf(stderr, "%s ", (*pred_begin(*PI))->getName().str().c_str());
+    else
+      fprintf(stderr, "%s ", (*PI)->getName().str().c_str());
+  }
+  fprintf(stderr, "}\n\tOut: { ");
+  for (succ_iterator SI = succ_begin(B), SE = succ_end(B); SI != SE; ++SI) {
+    if ((*SI)->getName().str().find("ProfileBB") != std::string::npos)
+      fprintf(stderr, "%s ", (*succ_begin(*SI))->getName().str().c_str());
+    else
+      fprintf(stderr, "%s ", (*SI)->getName().str().c_str());
+  }
+  fprintf(stderr, "}\n");
+*/
+  // Calculate the in dependencies
+  unsigned in = 0;
+
+  // If B is the entry block, we have to do the exit->entry edge as well
+  if (B == &F->getEntryBlock()) {
+    E1 = std::make_pair(ExitBB, B);
+    if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree->count(E1) != 0) {
+      updateEdgeCountsDFS(E1.first, E1);
     }
   }
 
-  // Address type
-  IntegerType* IntPtrTy = IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT);
+  for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
+    if ((*PI)->getName().str().find("ProfileBB") != std::string::npos)
+      E1 = std::make_pair(*pred_begin(*PI), B);
+    else
+      E1 = std::make_pair(*PI, B);
+    if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree->count(E1) != 0) {
+      updateEdgeCountsDFS(E1.first, E1);
+    }
+    in += (*EdgeCounts)[E1];
+  }
+
+  // Calculate the out dependencies
+  unsigned out = 0;
+  for (succ_iterator SI = succ_begin(B), SE = succ_end(B); SI != SE; ++SI) {
+    if ((*SI)->getName().str().find("ProfileBB") != std::string::npos)
+      E1 = std::make_pair(B, *succ_begin(*SI));
+    else
+      E1 = std::make_pair(B, *SI);
+
+    if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree->count(E1) != 0) {
+      updateEdgeCountsDFS(E1.second, E1);
+    }
+    out += (*EdgeCounts)[E1];
+  }
+
+  if (E.first != NULL) {
+    (*EdgeCounts)[E] = abs(in - out);
+  }
+}
+
+void BProfiling::updateBlockCounts() {
+  for (df_iterator<BasicBlock*> I = df_begin(&F->getEntryBlock()), E = df_end(&F->getEntryBlock()); I != E; ++I) {
+    BasicBlock* B = *I;
+    if (B == &F->getEntryBlock())
+      (*BlockCounts)[B] = (*EdgeCounts)[std::make_pair(ExitBB, B)];
+    else
+      (*BlockCounts)[B] = 0;
+
+    for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
+      Edge E1;
+      if ((*PI)->getName().str().find("ProfileBB") != std::string::npos)
+        E1 = std::make_pair(*pred_begin(B), B);
+      else
+        E1 = std::make_pair(*PI, B);
+      (*BlockCounts)[B] += (*EdgeCounts)[E1];
+    }
+  }
+}
+
+bool BProfiling::insertInstructions() {
+  // Insert allocation for profiling variables
+  bool insertedInsts = false;
 
   // Create a pointer type of size sizeof(void*)
   PointerType* VoidPointerTy = PointerType::get(IntegerType::get(F->getContext(), CHAR_BIT), 0);
 
-  // Create a pointer type of size sizeof(BasicBlock*)
-  PointerType* BBPointerTy = PointerType::get(IntegerType::get(F->getContext(), sizeof(BasicBlock*)*CHAR_BIT), 0);
-
   //  Create a vector of the argument types
   std::vector<Type*> FunctionArgsTy;
+  FunctionArgsTy.push_back(VoidPointerTy);
   FunctionArgsTy.push_back(VoidPointerTy);
 
   // Create the function type: PointerTy func(PointerTy)
@@ -171,99 +357,111 @@ void BProfiling::insertInstructions() {
   // Create the function-pointer type
   PointerType* FunctionPtrTy = PointerType::get(FunctionTy, 0);
 
-  fprintf(stderr, "Address type: ");
-  IntPtrTy->dump();
+  // Insert the inttoptr instructions for the function callback and this function pass
+  // (both never change)
+  intptr_t FP      = reinterpret_cast<intptr_t>(MyCallbackFunction);
+  intptr_t ThisObj = reinterpret_cast<intptr_t>(this);
 
-  fprintf(stderr, "\nVoid pointer type: ");
-  VoidPointerTy->dump();
+  Value* fnptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FP));
+  Value* bpptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, ThisObj));
 
-  fprintf(stderr, "\nBB pointer type: ");
-  BBPointerTy->dump();
+  IntToPtrInst* FuncAddrToPtrInst = new IntToPtrInst(fnptr, FunctionPtrTy);
+  IntToPtrInst* BPAddrToPtrInst = new IntToPtrInst(bpptr, VoidPointerTy);
 
-  fprintf(stderr, "\nFunc pointer type: ");
-  FunctionPtrTy->dump();
-
-  fprintf(stderr, "\n");
+  F->getEntryBlock().getInstList().push_front(BPAddrToPtrInst);
+  F->getEntryBlock().getInstList().push_front(FuncAddrToPtrInst);
 
   int i = 0;
-  for (SetVector<Edge>::iterator I = InsertionEdges.begin(), E = InsertionEdges.end(); I != E; ++I, ++i) {
+  for (EdgeSet::iterator I = ProfileEdges->begin(), E = ProfileEdges->end(); I != E; ++I) {
+    insertedInsts = true;
+    ++NumProfileBlocks;
     // Create a new BasicBlock
-    char str[20];
-    sprintf(str, "ProfileBB%d", i);
     BasicBlock* E1 = I->first;
     BasicBlock* E2 = I->second;
-    BasicBlock* B = BasicBlock::Create(F->getContext(), Twine(str), F, I->second);
+    BasicBlock* B;
+
     Instruction* LastInst = &E1->getInstList().back();
 
-    fprintf(stderr, "Last instruction of first bb in edge:\n");
-    LastInst->dump();
+    if (TerminatorInst* TI = dyn_cast<TerminatorInst>(LastInst)) {
+      // If E2 is the only successor of E1, we are going to put all of the profiling
+      // instructions at the end of E1.
+      if (TI->getNumSuccessors() == 1)
+        B = E1;
+      // Otherwise if E1 is the only predecessor of E2, then we are going to put all of
+      // the profiling instructions at the beginning of E2
+      else if (E2->getSinglePredecessor())
+        B = E2;
+      // Otherwise we need to create a new basic block for the profiling instructions
+      else {
+        char str[20];
+        sprintf(str, "ProfileBB%d", i);
+        B = BasicBlock::Create(F->getContext(), Twine(str), F, E2);
 
-    // If the last instruction of the first BB is a return, we need to create another empty
-    // BB to move the return to
-    if (dyn_cast<ReturnInst>(LastInst)) {
-      E1->getInstList().remove(E1->getInstList().back());
-      ++i;
-      char str2[20];
-      sprintf(str2, "ProfileBBEnd%d", i);
-      BasicBlock* B2 = BasicBlock::Create(F->getContext(), Twine(str2), F, B);
-      B2->getInstList().push_back(LastInst);
-      E2 = B2;
+        // Replace any phi nodes that use E1 in E2 since B will be the new predecessor of E2
+        for (BasicBlock::iterator II = E2->begin(), IE = E2->end(); II != IE; ++II) {
+          PHINode* PN = dyn_cast<PHINode>(II);
+          if (!PN)
+            break;
+          int i;
+          while ((i = PN->getBasicBlockIndex(E1)) >= 0)
+            PN->setIncomingBlock(i, B);
+        }
 
-      BranchInst* E1BranchInst = BranchInst::Create(B);
-      E1->getInstList().push_back(E1BranchInst);
-    }
-    else if (dyn_cast<BranchInst>(LastInst)) {
-      BranchInst* BI = dyn_cast<BranchInst>(LastInst);
-      int numSucc = BI->getNumSuccessors();
-      fprintf(stderr, "First block of edge is a branch [%d]:\n", numSucc);
-      BI->dump();
-      for (int j = 0; j < numSucc; ++j) {
-        if (E2 == BI->getSuccessor(j))
-          BI->setSuccessor(j, B);
+        int numSuccessors = TI->getNumSuccessors();
+        for (int j = 0; j < numSuccessors; ++j) {
+          if (E2 == TI->getSuccessor(j))
+            TI->setSuccessor(j, B);
+        }
+        ++i;
       }
     }
-    else {
-      assert(0 && "Unknown terminator instruction of basic block");
-    }
+    else
+      assert(0 && "Not well-formed basic block!\n");
 
-    fprintf(stderr,"\n\n");
-
-    // FuncLoadInst->dump();
-    intptr_t FuncAddr = (intptr_t)MyEmittedFunction;
-    intptr_t BBAddr = (intptr_t)B;
-    Value* callptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FuncAddr));
+    intptr_t BBAddr = reinterpret_cast<intptr_t>(B);
     Value* bbptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, BBAddr));
-
-    // Perform inttoptr on function address
-    IntToPtrInst* FuncAddrToPtrInst = new IntToPtrInst(callptr, FunctionPtrTy);
-    B->getInstList().push_back(FuncAddrToPtrInst);
-
-    FuncAddrToPtrInst->dump();
 
     // Perform inttoptr on the basic block
     IntToPtrInst* BBAddrToPtrInst = new IntToPtrInst(bbptr, VoidPointerTy);
-    B->getInstList().push_back(BBAddrToPtrInst);
-
-    BBAddrToPtrInst->dump();
 
     // Make the function call
     std::vector<Value*> ArrayRefVec;
+    ArrayRefVec.push_back(BPAddrToPtrInst);
     ArrayRefVec.push_back(BBAddrToPtrInst);
     CallInst* FuncCallInst = CallInst::Create(FuncAddrToPtrInst, ArrayRef<Value*>(ArrayRefVec));
-    B->getInstList().push_back(FuncCallInst);
 
-    // Insert a branch instruction to the successor
-    BranchInst* Branch = BranchInst::Create(E2);
-    B->getInstList().push_back(Branch);
-
-    B->moveAfter(E1);
-    E2->moveAfter(B);
-
-    FuncCallInst->dump();
+    // Insert the instructions
+    if (B == E1) {
+      // Remove the old branch and push all of the instructions just created onto E1
+      // (the old and new branch are exactly the same, btw)
+      B->getInstList().pop_back();
+      B->getInstList().push_back(BBAddrToPtrInst);
+      B->getInstList().push_back(FuncCallInst);
+      B->getInstList().push_back(BranchInst::Create(E2));
+    }
+    else if (B == E2) {
+      // Push everything to the front of E2 (everything has to be pushed in reverse)
+      B->getInstList().push_front(FuncCallInst);
+      B->getInstList().push_front(BBAddrToPtrInst);
+    }
+    else {
+      // Otherwise the instructions go into the new basic block and we need to move E1 and
+      // E2 into the correct locations
+      B->moveAfter(E1);
+      B->getInstList().push_back(BBAddrToPtrInst);
+      B->getInstList().push_back(FuncCallInst);
+      B->getInstList().push_back(BranchInst::Create(E2));
+      E2->moveAfter(B);
+    }
   }
 
-  fprintf(stderr, "**** Function: ****\n");
-  F->dump();
+  // If we inserted no profiling code, remove the inttoptr instructions in the entry block
+  if (!insertedInsts) {
+    F->getEntryBlock().getInstList().pop_front();
+    F->getEntryBlock().getInstList().pop_front();
+  }
+
+  return insertedInsts;
 }
 
 bool BProfiling::ExitEdgesContains(SmallVector<ConstEdge, 16> vec, ConstEdge elem) {
@@ -274,121 +472,60 @@ bool BProfiling::ExitEdgesContains(SmallVector<ConstEdge, 16> vec, ConstEdge ele
   return false;
 }
 
-void BProfiling::generateLoopEdges() {
-  SmallVector<BasicBlock*, 32> Worklist;
-  SmallPtrSet<BasicBlock*, 32> Visited;
-  fprintf(stderr, "Generating Loop Edges\n");
-  for (SmallPtrSet<Loop*, 8>::iterator I = Loops.begin(), E = Loops.end(); I != E; ++I) {
-    Loop* L = *I;
-    fprintf(stderr, "\tLoop Header: %s\n", L->getHeader()->getName().str().c_str());
-    Worklist.push_back(L->getHeader());
-    for (unsigned i = 0; i < Worklist.size(); ++i) {
-      BasicBlock* B = Worklist[i];
-      for (succ_iterator SI = succ_begin(B), SE = succ_end(B); SI != SE; ++SI) {
-        BasicBlock* BS = *SI;
-        if (LI->getLoopFor(BS) == L) {
-          LoopEdges[L].insert(std::make_pair(B, BS));
-          if (Visited.count(BS) == 0)
-            Worklist.push_back(BS);
-        }
-      }
-      Visited.insert(B);
-    }
-  }
-}
+void BProfiling::constructMaxSpanTree() {
+  Edge E;
+  EdgeWeight EW;
 
-// Currently assumes ONE back-edge per loop
-bool BProfiling::createsCycle(Loop* L, Edge E) {
-  bool cyclic;
+  SmallPtrSet<BasicBlock*, 32> TreeNodes;
+  // Insert the Exit->Entry edge first so it never has
+  // profiling code, since the edge doesn't actually exist
+  E = std::make_pair(ExitBB, &F->getEntryBlock());
+  TreeNodes.insert(E.first);
+  TreeNodes.insert(E.second);
+  MaxSpanningTree->insert(E);
+  SmallVector<EdgeWeight, 16> Backup;
 
-  // For each Loop (including and) contained within L
-  while (L) {
-    cyclic = true;
-    // Loop over all edges of L
-    for (SetVector<Edge>::iterator LI = LoopEdges[L].begin(), LE = LoopEdges[L].end(); LI != LE; ++LI) {
-      // Skip the edge being added
-      if (*LI == E)
-        continue;
-
-      // If the current edge *I is not in LoopEdgesAdded (and *I != E), adding E does not
-      // create a cycle
-      if (LoopEdgesAdded[L].count(*LI) == 0) {
-        cyclic = false;
+  // This does not include unreachable basic blocks
+  unsigned numBB = BlockWeights.size();
+  while (TreeNodes.size() != numBB) {
+    while (true) {
+      EW = EdgePQ.top();
+      E  = EW.first;
+      EdgePQ.pop();
+      unsigned c1 = TreeNodes.count(E.first);
+      unsigned c2 = TreeNodes.count(E.second);
+      // c1 == 1, c2 == 0
+      if (c1 > c2) {
+        TreeNodes.insert(E.second);
+        MaxSpanningTree->insert(E);
         break;
       }
-    }
-
-    // If cyclic is not false, adding E creates a cycle in this loop-depth
-    if (cyclic)
-      return true;
-
-    // Continue up the nesting
-    L = L->getParentLoop();
-  }
-  return false;
-}
-
-bool BProfiling::addPotentialLoopEdge(Edge E) {
-  Loop* L1 = LI->getLoopFor(E.first);
-  Loop* L2 = LI->getLoopFor(E.second);
-
-  if (L1 == NULL && L2 == NULL)
-    return true;
-
-  while (L1 && L2) {
-    // If the two loops are equal, add the edge to the loop and all parent loops
-    if (L1 == L2) {
-      // If adding E does not create a cycle in L1 or any parent loop, it is safe to
-      // add E to all loops
-      if (!createsCycle(L1, E)) {
-        while (L1 && L1->getLoopDepth() >= 1) {
-            LoopEdgesAdded[L1].insert(E);
-            L1 = L1->getParentLoop();
-        }
-        return true;
+      // c1 == 0, c2 == 1
+      else if (c1 < c2) {
+        TreeNodes.insert(E.first);
+        MaxSpanningTree->insert(E);
+        break;
       }
-      return false;
+      // c1 == c2 == 0
+      else if (c1 == 0) {
+        Backup.push_back(EW);
+      }
+      // Otherwise both basic blocks are already nodes in the tree
+      // meaning the edge will never be added
     }
-    // If the two loops are at the same depth but not equal
-    if (L1->getLoopDepth() == L2->getLoopDepth()) {
-      L1 = L1->getParentLoop();
-      L2 = L2->getParentLoop();
-    }
-    // If L1 is at a higher depth than L2
-    else if (L1->getLoopDepth() > L2->getLoopDepth()) {
-      // Get the parent of L1 such that the new loop and L2 are at the same depth
-      while(L1->getLoopDepth() != L2->getLoopDepth())
-        L1 = L1->getParentLoop();
-    }
-    // If L2 is at a higher depth than L1
-    else {
-      // Get the parent of L2 such that the new loop and L1 are at the same depth
-      while(L1->getLoopDepth() != L2->getLoopDepth())
-        L2 = L2->getParentLoop();
-    }
-  }
-  return true;
-}
-
-void BProfiling::constructMaxSpanTree() {
-  fprintf(stderr, "**** Constructing Max Spanning Tree ****\n");
-  unsigned numBB = this->F->size();
-  Edge E;
-
-  while(EdgePQ.size() != 0 && MaxSpanningTree.size() < numBB-1) {
-    E = EdgePQ.top().first;
-    EdgePQ.pop();
-    fprintf(stderr, "Testing edge: %s -> %s\n", E.first->getName().str().c_str(), E.second->getName().str().c_str());
-    if (addPotentialLoopEdge(E)) {
-      fprintf(stderr, "Edge added\n\n");
-      MaxSpanningTree.insert(E);
-    }
+    while (Backup.size() != 0)
+      EdgePQ.push(Backup.pop_back_val());
   }
 
-  fprintf(stderr,"Completed constructing Max Spanning Tree\n");
-
+  for (EdgeWeightMap::iterator IE = EdgeWeights.begin(), EE = EdgeWeights.end(); IE != EE; ++IE) {
+    E = (*IE).first;
+    if (MaxSpanningTree->count(E) == 0) {
+      ProfileEdges->insert(E);
+    }
+  }
 }
 
+// Does not set weights for edges that aren't reachable
 void BProfiling::getWeights() {
   Edge ExitEntryEdge = std::make_pair(ExitBB, &F->getEntryBlock());
   Edge tempEdge;
@@ -403,8 +540,7 @@ void BProfiling::getWeights() {
   BlockWeights[ExitBB] = 1.0;
   Worklist.push_back(&F->getEntryBlock());
 
-  fprintf(stderr, "***** Getting Weights *****\n");
-
+  F->getEntryBlock().dump();
   for (unsigned i = 0; i < Worklist.size(); ++i) {
     BasicBlock* CurrentBlock = Worklist[i];
     Loop*       CurrentLoop  = LI->getLoopFor(CurrentBlock);
@@ -412,20 +548,15 @@ void BProfiling::getWeights() {
     weight = 0.0;
 
     s1 = CurrentBlock->getName().str();
-    fprintf(stderr,"--------------------------------------------\n");
-    fprintf(stderr,"Current Basic Block: %s\n", s1.c_str());
 
-    for (pred_iterator PI = pred_begin(CurrentBlock),
-         PE = pred_end(CurrentBlock); PI != PE; ++PI) {
+    for (pred_iterator PI = pred_begin(CurrentBlock), PE = pred_end(CurrentBlock); PI != PE; ++PI) {
       BasicBlock* B = *PI;
       // Add the predecessors to the map
-      Predecessors[CurrentBlock].push_back(B);
       // 1) the weight of a BasicBlock is the sum of the weights of its
       //    incoming edges that are not backedges
       if (VisitedBlocks.count(B) == 0)
         continue;
       s2 = B->getName().str();
-      fprintf(stderr, "\t%s -> %s : [%f]\n", s2.c_str(), s1.c_str(), EdgeWeights[std::make_pair(B, CurrentBlock)]);
       weight += EdgeWeights[std::make_pair(B, CurrentBlock)];
     }
     if (&F->getEntryBlock() == CurrentBlock)
@@ -434,44 +565,33 @@ void BProfiling::getWeights() {
 
     // Set the weight of the current basic block
     BlockWeights[CurrentBlock] = weight;
-    fprintf(stderr,"Current Basic Block weight: %f\n", BlockWeights[CurrentBlock]);
 
     // 2) if BasicBlock b is a loop header with weight W and N = |loop_exits(B)|
     //    then each edge in loop_exits(b) has weight W/N
     if (CurrentLoop) {
-      // If not already added, add the loop to the set of loops
-      if (Loops.count(CurrentLoop) == 0)
-        Loops.insert(CurrentLoop);
-      fprintf(stderr, "Current Basic Block is in a loop\n");
       // Get all of the exit edges
       CurrentLoop->getExitEdges(ExitEdges);
-
 
       if (LI->isLoopHeader(CurrentBlock)) {
         int num_exits = ExitEdges.size();
 
-        fprintf(stderr, "Current Basic Block is a loop header\n");
-
-        fprintf(stderr, "Loop exits:\n");
         for (SmallVectorImpl<ConstEdge>::iterator LEI = ExitEdges.begin(), LEE = ExitEdges.end(); LEI != LEE; ++LEI) {
           s1 = LEI->first->getName().str();
           s2 = LEI->second->getName().str();
           Edge E = std::make_pair(const_cast<BasicBlock*>(LEI->first), const_cast<BasicBlock*>(LEI->second));
           EdgeWeights[E] = weight / num_exits;
           EdgePQ.push(std::make_pair(E, EdgeWeights[E]));
-          fprintf(stderr,"\t%s -> %s : [%f]\n", s1.c_str(), s2.c_str(), EdgeWeights[E]);
         }
 
         // 3a) let W be the weight of b times LoopMultiplier (if b is loop header)
         weight = weight * LoopMultiplier;
         BlockWeights[CurrentBlock] = weight;
-        fprintf(stderr, "Current Basic Block new weight: %f\n", BlockWeights[CurrentBlock]);
       }
     }
 
-    for (succ_iterator SI = succ_begin(CurrentBlock),
-         SE = succ_end(CurrentBlock); SI != SE; ++SI) {
-      Successors[CurrentBlock].push_back(*SI);
+    int num_succ = 0;
+    for (succ_iterator SI = succ_begin(CurrentBlock), SE = succ_end(CurrentBlock); SI != SE; ++SI) {
+      num_succ += 1;
     }
 
     int   num_succ_lee = 0;   // Number of loop-edge exits
@@ -489,9 +609,8 @@ void BProfiling::getWeights() {
     }
 
     // Number of successors that aren't loop-exit edges
-    num_succ_nle = Successors[CurrentBlock].size() - num_succ_lee;
+    num_succ_nle = num_succ - num_succ_lee;
 
-    fprintf(stderr, "\tNumber of successors (not loop-exit edges): %d\n", num_succ_nle);
     // 3b) Each outgoing edge of b that is not a loop-exit edge has a weight (w-w_e)/N
     //     where N is the number of outgoing edges of b that are not loop-exit edges
     for (succ_iterator SI = succ_begin(CurrentBlock),
@@ -501,65 +620,68 @@ void BProfiling::getWeights() {
       if (VisitedBlocks.count(*SI) == 0) {
         s1 = CurrentBlock->getName().str();
         s2 = (*SI)->getName().str();
-        fprintf(stderr, "\t%s -> %s\n", s1.c_str(), s2.c_str());
 
         Worklist.push_back(*SI);
+        VisitedBlocks.insert(*SI);
       }
 
       if (ExitEdgesContains(ExitEdges, std::make_pair(b1, b2))) {
-        fprintf(stderr, "\tThis successor is a loop-exit\n");
         continue;
       }
-      fprintf(stderr, "----- %f, %f, %d\n", weight, w_e, num_succ_nle);
       Edge E = std::make_pair(b1, b2);
       EdgeWeights[E] = (weight - w_e) / (float)(num_succ_nle);
       EdgePQ.push(std::make_pair(E, EdgeWeights[E]));
-      fprintf(stderr, "\tEdge weight: %f\n", EdgeWeights[E]);
     }
 
     VisitedBlocks.insert(CurrentBlock);
   }
-  fprintf(stderr, "***** End Getting Weights *****\n");
 }
 
 void BProfiling::printAllWeights() {
-  std::string s1, s2;
   fprintf(stderr,"**** BlockWeights ****\n");
-  for (DenseMap<BasicBlock*, float>::iterator DI = BlockWeights.begin(), DE = BlockWeights.end(); DI != DE; ++DI) {
-    s1 = DI->first->getName().str();
-    fprintf(stderr, "%s: %f\n", s1.c_str(), DI->second);
+  for (BlockWeightMap::iterator DI = BlockWeights.begin(), DE = BlockWeights.end(); DI != DE; ++DI) {
+    fprintf(stderr, "%s: %f\n", DI->first->getName().str().c_str(), DI->second);
   }
 
   fprintf(stderr,"***** EdgeWeights *****\n");
-  for (DenseMap<Edge, float>::iterator DI = EdgeWeights.begin(), DE = EdgeWeights.end(); DI != DE; ++DI) {
-    s1 = DI->first.first->getName().str();
-    s2 = DI->first.second->getName().str();
-    fprintf(stderr, "%s -> %s : %f\n", s1.c_str(), s2.c_str(), DI->second);
-  }
-}
-
-void BProfiling::printAllLoops() {
-  std::string s1, s2;
-  fprintf(stderr,"**** Loops ****\n");
-  for (SmallPtrSet<Loop*, 8>::iterator I = Loops.begin(), E = Loops.end(); I != E; ++I) {
-    fprintf(stderr, "Loop: %s\n", (*I)->getHeader()->getName().str().c_str());
-    for (SetVector<Edge>::iterator EI = LoopEdges[*I].begin(), EE = LoopEdges[*I].end(); EI != EE; ++EI) {
-      Edge edge = *EI;
-      s1 = edge.first->getName().str();
-      s2 = edge.second->getName().str();
-      fprintf(stderr,"\t%s -> %s\n", s1.c_str(), s2.c_str());
-    }
+  for (EdgeWeightMap::iterator DI = EdgeWeights.begin(), DE = EdgeWeights.end(); DI != DE; ++DI) {
+    printEdge(DI->first, DI->second);
   }
 }
 
 void BProfiling::printMaxSpanTree() {
-  std::string s1, s2;
   fprintf(stderr,"**** Max Spanning Tree ****\n");
-  for (SetVector<Edge>::iterator I = MaxSpanningTree.begin(), E = MaxSpanningTree.end(); I != E; ++I) {
-    Edge edge = *I;
-    s1 = edge.first->getName().str();
-    s2 = edge.second->getName().str();
-    fprintf(stderr,"%s -> %s\n", s1.c_str(), s2.c_str());
+  for (SetVector<Edge>::iterator I = MaxSpanningTree->begin(), E = MaxSpanningTree->end(); I != E; ++I) {
+    printEdge(*I);
   }
+}
+
+void BProfiling::printInsertionEdges() {
+  fprintf(stderr,"**** Insertion Edges ****\n");
+  for (EdgeSet::iterator I = ProfileEdges->begin(), E = ProfileEdges->end(); I != E; ++I) {
+    printEdge(*I);
+  }
+}
+
+void BProfiling::printEdge(Edge E) {
+  fprintf(stderr, "%s -> %s\n", E.first->getName().str().c_str(), E.second->getName().str().c_str());
+}
+
+void BProfiling::printEdge(Edge E, float F) {
+  fprintf(stderr, "%s -> %s [%f]\n", E.first->getName().str().c_str(), E.second->getName().str().c_str(), F);
+}
+
+void BProfiling::printEdge(Edge E, unsigned U) {
+  fprintf(stderr, "%s -> %s [%u]\n", E.first->getName().str().c_str(), E.second->getName().str().c_str(), U);
+}
+
+void BProfiling::printEdgeCounts() {
+  for (EdgeCountSet::iterator I = EdgeCounts->begin(), E = EdgeCounts->end(); I != E; ++I)
+    printEdge(I->first, I->second);
+}
+
+void BProfiling::printBlockCounts() {
+  for (BlockCountSet::iterator I = BlockCounts->begin(), E = BlockCounts->end(); I != E; ++I)
+    fprintf(stderr, "%s [%u]\n", I->first->getName().str().c_str(), I->second);
 }
 

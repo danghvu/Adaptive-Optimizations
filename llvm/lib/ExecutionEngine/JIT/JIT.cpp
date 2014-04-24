@@ -37,7 +37,8 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Scalar.h"
-
+#include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
+#include <stdio.h>
 using namespace llvm;
 
 #ifdef __APPLE__
@@ -170,6 +171,7 @@ JIT::JIT(Module *M, TargetMachine &tm, TargetJITInfo &tji,
   }
 
   // Initialize passes.
+
   PM.doInitialization();
 }
 
@@ -673,18 +675,19 @@ void *JIT::reoptimizeAndRelinkFunction(Function *F) {
     stat += EventListeners[I]->getStat(F);
   }
 
-  if (stat < 6) return OldAddr;
-
-  MutexGuard locked(lock);
-  FunctionPassManager *FPM = new FunctionPassManager(jitstate->getModule());
-  FPM->add(new DataLayout(*TM.getDataLayout()));
-  FPM->add(createCFGSimplificationPass());
-  FPM->add(createInstructionCombiningPass());
-  FPM->doInitialization();
-  FPM->run(*F);
-  delete FPM;
+  fprintf(stderr, "Stat: %d\n", stat);
+  if (stat != ((JITOnlineProfileInfo*) getProfileInfo())->TH_ENABLE_BB_PROFILE) return OldAddr;
 
   DEBUG( dbgs() << F->getName() << " " << stat << " recompiling ... \n" );
+
+  FunctionPassManager *FPM = new FunctionPassManager(jitstate->getModule());
+  fprintf(stderr, "JIT pointer: %p\n", (void*)this);
+  FunctionPass* FP = createBProfilingPass(this);
+  FPM->add(new DataLayout(*TM.getDataLayout()));
+  FPM->add(createUnifyFunctionExitNodesPass());
+  FPM->add(FP);
+  FPM->doInitialization();
+  FPM->run(*F);
 
   // Delete the old function mapping.
   addGlobalMapping(F, 0);

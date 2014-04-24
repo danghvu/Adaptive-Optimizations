@@ -14,11 +14,13 @@
 
 #include "llvm/Config/config.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
+#include "llvm/ExecutionEngine/ExecutionEngine.h"
 
-#define DEBUG_TYPE "oprofile-jit-event-listener"
+#define DEBUG_TYPE "online-profile-jit-event-listener"
 #include "llvm/DebugInfo.h"
 #include "llvm/IR/Function.h"
 #include "llvm/ADT/OwningPtr.h"
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/ExecutionEngine/ObjectImage.h"
 #include "llvm/Object/ObjectFile.h"
@@ -66,19 +68,23 @@ public:
 
   virtual void dump();
 
-  virtual int getStat(const Function *F) { return funcFreq[F]; }
+  virtual int getStat(const Function *F) { return info->funcFreq[F]; }
+
+  virtual JITOnlineProfileInfo* getProfileInfo() { return info; }
+
 
 private:
-  std::map<const Function *, int> funcFreq;
+  JITOnlineProfileInfo *info;
 };
 
 void OnlineProfileJITEventListener::initialize() {
-  funcFreq.clear();
+  info = new JITOnlineProfileInfo();
+  info->funcFreq.clear();
 }
 
 void OnlineProfileJITEventListener::dump() {
-  for (std::map<const Function *,int>::iterator it=funcFreq.begin();
-      it!=funcFreq.end(); ++it)
+  for (DenseMap<const Function *,int>::iterator it=info->funcFreq.begin();
+      it!=info->funcFreq.end(); ++it)
     dbgs() << it->first->getName() << " => " << it->second << '\n';
   dbgs() << " end profiling \n";
 }
@@ -97,11 +103,11 @@ static debug_line_info LineStartToOnlineProfileFormat(
 }
 
 void OnlineProfileJITEventListener::NotifyFunctionExecute(const Function *fp) {
-  if (funcFreq.find(fp) == funcFreq.end()) {
-    funcFreq[fp] = 1;
+  if (info->funcFreq.find(fp) == info->funcFreq.end()) {
+    info->funcFreq[fp] = 1;
   } else {
-    int cur = funcFreq[fp];
-    funcFreq[fp] = cur+1;
+    int cur = info->funcFreq[fp];
+    info->funcFreq[fp] = cur+1;
   }
   return;
 }
