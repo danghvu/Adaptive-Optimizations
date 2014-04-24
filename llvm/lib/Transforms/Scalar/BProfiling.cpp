@@ -55,10 +55,6 @@ namespace {
   // Specific to keeping track of edge/block counts
   typedef DenseMap<Edge, unsigned>            EdgeCountSet;
   typedef DenseMap<BasicBlock*, unsigned>     BlockCountSet;
-  typedef std::pair<EdgeSet, EdgeSet>         EdgeSetPair;
-  typedef std::pair<BlockSet, BlockSet>       BlockSetPair;
-  typedef DenseMap<Edge, EdgeSetPair>         EdgeDependenceMap;
-  typedef DenseMap<BasicBlock*, BlockSetPair> BlockDependenceMap;
   // ----------------------------------------------
 
   class BProfiling : public FunctionPass {
@@ -89,8 +85,7 @@ namespace {
 
     // Specific to keeping track of edge/block counts
     EdgeCountSet*      EdgeCounts;
-    BlockMap*          OrigPredecessors;
-    BlockMap*          OrigSuccessors;
+    BlockCountSet*     BlockCounts;
     void*               TheJIT;
 
     struct EdgeWeightCompare {
@@ -112,6 +107,7 @@ namespace {
     void constructMaxSpanTree();
     bool insertInstructions();
     void initializeEdgeCounts();
+    void updateBlockCounts();
     void updateEdgeCounts();
     void updateEdgeCountsDFS(BasicBlock* B, Edge E);
 
@@ -123,7 +119,8 @@ namespace {
     void printEdge(Edge E);
     void printEdge(Edge E, float F);
     void printEdge(Edge E, unsigned U);
-
+    void printEdgeCounts();
+    void printBlockCounts();
   };
 }
 
@@ -143,8 +140,7 @@ bool BProfiling::runOnFunction(Function& F) {
   MaxSpanningTree  = new EdgeSet();
   ProfileEdges     = new EdgeSet();
   EdgeCounts       = new EdgeCountSet();
-  OrigPredecessors = new BlockMap();
-  OrigSuccessors   = new BlockMap();
+  BlockCounts      = new BlockCountSet();
 
   if (this->F->size() == 1) {
     fprintf(stderr, "*** Function only has one basic block - no profiling code needed ***\n");
@@ -199,17 +195,17 @@ void* BProfiling::CallbackFunction(BasicBlock* B) {
   printEdge(E);
   int threshold = 5;
   (*EdgeCounts)[E] += 1;
-  if ((*EdgeCounts)[E] >= threshold) {
+//  if ((*EdgeCounts)[E] >= threshold) {
     // Update edge counts and keep track of basic blocks above threshold
     // Create a function pass manager
     // -- Add remove profiling pass
     // -- iterate through hot basic blocks and perform inlining
     // -- decide whether to do other optimizations
     // -- Add profiling back to B->getParent();
-  }
+//  }
   //Function* F = B->getParent();
 
-  //updateEdgeCounts();
+  updateEdgeCounts();
   return 0;
 }
 
@@ -223,12 +219,12 @@ void BProfiling::initializeEdgeCounts() {
   for (EdgeSet::iterator ESI = ProfileEdges->begin(), ESE = ProfileEdges->end(); ESI != ESE; ++ESI) {
     (*EdgeCounts)[*ESI] = 0;
   }
-
+/*
   fprintf(stderr, "*** Edge Count set: ***\n");
   for (EdgeCountSet::iterator ECI = EdgeCounts->begin(), ECE = EdgeCounts->end(); ECI != ECE; ++ECI) {
     Edge Temp = ECI->first;
     printEdge(Temp);
-  }
+  }*/
 }
 
 void* MyCallbackFunction(BProfiling* BP, BasicBlock* B) {
@@ -240,22 +236,27 @@ void BProfiling::updateEdgeCounts() {
   Edge E = std::make_pair((BasicBlock*)NULL, (BasicBlock*)NULL);
   // Clear the counts of the edges which don't have counters
   for (EdgeSet::iterator ESI = MaxSpanningTree->begin(), ESE = MaxSpanningTree->end(); ESI != ESE; ++ESI) {
-    printEdge(*ESI);
+    //printEdge(*ESI);
     (*EdgeCounts)[*ESI] = 0;
+  }
+
+  // Clear the counts of all basic blocks
+  for (BlockCountSet::iterator BSI = BlockCounts->begin(), BSE = BlockCounts->end(); BSI != BSE; ++BSI) {
+    BSI->second = 0;
   }
 
   // Update everything
   updateEdgeCountsDFS(&F->getEntryBlock(), E);
-
+  updateBlockCounts();
   // Print the results
   fprintf(stderr,"\n\n");
-  for (EdgeCountSet::iterator EI = EdgeCounts->begin(), EE = EdgeCounts->end(); EI != EE; ++EI) {
-    printEdge(EI->first, EI->second);
-  }
+  printEdgeCounts();
+  printBlockCounts();
 }
 
 void BProfiling::updateEdgeCountsDFS(BasicBlock* B, Edge E) {
   Edge E1;
+  /*
   fprintf(stderr, "DFS: %s, ", B->getName().str().c_str());
   if (E.first == NULL)
     fprintf(stderr, "NULL\n");
@@ -263,39 +264,78 @@ void BProfiling::updateEdgeCountsDFS(BasicBlock* B, Edge E) {
     printEdge(E);
 
   fprintf(stderr, "\tIn: { ");
-  for (BlockSet::iterator PI = (*OrigPredecessors)[B].begin(), PE = (*OrigPredecessors)[B].end(); PI != PE; ++PI) {
-    fprintf(stderr, "%s ", (*PI)->getName().str().c_str());
+  for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
+    if ((*PI)->getName().str().find("ProfileBB") != std::string::npos)
+      fprintf(stderr, "%s ", (*pred_begin(*PI))->getName().str().c_str());
+    else
+      fprintf(stderr, "%s ", (*PI)->getName().str().c_str());
   }
   fprintf(stderr, "}\n\tOut: { ");
-  for (BlockSet::iterator SI = (*OrigSuccessors)[B].begin(), SE = (*OrigSuccessors)[B].end(); SI != SE; ++SI) {
-    fprintf(stderr, "%s ", (*SI)->getName().str().c_str());
+  for (succ_iterator SI = succ_begin(B), SE = succ_end(B); SI != SE; ++SI) {
+    if ((*SI)->getName().str().find("ProfileBB") != std::string::npos)
+      fprintf(stderr, "%s ", (*succ_begin(*SI))->getName().str().c_str());
+    else
+      fprintf(stderr, "%s ", (*SI)->getName().str().c_str());
   }
   fprintf(stderr, "}\n");
-
+*/
   // Calculate the in dependencies
   unsigned in = 0;
-  for (BlockSet::iterator PI = (*OrigPredecessors)[B].begin(), PE = (*OrigPredecessors)[B].end(); PI != PE; ++PI) {
-    E1 = std::make_pair(*PI, B);
+
+  // If B is the entry block, we have to do the exit->entry edge as well
+  if (B == &F->getEntryBlock()) {
+    E1 = std::make_pair(ExitBB, B);
+    if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree->count(E1) != 0) {
+      updateEdgeCountsDFS(E1.first, E1);
+    }
+  }
+
+  for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
+    if ((*PI)->getName().str().find("ProfileBB") != std::string::npos)
+      E1 = std::make_pair(*pred_begin(*PI), B);
+    else
+      E1 = std::make_pair(*PI, B);
     if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree->count(E1) != 0) {
       updateEdgeCountsDFS(E1.first, E1);
     }
     in += (*EdgeCounts)[E1];
   }
-  fprintf(stderr, "\tin_sum= %d\n", in);
+
   // Calculate the out dependencies
   unsigned out = 0;
-  for (BlockSet::iterator SI = (*OrigSuccessors)[B].begin(), SE = (*OrigSuccessors)[B].end(); SI != SE; ++SI) {
-    E1 = std::make_pair(B, *SI);
+  for (succ_iterator SI = succ_begin(B), SE = succ_end(B); SI != SE; ++SI) {
+    if ((*SI)->getName().str().find("ProfileBB") != std::string::npos)
+      E1 = std::make_pair(B, *succ_begin(*SI));
+    else
+      E1 = std::make_pair(B, *SI);
+
     if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree->count(E1) != 0) {
       updateEdgeCountsDFS(E1.second, E1);
     }
     out += (*EdgeCounts)[E1];
   }
-  fprintf(stderr, "\tout_sum= %d\n", out);
 
   if (E.first != NULL) {
     (*EdgeCounts)[E] = abs(in - out);
-    fprintf(stderr, "%s -> %s [%u]\n", E.first->getName().str().c_str(), E.second->getName().str().c_str(), (*EdgeCounts)[E]);
+  }
+}
+
+void BProfiling::updateBlockCounts() {
+  for (df_iterator<BasicBlock*> I = df_begin(&F->getEntryBlock()), E = df_end(&F->getEntryBlock()); I != E; ++I) {
+    BasicBlock* B = *I;
+    if (B == &F->getEntryBlock())
+      (*BlockCounts)[B] = (*EdgeCounts)[std::make_pair(ExitBB, B)];
+    else
+      (*BlockCounts)[B] = 0;
+
+    for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
+      Edge E1;
+      if ((*PI)->getName().str().find("ProfileBB") != std::string::npos)
+        E1 = std::make_pair(*pred_begin(B), B);
+      else
+        E1 = std::make_pair(*PI, B);
+      (*BlockCounts)[B] += (*EdgeCounts)[E1];
+    }
   }
 }
 
@@ -437,8 +477,8 @@ void BProfiling::constructMaxSpanTree() {
   EdgeWeight EW;
 
   SmallPtrSet<BasicBlock*, 32> TreeNodes;
-  // Insert the Exit->Entry edge first so it never
-  // has profiling code
+  // Insert the Exit->Entry edge first so it never has
+  // profiling code, since the edge doesn't actually exist
   E = std::make_pair(ExitBB, &F->getEntryBlock());
   TreeNodes.insert(E.first);
   TreeNodes.insert(E.second);
@@ -499,20 +539,6 @@ void BProfiling::getWeights() {
   VisitedBlocks.insert(ExitBB);
   BlockWeights[ExitBB] = 1.0;
   Worklist.push_back(&F->getEntryBlock());
-
-  // Add successors and predecessors to data structures (to be used in callback)
-  for (df_iterator<BasicBlock*> DI = df_begin(&F->getEntryBlock()), DE = df_end(&F->getEntryBlock()); DI != DE; ++DI) {
-    for (pred_iterator PI = pred_begin(*DI), PE = pred_end(*DI); PI != PE; ++PI) {
-      (*OrigPredecessors)[*DI].insert(*PI);
-    }
-    for (succ_iterator SI = succ_begin(*DI), SE = succ_end(*DI); SI != SE; ++SI) {
-      (*OrigSuccessors)[*DI].insert(*SI);
-    }
-  }
-
-  // Need to make sure Exit->Entry is added to successors/predecessors
-  (*OrigPredecessors)[&F->getEntryBlock()].insert(ExitBB);
-  (*OrigSuccessors)[ExitBB].insert(&F->getEntryBlock());
 
   F->getEntryBlock().dump();
   for (unsigned i = 0; i < Worklist.size(); ++i) {
@@ -644,6 +670,18 @@ void BProfiling::printEdge(Edge E) {
 void BProfiling::printEdge(Edge E, float F) {
   fprintf(stderr, "%s -> %s [%f]\n", E.first->getName().str().c_str(), E.second->getName().str().c_str(), F);
 }
+
 void BProfiling::printEdge(Edge E, unsigned U) {
   fprintf(stderr, "%s -> %s [%u]\n", E.first->getName().str().c_str(), E.second->getName().str().c_str(), U);
 }
+
+void BProfiling::printEdgeCounts() {
+  for (EdgeCountSet::iterator I = EdgeCounts->begin(), E = EdgeCounts->end(); I != E; ++I)
+    printEdge(I->first, I->second);
+}
+
+void BProfiling::printBlockCounts() {
+  for (BlockCountSet::iterator I = BlockCounts->begin(), E = BlockCounts->end(); I != E; ++I)
+    fprintf(stderr, "%s [%u]\n", I->first->getName().str().c_str(), I->second);
+}
+
