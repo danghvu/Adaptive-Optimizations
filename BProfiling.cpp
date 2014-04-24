@@ -32,6 +32,7 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/InstIterator.h"
+//#include "llvm/ExecutionEngine/JIT.h"
 #include <stdio.h>
 #include <queue>
 #include <string>
@@ -66,6 +67,11 @@ namespace {
     BProfiling () : FunctionPass(ID) {
       initializeBProfilingPass(*PassRegistry::getPassRegistry());
     }
+    BProfiling(void* J) : FunctionPass(ID) {
+      initializeBProfilingPass(*PassRegistry::getPassRegistry());
+      this->TheJIT = J;
+      fprintf(stderr, "The JIT: %p\n", this->TheJIT);
+    }
 
     void* CallbackFunction(BasicBlock* B);
 
@@ -85,6 +91,7 @@ namespace {
     EdgeCountSet*      EdgeCounts;
     BlockMap*          OrigPredecessors;
     BlockMap*          OrigSuccessors;
+    void*               TheJIT;
 
     struct EdgeWeightCompare {
       bool operator()(const EdgeWeight& l, EdgeWeight& r) const {
@@ -123,6 +130,7 @@ namespace {
 char BProfiling::ID = 0;
 INITIALIZE_PASS(BProfiling, "bprofiling", "Brooks8 - Profiling", false, false)
 FunctionPass *llvm::createBProfilingPass() { return new BProfiling(); }
+FunctionPass *llvm::createBProfilingPass(void* J) { return new BProfiling(J); }
 
 typedef void* (BProfiling::*FunctionPtr)(BasicBlock*);
 
@@ -191,7 +199,7 @@ void* BProfiling::CallbackFunction(BasicBlock* B) {
   printEdge(E);
   int threshold = 5;
   (*EdgeCounts)[E] += 1;
-  if (*EdgeCounts[E] >= threshold) {
+  if ((*EdgeCounts)[E] >= threshold) {
     // Update edge counts and keep track of basic blocks above threshold
     // Create a function pass manager
     // -- Add remove profiling pass
@@ -199,7 +207,7 @@ void* BProfiling::CallbackFunction(BasicBlock* B) {
     // -- decide whether to do other optimizations
     // -- Add profiling back to B->getParent();
   }
-  Function* F = B->getParent();
+  //Function* F = B->getParent();
 
   //updateEdgeCounts();
   return 0;
