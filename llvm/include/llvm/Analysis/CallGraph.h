@@ -276,9 +276,9 @@ public:
     if (Weights.find(record) == Weights.end()) {
       CalledFunctions.push_back(record);
       Weights[record] = 0;
+      M->AddRef();
     }
     Weights[record]++;
-    M->AddRef();
   }
 
   void removeCallEdge(iterator I) {

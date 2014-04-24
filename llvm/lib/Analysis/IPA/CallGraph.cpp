@@ -201,20 +201,6 @@ void BasicBlockExecuted(CallGraph* CG, BasicBlock& B) {
 }
 
 /******************************************************************************/
-/* This new function is called when a Function is inlined at the specified    */
-/* CallSite. The CallGraph must be modified by absorbing the called functions */
-/* node into the callers node.                                                */
-/******************************************************************************/
-void InlineCallSite(CallGraph* CG, CallSite& CS) {
-  /* Get the CGN of the Function that contains the CallSite */
-  CallGraphNode* Node = CG->getOrInsertFunction(CS.getInstruction()->getParent()->getParent());
-  /* Get the CGN of the called Function */
-  CallGraphNode* InNode = CG->getOrInsertFunction(CS.getCalledFunction());
-  Node->removeCallEdgeFor(CS);
-  Node->absorbNode(InNode);
-}
-
-/******************************************************************************/
 /* This method of a CGN takes another CGN and absorbs it into this CGN, by    */
 /* taking all edges from the absorbed node and adding them to this CGN, then  */
 /* removing the absorbed node from the graph.                                 */
