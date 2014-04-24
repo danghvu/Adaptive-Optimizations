@@ -69,8 +69,6 @@ namespace {
 
     void* CallbackFunction(BasicBlock* B);
 
-    PointerType* FunctionPtrTy;
-
   private:
     Function* F;
     LoopInfo* LI;
@@ -178,25 +176,32 @@ void* BProfiling::CallbackFunction(BasicBlock* B) {
     // predecessor)
     IntToPtrInst* I = dyn_cast<IntToPtrInst>(&B->getInstList().front());
     if (I != NULL) {
-      fprintf(stderr, "1\n");
       ConstantInt* CI = dyn_cast<ConstantInt>(I->getOperand(0));
       if (CI != NULL && CI->getValue() == (intptr_t)B) {
-      fprintf(stderr, "2\n");
         E = std::make_pair(*pred_begin(B), B);
       }
       else {
-      fprintf(stderr, "3\n");
         E = std::make_pair(B, *succ_begin(B));
       }
     }
     else {
-      fprintf(stderr, "4\n");
       E = std::make_pair(B, *succ_begin(B));
     }
   }
   printEdge(E);
+  int threshold = 5;
   (*EdgeCounts)[E] += 1;
-  updateEdgeCounts();
+  if (*EdgeCounts[E] >= threshold) {
+    // Update edge counts and keep track of basic blocks above threshold
+    // Create a function pass manager
+    // -- Add remove profiling pass
+    // -- iterate through hot basic blocks and perform inlining
+    // -- decide whether to do other optimizations
+    // -- Add profiling back to B->getParent();
+  }
+  Function* F = B->getParent();
+
+  //updateEdgeCounts();
   return 0;
 }
 
@@ -302,7 +307,7 @@ bool BProfiling::insertInstructions() {
   FunctionType* FunctionTy = FunctionType::get(VoidPointerTy, FunctionArgsTy, false);
 
   // Create the function-pointer type
-  FunctionPtrTy = PointerType::get(FunctionTy, 0);
+  PointerType* FunctionPtrTy = PointerType::get(FunctionTy, 0);
 
   // Insert the inttoptr instructions for the function callback and this function pass
   // (both never change)
