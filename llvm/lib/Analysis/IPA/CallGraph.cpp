@@ -178,43 +178,6 @@ CallGraphNode *CallGraph::getOrInsertFunction(const Function *F) {
   return CGN = new CallGraphNode(const_cast<Function*>(F));
 }
 
-/******************************************************************************/
-/* This new function is called each time a BasicBlock is executed.            */
-/* It increments all edge weights in the CallGraph associated with CallSites  */
-/* in the BasicBlock.                                                         */
-/******************************************************************************/
-void BasicBlockExecuted(CallGraph* CG, BasicBlock& B) {
-  /* Get the CallGraphNode that contains the BasicBlock that was executed */
-  CallGraphNode* Node = CG->getOrInsertFunction(B.getParent());
-  /* Look through the BasicBlock, and increment edge weights of all CallSites */
-  for (BasicBlock::iterator I = B.begin(); I != B.end(); I++) {
-    CallSite CS(cast<Value>(I));
-    if (CS) {
-      const Function *Callee = CS.getCalledFunction();
-      if (!Callee) {
-        Node->addCalledFunction(CS, CG->getCallsExternalNode());
-      } else if (!Callee->isIntrinsic()) {
-        Node->addCalledFunction(CS, CG->getOrInsertFunction(Callee));
-      }
-    }
-  }
-}
-
-/******************************************************************************/
-/* This method of a CGN takes another CGN and absorbs it into this CGN, by    */
-/* taking all edges from the absorbed node and adding them to this CGN, then  */
-/* removing the absorbed node from the graph.                                 */
-/******************************************************************************/
-void CallGraphNode::absorbNode(CallGraphNode *N) {
-  // TODO: Ensure that this node has an edge to the absorbed node
-  /* For every edge called from CGN N, add that exact edge to this CGN */
-  for (CalledFunctionsVector::iterator I = N->CalledFunctions.begin(); I != CalledFunctions.end(); I++) {
-    CalledFunctions.push_back(*I);
-    Weights[*I] = N->Weights[*I];
-  }
-  // TODO: Cleanup/delete the absorbed node.
-}
-
 void CallGraphNode::print(raw_ostream &OS) const {
   if (Function *F = getFunction())
     OS << "Call graph node for function: '" << F->getName() << "'";
@@ -245,7 +208,6 @@ void CallGraphNode::removeCallEdgeFor(CallSite CS) {
     assert(I != CalledFunctions.end() && "Cannot find callsite to remove!");
     if (I->first == CS.getInstruction()) {
       I->second->DropRef();
-      Weights.erase(*I);
       *I = CalledFunctions.back();
       CalledFunctions.pop_back();
       return;
@@ -260,7 +222,6 @@ void CallGraphNode::removeAnyCallEdgeTo(CallGraphNode *Callee) {
   for (unsigned i = 0, e = CalledFunctions.size(); i != e; ++i)
     if (CalledFunctions[i].second == Callee) {
       Callee->DropRef();
-      Weights.erase(CalledFunctions[i]);
       CalledFunctions[i] = CalledFunctions.back();
       CalledFunctions.pop_back();
       --i; --e;
@@ -275,7 +236,6 @@ void CallGraphNode::removeOneAbstractEdgeTo(CallGraphNode *Callee) {
     CallRecord &CR = *I;
     if (CR.second == Callee && CR.first == 0) {
       Callee->DropRef();
-      Weights.erase(*I);
       *I = CalledFunctions.back();
       CalledFunctions.pop_back();
       return;
@@ -286,7 +246,6 @@ void CallGraphNode::removeOneAbstractEdgeTo(CallGraphNode *Callee) {
 /// replaceCallEdge - This method replaces the edge in the node for the
 /// specified call site with a new one.  Note that this method takes linear
 /// time, so it should be used sparingly.
-// TODO: Needs to take into account weights.
 void CallGraphNode::replaceCallEdge(CallSite CS,
                                     CallSite NewCS, CallGraphNode *NewNode){
   for (CalledFunctionsVector::iterator I = CalledFunctions.begin(); ; ++I) {

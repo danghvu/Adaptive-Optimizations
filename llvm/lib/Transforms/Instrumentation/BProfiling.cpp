@@ -15,7 +15,7 @@
 //===----------------------------------------------------------------------===//
 
 #define DEBUG_TYPE "brooks8"
-#include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Instrumentation.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
@@ -209,22 +209,25 @@ void* BProfiling::CallbackFunction(BasicBlock* B) {
     fprintf(stderr, "An edge is now higher than the threshold! Removing profiling...\n");
     // Remove profiling instructions
     removeInstructions();
+
+    // Reset the edge count
+    initializeEdgeCounts();
 //    F->dump();
 
     // Setup pass manager for the function and the hot blocks and run the passes
     FunctionPassManager* FPM = new FunctionPassManager(F->getParent());
 
-    fprintf(stderr, "Before SCCP:\n");
+    fprintf(stderr, "Before Optimization:\n");
     F->dump();
-    FPM->add(createBBInlinerPass());
     FPM->doInitialization();
+    FPM->add(createBBInlinerPass());
     FPM->run(*F);
     FPM->doFinalization();
     delete FPM;
 
     TheJIT->recompileAndRelinkFunction(F);
     // Rerun profiling pass (and return it)
-    fprintf(stderr, "After SCCP:\n");
+    fprintf(stderr, "After Optimization:\n");
     F->dump();
   }
 
@@ -390,8 +393,11 @@ void BProfiling::removeProfiling(BasicBlock* B) {
       // And the inttoptr is specifically for the address of B, remove the first two instructions
       if (CI != NULL && CI->getValue() == (intptr_t)B) {
         fprintf(stderr, "\tIn the beginning!\n");
-        B->getInstList().front().eraseFromParent();
-        B->getInstList().front().eraseFromParent();
+        // need to delete in reverse order here
+        Instruction *I1 = B->getInstList().begin();
+        Instruction *I2 = (++B->getInstList().begin());
+        I2->eraseFromParent();
+        I1->eraseFromParent();
       }
       // Otherwise remove the two instructions before the terminator
       else {

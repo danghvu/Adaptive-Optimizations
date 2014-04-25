@@ -370,12 +370,6 @@ FunctionPass *createPartiallyInlineLibCallsPass();
 FunctionPass *createSampleProfileLoaderPass();
 FunctionPass *createSampleProfileLoaderPass(StringRef Name);
 
-class ExecutionEngine;
-FunctionPass* createBProfilingPass();
-FunctionPass* createBProfilingPass(ExecutionEngine* jit);
-
-FunctionPass* createRemoveBProfilingPass();
-
 } // End llvm namespace
 
 #endif

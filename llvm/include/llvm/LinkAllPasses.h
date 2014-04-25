@@ -155,7 +155,8 @@ namespace {
       (void) llvm::createBBVectorizePass();
       (void) llvm::createPartiallyInlineLibCallsPass();
       (void) llvm::createBProfilingPass();
-      (void) llvm::createRemoveBProfilingPass();
+      (void) llvm::createBProfilingPass((llvm::ExecutionEngine *) 0);
+      (void) llvm::createBBInlinerPass();
 
       (void)new llvm::IntervalPartition();
       (void)new llvm::FindUsedTypes();

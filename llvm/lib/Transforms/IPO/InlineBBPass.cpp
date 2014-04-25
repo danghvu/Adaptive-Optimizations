@@ -27,6 +27,8 @@
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Utils/Local.h"
 
+#include <vector>
+
 using namespace llvm;
 
 namespace {
@@ -55,12 +57,22 @@ INITIALIZE_PASS(BBInliner, "dynamicinliner", "Mikida2-Profiling", false, false)
 BasicBlockPass *llvm::createBBInlinerPass() { return new BBInliner(); }
 
 bool BBInliner::runOnBasicBlock(BasicBlock& B) {
+  dbgs() << "Trying to inline BBInliner " << B.getName() << "\n";
   this->B  = &B;
 
   bool changed = false;
 
+  std::vector<CallInst*> workList;
+
   for (BasicBlock::iterator I = B.begin(); I != B.end(); I++) {
-    CallSite CS(cast<Value>(I));
+    if (CallInst* CI = dyn_cast<CallInst>(I)) {
+      workList.push_back(CI);
+    }
+  }
+
+  for (std::vector<CallInst*>::iterator wI = workList.begin(); wI!=workList.end(); wI++) {
+    CallInst *CI = *wI;
+    CallSite CS(CI);
     if (CS) {
       Function* Callee = CS.getCalledFunction();
 

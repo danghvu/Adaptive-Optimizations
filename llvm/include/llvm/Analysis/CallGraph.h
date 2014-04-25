@@ -180,9 +180,7 @@ class CallGraphNode {
 public:
   typedef std::pair<WeakVH, CallGraphNode*> CallRecord;
 private:
-  // CHANGE
   std::vector<CallRecord> CalledFunctions;
-  std::map<CallRecord,int> Weights;
   
   /// NumReferences - This is the number of times that this CallGraphNode occurs
   /// in the CalledFunctions array of this or other CallGraphNodes.
@@ -194,9 +192,7 @@ private:
   void DropRef() { --NumReferences; }
   void AddRef() { ++NumReferences; }
 public:
-  // CHANGE
   typedef std::vector<CallRecord> CalledFunctionsVector;
-  typedef std::map<CallRecord, int> WeightsMap;
 
   
   // CallGraphNode ctor - Create a node for the specified function.
@@ -243,12 +239,10 @@ public:
   // modified
   //
 
-  // CHANGE
   /// removeAllCalledFunctions - As the name implies, this removes all edges
   /// from this CallGraphNode to any functions it calls.
   void removeAllCalledFunctions() {
     while (!CalledFunctions.empty()) {
-      Weights.erase(CalledFunctions.back());
       CalledFunctions.back().second->DropRef();
       CalledFunctions.pop_back();
     }
@@ -257,13 +251,10 @@ public:
   /// stealCalledFunctionsFrom - Move all the callee information from N to this
   /// node.
   void stealCalledFunctionsFrom(CallGraphNode *N) {
-    assert(CalledFunctions.empty() && Weights.empty() &&
+    assert(CalledFunctions.empty() &&
            "Cannot steal callsite information if I already have some");
     std::swap(CalledFunctions, N->CalledFunctions);
-    std::swap(Weights, N->Weights);
   }
-
-  void absorbNode(CallGraphNode *N);
   
 
   /// addCalledFunction - Add a function to the list of functions called by this
@@ -272,18 +263,12 @@ public:
     assert(!CS.getInstruction() ||
            !CS.getCalledFunction() ||
            !CS.getCalledFunction()->isIntrinsic());
-    CallRecord record = std::make_pair(CS.getInstruction(), M);
-    if (Weights.find(record) == Weights.end()) {
-      CalledFunctions.push_back(record);
-      Weights[record] = 0;
-      M->AddRef();
-    }
-    Weights[record]++;
+    CalledFunctions.push_back(std::make_pair(CS.getInstruction(), M));
+    M->AddRef();
   }
 
   void removeCallEdge(iterator I) {
     I->second->DropRef();
-    Weights.erase(*I);
     *I = CalledFunctions.back();
     CalledFunctions.pop_back();
   }

@@ -394,18 +394,6 @@ static bool InlineHistoryIncludes(Function *F, int InlineHistoryID,
   return false;
 }
 
-/******************************************************************************/
-/* This new function is called when a Function is inlined at the specified    */
-/* CallSite. The CallGraph must be modified by absorbing the called functions */
-/* node into the callers node.                                                */
-/******************************************************************************/
-void InlineCallSite(CallGraph* CG, CallSite& CS) {
-  CallGraphNode* CallerNode = CG->getOrInsertFunction(CS.getCaller());
-  CallGraphNode* CalleeNode = CG->getOrInsertFunction(CS.getCalledFunction());
-  CallerNode->removeCallEdgeFor(CS);
-  CallerNode->absorbNode(CalleeNode);
-}
-
 bool Inliner::runOnSCC(CallGraphSCC &SCC) {
   CallGraph &CG = getAnalysis<CallGraph>();
   const DataLayout *TD = getAnalysisIfAvailable<DataLayout>();
@@ -519,8 +507,6 @@ bool Inliner::runOnSCC(CallGraphSCC &SCC) {
         if (!InlineCallIfPossible(CS, InlineInfo, InlinedArrayAllocas,
                                   InlineHistoryID, InsertLifetime, TD))
           continue;
-        // TODO: Update the dynamic call graph.
-        InlineCallSite(&CG,CS);
         ++NumInlined;
         
         // If inlining this function gave us any new call sites, throw them

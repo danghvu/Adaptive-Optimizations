@@ -467,7 +467,7 @@ TargetJITInfo::StubLayout X86JITInfo::getStubLayout() {
   // The 32-bit stub contains a 5-byte call|jmp.
   // If the stub is a call to the compilation callback, an extra byte is added
   // to mark it as a stub.
-  StubLayout Result = {14, 4};
+  StubLayout Result = {14*2, 4};
   return Result;
 }
 

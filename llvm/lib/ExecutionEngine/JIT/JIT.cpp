@@ -36,6 +36,7 @@
 
 #include "llvm/Support/Debug.h"
 #include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/Instrumentation.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include <stdio.h>
@@ -675,19 +676,35 @@ void *JIT::reoptimizeAndRelinkFunction(Function *F) {
     stat += EventListeners[I]->getStat(F);
   }
 
-  fprintf(stderr, "Stat: %d\n", stat);
-  if (stat != ((JITOnlineProfileInfo*) getProfileInfo())->TH_ENABLE_BB_PROFILE) return OldAddr;
+  dbgs() << "[reoptimization & relink] Stat: " << stat << "\n";
 
-  DEBUG( dbgs() << F->getName() << " " << stat << " recompiling ... \n" );
+  int t1 = getProfileInfo()->TH_ENABLE_BB_PROFILE;
+  int t2 = getProfileInfo()->TH_ENABLE_APPLY_OPT;
 
-  FunctionPassManager *FPM = new FunctionPassManager(jitstate->getModule());
-  fprintf(stderr, "JIT pointer: %p\n", (void*)this);
-  FunctionPass* FP = createBProfilingPass(this);
-  FPM->add(new DataLayout(*TM.getDataLayout()));
-  FPM->add(createUnifyFunctionExitNodesPass());
-  FPM->add(FP);
-  FPM->doInitialization();
-  FPM->run(*F);
+  if (stat < t1) return OldAddr;
+  else if (stat == t1 && F->size() > 1) {
+    dbgs() << F->getName() << "[reoptimization & relink] adding BBprofiling \n";
+    FunctionPassManager *FPM = new FunctionPassManager(jitstate->getModule());
+    FunctionPass* FP = createBProfilingPass(this);
+    FPM->add(new DataLayout(*TM.getDataLayout()));
+    FPM->add(createUnifyFunctionExitNodesPass());
+    FPM->add(FP);
+    FPM->doInitialization();
+    FPM->run(*F);
+    FPM->doFinalization();
+    // TODO: do not delete FPM since BBProfiling need this object, memory leak ?
+  } else if (stat > t1 && F->size() == 1 && stat == t2) {
+    // IF there is only 1 basic block, we need to do optimization ourselves;
+    dbgs() << F->getName() << "[reoptimization & relink] adding BBinline\n";
+    FunctionPassManager *FPM = new FunctionPassManager(jitstate->getModule());
+    FPM->doInitialization();
+    FPM->add(createBBInlinerPass());
+    FPM->run(*F);
+    FPM->doFinalization();
+    delete FPM;
+    dbgs() << F->getName() << "[reoptimization & relink] result:\n";
+    F->dump();
+  }
 
   // Delete the old function mapping.
   addGlobalMapping(F, 0);

@@ -48,9 +48,9 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Transforms/Instrumentation.h"
 #include <cerrno>
 
+#include "llvm/Transforms/Instrumentation.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Analysis/LoopInfo.h"
@@ -293,6 +293,11 @@ int main(int argc, char **argv, char * const *envp) {
   InitializeNativeTarget();
   InitializeNativeTargetAsmPrinter();
   InitializeNativeTargetAsmParser();
+
+  // This is also need to be added to be used in JIT
+  PassRegistry &Registry = *PassRegistry::getPassRegistry();
+  initializeCore(Registry);
+  initializeBProfilingPass(Registry);
 
   cl::ParseCommandLineOptions(argc, argv,
                               "llvm interpreter & dynamic compiler\n");
