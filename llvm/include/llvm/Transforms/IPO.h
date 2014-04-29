@@ -20,7 +20,7 @@
 namespace llvm {
 
 class ModulePass;
-class BasicBlockPass;
+class FunctionPass;
 class Pass;
 class Function;
 class BasicBlock;
@@ -200,10 +200,10 @@ ModulePass *createMetaRenamerPass();
 ModulePass *createBarrierNoopPass();
 
 //===----------------------------------------------------------------------===//
-/// createBBInlinerPass - A pass that inlines functions in hot BasicBlocks,
+/// createDynamicInlinerPass - A pass that inlines functions in hot BasicBlocks,
 /// determined by the BasicBlock profiler.
 /// 
-BasicBlockPass *createBBInlinerPass();
+FunctionPass *createDynamicInlinerPass();
 
 } // End llvm namespace
 

@@ -216,7 +216,7 @@ void* BProfiling::CallbackFunction(BasicBlock* B) {
 
     fprintf(stderr, "Before SCCP:\n");
     F->dump();
-    FPM->add(createBBInlinerPass());
+    FPM->add(createDynamicInlinerPass());
     FPM->doInitialization();
     FPM->run(*F);
     FPM->doFinalization();

@@ -266,7 +266,7 @@ void initializeSLPVectorizerPass(PassRegistry&);
 void initializeBBVectorizePass(PassRegistry&);
 void initializeMachineFunctionPrinterPassPass(PassRegistry&);
 void initializeBProfilingPass(PassRegistry&);
-void initializeBBInlinerPass(PassRegistry&);
+void initializeDynamicInlinerPass(PassRegistry&);
 
 }
 

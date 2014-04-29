@@ -220,7 +220,7 @@ void* BProfiling::CallbackFunction(BasicBlock* B) {
     fprintf(stderr, "Before Optimization:\n");
     F->dump();
     FPM->doInitialization();
-    FPM->add(createBBInlinerPass());
+    FPM->add(createDynamicInlinerPass());
     FPM->run(*F);
     FPM->doFinalization();
     delete FPM;

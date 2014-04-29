@@ -32,16 +32,17 @@
 using namespace llvm;
 
 namespace {
-  class BBInliner : public BasicBlockPass {
+  class DynamicInliner : public FunctionPass {
   public:
     static char ID;
-    BBInliner() : BasicBlockPass(ID) {
-      initializeBBInlinerPass(*PassRegistry::getPassRegistry());
+    DynamicInliner() : FunctionPass(ID) {
+      initializeDynamicInlinerPass(*PassRegistry::getPassRegistry());
     }
 
-  private:
-    BasicBlock* B;
+    // TODO: Constructor that takes function map
 
+  private:
+    virtual bool runOnFunction(Function& F);
     virtual bool runOnBasicBlock(BasicBlock& B);
 
     virtual void getAnalysisUsage(AnalysisUsage& Info) const {}
@@ -52,18 +53,27 @@ namespace {
   };
 }
 
-char BBInliner::ID = 0;
-INITIALIZE_PASS(BBInliner, "dynamicinliner", "Mikida2-Profiling", false, false)
-BasicBlockPass *llvm::createBBInlinerPass() { return new BBInliner(); }
+char DynamicInliner::ID = 0;
+// TODO: Make sure the last two params are correct
+INITIALIZE_PASS(DynamicInliner, "dynamicinliner", "Mikida2-Profiling", false, false)
+FunctionPass *llvm::createDynamicInlinerPass() { return new DynamicInliner(); }
 
-bool BBInliner::runOnBasicBlock(BasicBlock& B) {
-  dbgs() << "Trying to inline BBInliner " << B.getName() << "\n";
-  this->B  = &B;
+bool DynamicInliner::runOnFunction(Function& F) {
+  bool changed = false;
+  for (Function::iterator I = F.begin(); I != F.end(); I++) {
+    changed = changed | runOnBasicBlock(*I);
+  }
+  return changed;
+}
+
+bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
+  dbgs() << "DynamicInliner: Attempting to inline calls in " << B.getName() << "\n";
 
   bool changed = false;
 
   std::vector<CallInst*> workList;
 
+  /* TODO: Change this logic */
   for (BasicBlock::iterator I = B.begin(); I != B.end(); I++) {
     if (CallInst* CI = dyn_cast<CallInst>(I)) {
       workList.push_back(CI);
@@ -86,11 +96,11 @@ bool BBInliner::runOnBasicBlock(BasicBlock& B) {
   return changed;
 }
 
-InlineCost BBInliner::getInlineCost(CallSite CS) {
+InlineCost DynamicInliner::getInlineCost(CallSite CS) {
   return InlineCost::getAlways();
 }
 
-bool BBInliner::shouldInline(CallSite CS) {
+bool DynamicInliner::shouldInline(CallSite CS) {
   InlineCost IC = getInlineCost(CS);
   if (IC.isAlways()) {
     return true;
@@ -111,7 +121,7 @@ bool BBInliner::shouldInline(CallSite CS) {
   return true;
 }
 
-bool BBInliner::attemptToInline(CallSite CS) {
+bool DynamicInliner::attemptToInline(CallSite CS) {
   InlineFunctionInfo Info;
   bool InsertLifetime = false;
   if (!InlineFunction(CS, Info, InsertLifetime)) return false;
