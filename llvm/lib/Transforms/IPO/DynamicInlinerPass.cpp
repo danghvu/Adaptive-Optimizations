@@ -71,26 +71,23 @@ bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
 
   bool changed = false;
 
-  std::vector<CallInst*> workList;
+  std::vector<CallSite> worklist;
 
   /* TODO: Change this logic */
   for (BasicBlock::iterator I = B.begin(); I != B.end(); I++) {
-    if (CallInst* CI = dyn_cast<CallInst>(I)) {
-      workList.push_back(CI);
-    }
+    CallSite CS(cast<Value>(I));
+    if (!CS || isa<IntrinsicInst>(I)) continue;
+    if (CS.getCalledFunction() && CS.getCalledFunction()->isDeclaration()) continue;
+    
+    worklist.push_back(CS);
   }
 
-  for (std::vector<CallInst*>::iterator wI = workList.begin(); wI!=workList.end(); wI++) {
-    CallInst *CI = *wI;
-    CallSite CS(CI);
-    if (CS) {
-      Function* Callee = CS.getCalledFunction();
-
-      if (Callee == 0 || Callee->isDeclaration()) continue;
-      if (!shouldInline(CS)) continue;
-      if (!attemptToInline(CS)) continue;
-      changed = true;
-    }
+  for (std::vector<CallSite>::iterator I = worklist.begin(); I!=worklist.end(); I++) {
+    Function* Callee = I->getCalledFunction();
+    if (Callee == 0 || Callee->isDeclaration()) continue;
+    if (!shouldInline(*I)) continue;
+    if (!attemptToInline(*I)) continue;
+    changed = true;
   }
 
   return changed;
