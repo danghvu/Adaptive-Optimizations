@@ -694,12 +694,11 @@ void *JIT::reoptimizeAndRelinkFunction(Function *F) {
     FPM->doFinalization();
     // TODO: do not delete FPM since BBProfiling need this object, memory leak ?
   } else if (stat > t1 && F->size() == 1 && stat == t2) {
-    // TODO: This needs to be fixed now that inliner is a function pass.
     // IF there is only 1 basic block, we need to do optimization ourselves;
-    dbgs() << F->getName() << "[reoptimization & relink] adding BBinline\n";
+    dbgs() << F->getName() << "[reoptimization & relink] adding DynamicInliner\n";
     FunctionPassManager *FPM = new FunctionPassManager(jitstate->getModule());
     FPM->doInitialization();
-    //FPM->add(createBBInlinerPass());
+    FPM->add(createDynamicInlinerPass());
     FPM->run(*F);
     FPM->doFinalization();
     delete FPM;
