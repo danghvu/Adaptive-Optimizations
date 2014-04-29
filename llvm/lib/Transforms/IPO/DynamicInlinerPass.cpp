@@ -83,8 +83,6 @@ bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
   }
 
   for (std::vector<CallSite>::iterator I = worklist.begin(); I!=worklist.end(); I++) {
-    Function* Callee = I->getCalledFunction();
-    if (Callee == 0 || Callee->isDeclaration()) continue;
     if (!shouldInline(*I)) continue;
     if (!attemptToInline(*I)) continue;
     changed = true;
@@ -109,18 +107,12 @@ bool DynamicInliner::shouldInline(CallSite CS) {
     return false;
   }
 
-  // TODO: Move to get inline cost
-  Function* Caller = CS.getCaller();
-  if (Caller->hasLocalLinkage() ||
-      Caller->getLinkage() == GlobalValue::LinkOnceODRLinkage) {
-    // A bunch of cost logic based on where the caller might be inlined
-  }
   return true;
 }
 
 bool DynamicInliner::attemptToInline(CallSite CS) {
+  // TODO: Make sure the params are corrent
   InlineFunctionInfo Info;
-  bool InsertLifetime = false;
-  if (!InlineFunction(CS, Info, InsertLifetime)) return false;
+  if (!InlineFunction(CS, Info)) return false;
   return true;
 }
