@@ -14,7 +14,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#define DEBUG_TYPE "brooks8"
+#define DEBUG_TYPE "bbprofiling"
+// this name is used when -stats is used
+
 #include "JITProfiling.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/Transforms/IPO.h"
@@ -40,6 +42,8 @@
 #include <queue>
 #include <string>
 #include <functional>
+
+STATISTIC(numInsertedBB, "Number of profiling basic blocks inserted");
 
 namespace llvm {
 
@@ -477,6 +481,8 @@ bool JITProfiling::insertInstructions() {
     F->getEntryBlock().getInstList().pop_front();
     F->getEntryBlock().getInstList().pop_front();
   }
+
+  numInsertedBB += ProfileBlocks.size();
 
   return insertedInsts;
 }
