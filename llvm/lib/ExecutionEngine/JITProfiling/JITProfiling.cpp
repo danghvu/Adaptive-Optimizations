@@ -46,6 +46,8 @@ namespace llvm {
 // Constructor for the object
 JITProfiling::JITProfiling(Function* Func) {
   F = Func;
+  previouslyExecuted = false;
+  alreadyRemovedInsts = false;
 }
 
 bool JITProfiling::run(bool changed) {
@@ -71,21 +73,10 @@ bool JITProfiling::run(bool changed) {
   bool results;
   // If MaxSpanningTree is not allocated, this is the first time we are running
   // the profiling "pass" on the function
-  if (MaxSpanningTree == NULL) {
-    MaxSpanningTree  = new EdgeSet();
-    ProfileEdges     = new EdgeSet();
-    ProfileBlocks    = new BlockSet();
-    EdgeCounts       = new EdgeCountSet();
-    BlockCounts      = new BlockCountSet();
-
+  if (!previouslyExecuted) {
     // Run analysis and insert instructions
     getWeights();
     constructMaxSpanTree();
-    results = insertInstructions();
-    initializeEdgeCounts();
-
-    // Return value indicates if profiling code was actually inserted
-    return results;
   }
   // Otherwise the "pass" has been run once before and we still have previous
   // information (max spanning tree, profiling edges, etc.)
@@ -94,36 +85,34 @@ bool JITProfiling::run(bool changed) {
   // the entire analysis again
   else if (changed) {
     // Clear data structures
-    MaxSpanningTree->clear();
-    ProfileEdges->clear();
-    ProfileBlocks->clear();
-    EdgeCounts->clear();
-    BlockCounts->clear();
+    MaxSpanningTree.clear();
+    ProfileEdges.clear();
+    ProfileBlocks.clear();
+    EdgeCounts.clear();
+    BlockCounts.clear();
 
     // Run analysis and insert instructions
     getWeights();
     constructMaxSpanTree();
-    results = insertInstructions();
-
-    // Reset the edge counts
-    initializeEdgeCounts();
-
-    // Return value indicates if profiling code was actually inserted
-    return results;
   }
   // Otherwise, if the CFG has NOT changed, optimal placement for profiling code
   // stays the same.  This means the initial analysis is not needed! (Only need to
   // insert profiling code again
-  else {
-    results = insertInstructions();
-    initializeEdgeCounts();
-    return results;
-  }
+  results = insertInstructions();
+  initializeEdgeCounts();
+  previouslyExecuted = true;
+  alreadyRemovedInsts = false;
+  printInsertionEdges();
+
+  return results;
 }
 
 void* JITProfiling::CallbackFunction(BasicBlock* B) {
+  // If the remove instructions flag is already set, don't do anything!
+  if (alreadyRemovedInsts)
+    return 0;
+
   // A profiling block is guaranteed to only have one predecessor and one successor
-  //printf("In JITProfiling callback function! [%s]\n", B->getName().str().c_str());
   Edge E;
   if (B->getName().str().find("ProfileBB") != std::string::npos)
     E = std::make_pair(*pred_begin(B), *succ_begin(B));
@@ -146,11 +135,11 @@ void* JITProfiling::CallbackFunction(BasicBlock* B) {
     }
   }
   unsigned threshold = 2;//(TheJIT->getProfileInfo())->TH_ENABLE_APPLY_OPT;
-  (*EdgeCounts)[E] += 1;
+  EdgeCounts[E] += 1;
   fprintf(stderr, "Threshold: %u | Edge count: ", threshold);
-  printEdge(E, (*EdgeCounts)[E]);
+  printEdge(E, EdgeCounts[E]);
 
-  if ((*EdgeCounts)[E] >= threshold) {
+  if (EdgeCounts[E] >= threshold) {
     // Update counts and keep track of basic blocks above threshold
     SmallPtrSet<BasicBlock*, 8> HotBlocks;
     updateCounts(HotBlocks, threshold);
@@ -158,6 +147,11 @@ void* JITProfiling::CallbackFunction(BasicBlock* B) {
     fprintf(stderr, "An edge is now equal to the threshold! Removing profiling...\n");
     // Remove profiling instructions
     removeInstructions();
+
+    // Need to make sure nothing is done in callback once instructions are removed!
+    // Since the machine code for callback will still remain until the function is
+    // re-emitted, we need to add a check in the call back for this flag
+    alreadyRemovedInsts = true;
 
     // At this point, instructions have been removed and optimizations can be performed
     // TODO: How should we trigger the optimizations to be run?
@@ -167,31 +161,30 @@ void* JITProfiling::CallbackFunction(BasicBlock* B) {
 }
 
 void JITProfiling::initializeEdgeCounts() {
-  EdgeCounts->clear();
+  EdgeCounts.clear();
 
   // Set all edges to have 0 frequency
-  for (EdgeSet::iterator ESI = MaxSpanningTree->begin(), ESE = MaxSpanningTree->end(); ESI != ESE; ++ESI) {
-    (*EdgeCounts)[*ESI] = 0;
+  for (EdgeSet::iterator ESI = MaxSpanningTree.begin(), ESE = MaxSpanningTree.end(); ESI != ESE; ++ESI) {
+    EdgeCounts[*ESI] = 0;
   }
-  for (EdgeSet::iterator ESI = ProfileEdges->begin(), ESE = ProfileEdges->end(); ESI != ESE; ++ESI) {
-    (*EdgeCounts)[*ESI] = 0;
+  for (EdgeSet::iterator ESI = ProfileEdges.begin(), ESE = ProfileEdges.end(); ESI != ESE; ++ESI) {
+    EdgeCounts[*ESI] = 0;
   }
 }
 
 void* MyCallbackFunction(JITProfiling* BP, BasicBlock* B) {
-  //printf("In callback function!\n");
   return BP->CallbackFunction(B);
 }
 
 void JITProfiling::updateCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsigned thresh) {
   Edge E = std::make_pair((BasicBlock*)NULL, (BasicBlock*)NULL);
   // Clear the counts of the edges which don't have counters
-  for (EdgeSet::iterator ESI = MaxSpanningTree->begin(), ESE = MaxSpanningTree->end(); ESI != ESE; ++ESI) {
-    (*EdgeCounts)[*ESI] = 0;
+  for (EdgeSet::iterator ESI = MaxSpanningTree.begin(), ESE = MaxSpanningTree.end(); ESI != ESE; ++ESI) {
+    EdgeCounts[*ESI] = 0;
   }
 
   // Clear the counts of all basic blocks
-  for (BlockCountSet::iterator BSI = BlockCounts->begin(), BSE = BlockCounts->end(); BSI != BSE; ++BSI) {
+  for (BlockCountSet::iterator BSI = BlockCounts.begin(), BSE = BlockCounts.end(); BSI != BSE; ++BSI) {
     BSI->second = 0;
   }
 
@@ -212,7 +205,7 @@ void JITProfiling::updateEdgeCountsDFS(BasicBlock* B, Edge E) {
   // If B is the entry block, we have to do the exit->entry edge as well
   if (B == &F->getEntryBlock()) {
     E1 = std::make_pair(ExitBB, B);
-    if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree->count(E1) != 0) {
+    if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree.count(E1) != 0) {
       updateEdgeCountsDFS(E1.first, E1);
     }
   }
@@ -222,10 +215,10 @@ void JITProfiling::updateEdgeCountsDFS(BasicBlock* B, Edge E) {
       E1 = std::make_pair(*pred_begin(*PI), B);
     else
       E1 = std::make_pair(*PI, B);
-    if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree->count(E1) != 0) {
+    if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree.count(E1) != 0) {
       updateEdgeCountsDFS(E1.first, E1);
     }
-    in += (*EdgeCounts)[E1];
+    in += EdgeCounts[E1];
   }
 
   // Calculate the out dependencies
@@ -236,14 +229,14 @@ void JITProfiling::updateEdgeCountsDFS(BasicBlock* B, Edge E) {
     else
       E1 = std::make_pair(B, *SI);
 
-    if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree->count(E1) != 0) {
+    if ((E1.first != E.first || E1.second != E.second) && MaxSpanningTree.count(E1) != 0) {
       updateEdgeCountsDFS(E1.second, E1);
     }
-    out += (*EdgeCounts)[E1];
+    out += EdgeCounts[E1];
   }
 
   if (E.first != NULL) {
-    (*EdgeCounts)[E] = abs(in - out);
+    EdgeCounts[E] = abs(in - out);
   }
 }
 
@@ -251,9 +244,9 @@ void JITProfiling::updateBlockCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsi
   for (df_iterator<BasicBlock*> I = df_begin(&F->getEntryBlock()), E = df_end(&F->getEntryBlock()); I != E; ++I) {
     BasicBlock* B = *I;
     if (B == &F->getEntryBlock())
-      (*BlockCounts)[B] = (*EdgeCounts)[std::make_pair(ExitBB, B)];
+      BlockCounts[B] = EdgeCounts[std::make_pair(ExitBB, B)];
     else
-      (*BlockCounts)[B] = 0;
+      BlockCounts[B] = 0;
 
     for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
       Edge E1;
@@ -261,8 +254,8 @@ void JITProfiling::updateBlockCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsi
         E1 = std::make_pair(*pred_begin(B), B);
       else
         E1 = std::make_pair(*PI, B);
-      (*BlockCounts)[B] += (*EdgeCounts)[E1];
-      if ((*BlockCounts)[B] >= thresh) {
+      BlockCounts[B] += EdgeCounts[E1];
+      if (BlockCounts[B] >= thresh) {
         HotBlocks.insert(B);
       }
     }
@@ -296,6 +289,10 @@ void JITProfiling::removeProfiling(BasicBlock* B) {
         // need to delete in reverse order here
         Instruction *I1 = B->getInstList().begin();
         Instruction *I2 = (++B->getInstList().begin());
+        fprintf(stderr, "Removing instruction: ");
+        I1->dump();
+        fprintf(stderr, "Removing instruction: ");
+        I2->dump();
         I2->eraseFromParent();
         I1->eraseFromParent();
       }
@@ -330,8 +327,9 @@ void JITProfiling::removeProfiling(BasicBlock* B) {
 
 void JITProfiling::removeInstructions() {
   fprintf(stderr, "\n*** Removing profiling ***\n");
-  for (BlockSet::iterator BSI = ProfileBlocks->begin(), BSE = ProfileBlocks->end(); BSI != BSE; ++BSI) {
+  for (BlockSet::iterator BSI = ProfileBlocks.begin(), BSE = ProfileBlocks.end(); BSI != BSE; ++BSI) {
     fprintf(stderr, "Removing profiling from BB : %s\n", (*BSI)->getName().str().c_str());
+    (*BSI)->dump();
     removeProfiling(*BSI);
   }
   // Remove the two inttoptrs for the pass and the function
@@ -341,7 +339,7 @@ void JITProfiling::removeInstructions() {
 }
 
 bool JITProfiling::insertInstructions() {
-  ProfileBlocks->clear();
+  ProfileBlocks.clear();
 
   // Insert allocation for profiling variables
   bool insertedInsts = false;
@@ -375,7 +373,7 @@ bool JITProfiling::insertInstructions() {
   F->getEntryBlock().getInstList().push_front(FuncAddrToPtrInst);
 
   int i = 0;
-  for (EdgeSet::iterator I = ProfileEdges->begin(), E = ProfileEdges->end(); I != E; ++I) {
+  for (EdgeSet::iterator I = ProfileEdges.begin(), E = ProfileEdges.end(); I != E; ++I) {
     insertedInsts = true;
     // Create a new BasicBlock
     BasicBlock* E1 = I->first;
@@ -455,7 +453,7 @@ bool JITProfiling::insertInstructions() {
       B->getInstList().push_back(BranchInst::Create(E2));
       E2->moveAfter(B);
     }
-    ProfileBlocks->insert(B);
+    ProfileBlocks.insert(B);
   }
 
   // If we inserted no profiling code, remove the inttoptr instructions in the entry block
@@ -485,7 +483,7 @@ void JITProfiling::constructMaxSpanTree() {
   E = std::make_pair(ExitBB, &F->getEntryBlock());
   TreeNodes.insert(E.first);
   TreeNodes.insert(E.second);
-  MaxSpanningTree->insert(E);
+  MaxSpanningTree.insert(E);
   SmallVector<EdgeWeight, 16> Backup;
 
   // This does not include unreachable basic blocks
@@ -500,13 +498,13 @@ void JITProfiling::constructMaxSpanTree() {
       // c1 == 1, c2 == 0
       if (c1 > c2) {
         TreeNodes.insert(E.second);
-        MaxSpanningTree->insert(E);
+        MaxSpanningTree.insert(E);
         break;
       }
       // c1 == 0, c2 == 1
       else if (c1 < c2) {
         TreeNodes.insert(E.first);
-        MaxSpanningTree->insert(E);
+        MaxSpanningTree.insert(E);
         break;
       }
       // c1 == c2 == 0
@@ -522,8 +520,8 @@ void JITProfiling::constructMaxSpanTree() {
 
   for (EdgeWeightMap::iterator IE = EdgeWeights.begin(), EE = EdgeWeights.end(); IE != EE; ++IE) {
     E = (*IE).first;
-    if (MaxSpanningTree->count(E) == 0) {
-      ProfileEdges->insert(E);
+    if (MaxSpanningTree.count(E) == 0) {
+      ProfileEdges.insert(E);
     }
   }
 }
@@ -658,14 +656,14 @@ void JITProfiling::printAllWeights() {
 
 void JITProfiling::printMaxSpanTree() {
   fprintf(stderr,"**** Max Spanning Tree ****\n");
-  for (SetVector<Edge>::iterator I = MaxSpanningTree->begin(), E = MaxSpanningTree->end(); I != E; ++I) {
+  for (SetVector<Edge>::iterator I = MaxSpanningTree.begin(), E = MaxSpanningTree.end(); I != E; ++I) {
     printEdge(*I);
   }
 }
 
 void JITProfiling::printInsertionEdges() {
   fprintf(stderr,"**** Insertion Edges ****\n");
-  for (EdgeSet::iterator I = ProfileEdges->begin(), E = ProfileEdges->end(); I != E; ++I) {
+  for (EdgeSet::iterator I = ProfileEdges.begin(), E = ProfileEdges.end(); I != E; ++I) {
     printEdge(*I);
   }
 }
@@ -684,13 +682,13 @@ void JITProfiling::printEdge(Edge E, unsigned U) {
 
 void JITProfiling::printEdgeCounts() {
   fprintf(stderr,"**** Edge Counts ****\n");
-  for (EdgeCountSet::iterator I = EdgeCounts->begin(), E = EdgeCounts->end(); I != E; ++I)
+  for (EdgeCountSet::iterator I = EdgeCounts.begin(), E = EdgeCounts.end(); I != E; ++I)
     printEdge(I->first, I->second);
 }
 
 void JITProfiling::printBlockCounts() {
   fprintf(stderr,"**** Block Counts ****\n");
-  for (BlockCountSet::iterator I = BlockCounts->begin(), E = BlockCounts->end(); I != E; ++I)
+  for (BlockCountSet::iterator I = BlockCounts.begin(), E = BlockCounts.end(); I != E; ++I)
     fprintf(stderr, "%s [%u]\n", I->first->getName().str().c_str(), I->second);
 }
 }

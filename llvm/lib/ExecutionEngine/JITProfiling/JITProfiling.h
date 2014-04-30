@@ -42,8 +42,6 @@
 #include <string>
 #include <functional>
 
-//using namespace llvm;
-
 namespace llvm {
   typedef std::pair<const BasicBlock*, const BasicBlock*> ConstEdge;
   typedef std::pair<BasicBlock*, BasicBlock*> Edge;
@@ -63,17 +61,7 @@ namespace llvm {
   public:
     JITProfiling(Function* Func);
 
-    ~JITProfiling() {
-      delete MaxSpanningTree;
-      delete ProfileEdges;
-      delete ProfileBlocks;
-      delete EdgeCounts;
-      delete BlockCounts;
-      delete FPM;
-    }
-
     void* CallbackFunction(BasicBlock* B);
-    void  setupPassManager(FunctionPassManager* Manager, Function* Func);
     bool  run(bool changed = true);
 
     Function* F;
@@ -81,18 +69,20 @@ namespace llvm {
     BasicBlock* ExitBB;
 
     int LoopMultiplier; // Assumption on number of iterations for each loop
+    bool previouslyExecuted;
+    bool alreadyRemovedInsts;
 
     BlockWeightMap BlockWeights;  // Map holding weight values of each basic block
     EdgeWeightMap  EdgeWeights;   // Map holding weight values of each edge
-    EdgeSet*       MaxSpanningTree; // Edges in the maximum spanning tree
-    EdgeSet*       ProfileEdges;
-    BlockSet*      ProfileBlocks;
+    EdgeSet        MaxSpanningTree; // Edges in the maximum spanning tree
+    EdgeSet        ProfileEdges;
+    BlockSet       ProfileBlocks;
 
     // Specific to keeping track of edge/block counts
-    EdgeCountSet*        EdgeCounts;
-    BlockCountSet*       BlockCounts;
-    ExecutionEngine*     TheJIT;
-    FunctionPassManager* FPM;
+    EdgeCountSet        EdgeCounts;
+    BlockCountSet       BlockCounts;
+    ExecutionEngine*    TheJIT;
+    //FunctionPassManager FPM;
 
     struct EdgeWeightCompare {
       bool operator()(const EdgeWeight& l, EdgeWeight& r) const {
