@@ -67,7 +67,7 @@ bool DynamicInliner::runOnFunction(Function& F) {
 }
 
 bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
-  dbgs() << "DynamicInliner: Attempting to inline calls in " << B.getName() << "\n";
+  DEBUG( dbgs() << "DynamicInliner: Attempting to inline calls in " << B.getName() << "\n" );
 
   bool changed = false;
 
@@ -78,7 +78,7 @@ bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
     CallSite CS(cast<Value>(I));
     if (!CS || isa<IntrinsicInst>(I)) continue;
     if (CS.getCalledFunction() && CS.getCalledFunction()->isDeclaration()) continue;
-    
+
     worklist.push_back(CS);
   }
 

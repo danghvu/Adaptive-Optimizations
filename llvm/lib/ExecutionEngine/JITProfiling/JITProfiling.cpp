@@ -55,7 +55,7 @@ bool JITProfiling::run(bool changed) {
   // If the function only has a single basic block, no profiling is needed (profiling
   // information can come from the function profiling of the JIT)
   if (this->F->size() == 1) {
-    fprintf(stderr, "*** Function only has one basic block - no profiling code needed ***\n");
+    DEBUG( dbgs() <<  "*** Function only has one basic block - no profiling code needed ***\n" );
     return false;
   }
 
@@ -108,6 +108,16 @@ bool JITProfiling::run(bool changed) {
   return results;
 }
 
+void JITProfiling::doOptimization() {
+  if (FPM != NULL)
+    delete FPM;
+  FPM = new FunctionPassManager(F->getParent());
+  FPM->add(createDynamicInlinerPass());
+  FPM->doInitialization();
+  FPM->run(*F);
+  FPM->doFinalization();
+}
+
 void* JITProfiling::CallbackFunction(BasicBlock* B) {
   // If the remove instructions flag is already set, don't do anything!
   if (alreadyRemovedInsts)
@@ -135,9 +145,9 @@ void* JITProfiling::CallbackFunction(BasicBlock* B) {
       E = std::make_pair(B, *succ_begin(B));
     }
   }
-  unsigned threshold = (TheJIT->getProfileInfo())->TH_ENABLE_APPLY_OPT;
+  unsigned threshold = (TheJIT->getProfileSetting())->TH_ENABLE_APPLY_OPT;
   EdgeCounts[E] += 1;
-  fprintf(stderr, "Threshold: %u | Edge count: ", threshold);
+  DEBUG( dbgs() << "Threshold: " << threshold << "  | Edge count: " );
   printEdge(E, EdgeCounts[E]);
 
   if (EdgeCounts[E] >= threshold) {
@@ -145,21 +155,15 @@ void* JITProfiling::CallbackFunction(BasicBlock* B) {
     SmallPtrSet<BasicBlock*, 8> HotBlocks;
     updateCounts(HotBlocks, threshold);
 
-    fprintf(stderr, "An edge is now equal to the threshold! Removing profiling...\n");
+    DEBUG( dbgs() << "An edge is now equal to the threshold! Removing profiling...\n" );
     // Remove profiling instructions
     removeInstructions();
 
     // TODO: For testing purposes, added running inline pass:
-    if (FPM != NULL)
-      delete FPM;
-    FPM = new FunctionPassManager(F->getParent());
-    FPM->add(createDynamicInlinerPass());
-    FPM->doInitialization();
-    FPM->run(*F);
-    FPM->doFinalization();
+    doOptimization();
 
-    dbgs() << F->getName() << "[JITProfiling callback] results:\n";
-    F->dump();
+    DEBUG( dbgs() << F->getName() << "[JITProfiling callback] results:\n" );
+    DEBUG( F->dump() );
 
     //TheJIT->
 
@@ -207,7 +211,7 @@ void JITProfiling::updateCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsigned 
   updateEdgeCountsDFS(&F->getEntryBlock(), E);
   updateBlockCounts(HotBlocks, thresh);
   // Print the results
-  fprintf(stderr,"\n\n");
+  DEBUG( dbgs() << "\n\n" );
   printEdgeCounts();
   printBlockCounts();
 }
@@ -281,7 +285,7 @@ void JITProfiling::removeProfiling(BasicBlock* B) {
   // If the block was inserted for specifically profiling (A -> B -> C), change
   // such that A -> C and remove B from function
   if (B->getName().str().find("ProfileBB") != std::string::npos) {
-    fprintf(stderr, "BasicBlock [%s] was added by us\n", B->getName().str().c_str());
+    DEBUG( dbgs() << "BasicBlock [" << B->getName() << " was added by us\n" );
     BasicBlock* Succ = *succ_begin(B);
     TerminatorInst* TermA = (*pred_begin(B))->getTerminator();
     unsigned numSuccA = TermA->getNumSuccessors();
@@ -293,7 +297,7 @@ void JITProfiling::removeProfiling(BasicBlock* B) {
   }
   // Otherwise the instructions are either the first two, or the last two (before the terminator inst);
   else {
-    fprintf(stderr, "Existing BasicBlock [%s] has profiling instructions\n", B->getName().str().c_str());
+    DEBUG( dbgs() << "Existing BasicBlock [" << B->getName()  << " has profiling instructions\n" );
     IntToPtrInst* I = dyn_cast<IntToPtrInst>(&B->getInstList().front());
 
     // If the first instruction is an inttoptr
@@ -304,10 +308,8 @@ void JITProfiling::removeProfiling(BasicBlock* B) {
         // need to delete in reverse order here
         Instruction *I1 = B->getInstList().begin();
         Instruction *I2 = (++B->getInstList().begin());
-        fprintf(stderr, "Removing instruction: ");
-        I1->dump();
-        fprintf(stderr, "Removing instruction: ");
-        I2->dump();
+        DEBUG( dbgs() << "Removing instruction: " << *I1 << "\n" );
+        DEBUG( dbgs() << "Removing instruction: " << *I2 << "\n" );
         I2->eraseFromParent();
         I1->eraseFromParent();
       }
@@ -315,42 +317,37 @@ void JITProfiling::removeProfiling(BasicBlock* B) {
       else {
         BasicBlock::iterator ILT = B->getInstList().end();
         ILT--; ILT--;
-        fprintf(stderr, "Removing instruction: ");
-        (*ILT).dump();
+        DEBUG( dbgs() << "Removing instruction: " << *ILT );
         ILT = B->getInstList().erase(ILT);
         ILT--;
-        fprintf(stderr, "Removing instruction: ");
-        (*ILT).dump();
+        DEBUG( dbgs() << "Removing instruction: " << *ILT);
         ILT = B->getInstList().erase(ILT);
       }
     }
     // Otherwise remove the two instructions before the terminator
     else {
-        fprintf(stderr, "\tIn the end!\n");
+        DEBUG( dbgs() <<  "\tIn the end!\n" );
         BasicBlock::iterator ILT = B->getInstList().end();
         ILT--; ILT--;
-        fprintf(stderr, "Removing instruction: ");
-        (*ILT).dump();
+        DEBUG( dbgs() << "Removing instruction: " << *ILT );
         ILT = B->getInstList().erase(ILT);
         ILT--;
-        fprintf(stderr, "Removing instruction: ");
-        (*ILT).dump();
+        DEBUG( dbgs() << "Removing instruction: " << *ILT );
         ILT = B->getInstList().erase(ILT);
     }
   }
 }
 
 void JITProfiling::removeInstructions() {
-  fprintf(stderr, "\n*** Removing profiling ***\n");
+  DEBUG( dbgs() << "\n*** Removing profiling ***\n" );
   for (BlockSet::iterator BSI = ProfileBlocks.begin(), BSE = ProfileBlocks.end(); BSI != BSE; ++BSI) {
-    fprintf(stderr, "Removing profiling from BB : %s\n", (*BSI)->getName().str().c_str());
-    (*BSI)->dump();
+    DEBUG( dbgs() << "Removing profiling from BB : " << (*BSI)->getName() << "\n" );
     removeProfiling(*BSI);
   }
   // Remove the two inttoptrs for the pass and the function
   F->getEntryBlock().getInstList().front().eraseFromParent();
   F->getEntryBlock().getInstList().front().eraseFromParent();
-  fprintf(stderr, "\n*** Done removing profiling ***\n\n");
+  DEBUG( dbgs() << "\n*** Done removing profiling ***\n\n" );
 }
 
 bool JITProfiling::insertInstructions() {
@@ -658,52 +655,52 @@ void JITProfiling::getWeights() {
 }
 
 void JITProfiling::printAllWeights() {
-  fprintf(stderr,"**** BlockWeights ****\n");
+  DEBUG( dbgs() << "**** BlockWeights ****\n" );
   for (BlockWeightMap::iterator DI = BlockWeights.begin(), DE = BlockWeights.end(); DI != DE; ++DI) {
-    fprintf(stderr, "%s: %f\n", DI->first->getName().str().c_str(), DI->second);
+    DEBUG( dbgs() <<  DI->first->getName() << " " <<  DI->second << "\n" );
   }
 
-  fprintf(stderr,"***** EdgeWeights *****\n");
+  DEBUG( dbgs() << "***** EdgeWeights *****\n" );
   for (EdgeWeightMap::iterator DI = EdgeWeights.begin(), DE = EdgeWeights.end(); DI != DE; ++DI) {
     printEdge(DI->first, DI->second);
   }
 }
 
 void JITProfiling::printMaxSpanTree() {
-  fprintf(stderr,"**** Max Spanning Tree ****\n");
+  DEBUG( dbgs() << "**** Max Spanning Tree ****\n" );
   for (SetVector<Edge>::iterator I = MaxSpanningTree.begin(), E = MaxSpanningTree.end(); I != E; ++I) {
     printEdge(*I);
   }
 }
 
 void JITProfiling::printInsertionEdges() {
-  fprintf(stderr,"**** Insertion Edges ****\n");
+  DEBUG( dbgs() << "**** Insertion Edges ****\n" );
   for (EdgeSet::iterator I = ProfileEdges.begin(), E = ProfileEdges.end(); I != E; ++I) {
     printEdge(*I);
   }
 }
 
 void JITProfiling::printEdge(Edge E) {
-  fprintf(stderr, "%s -> %s\n", E.first->getName().str().c_str(), E.second->getName().str().c_str());
+  DEBUG( dbgs() <<  E.first->getName() << " -> " <<  E.second->getName() << "\n" );
 }
 
 void JITProfiling::printEdge(Edge E, float F) {
-  fprintf(stderr, "%s -> %s [%f]\n", E.first->getName().str().c_str(), E.second->getName().str().c_str(), F);
+  DEBUG( dbgs() <<  E.first->getName() << ": " << E.second->getName() << " " << F << "\n" );
 }
 
 void JITProfiling::printEdge(Edge E, unsigned U) {
-  fprintf(stderr, "%s -> %s [%u]\n", E.first->getName().str().c_str(), E.second->getName().str().c_str(), U);
+  DEBUG( dbgs() <<  E.first->getName() << ": " << E.second->getName() << " " << U << "\n" );
 }
 
 void JITProfiling::printEdgeCounts() {
-  fprintf(stderr,"**** Edge Counts ****\n");
+  DEBUG( dbgs() << "**** Edge Counts ****\n" );
   for (EdgeCountSet::iterator I = EdgeCounts.begin(), E = EdgeCounts.end(); I != E; ++I)
     printEdge(I->first, I->second);
 }
 
 void JITProfiling::printBlockCounts() {
-  fprintf(stderr,"**** Block Counts ****\n");
+  DEBUG( dbgs() << "**** Block Counts ****\n" );
   for (BlockCountSet::iterator I = BlockCounts.begin(), E = BlockCounts.end(); I != E; ++I)
-    fprintf(stderr, "%s [%u]\n", I->first->getName().str().c_str(), I->second);
+    DEBUG( dbgs() << I->first->getName() << ": " << I->second );
 }
 }

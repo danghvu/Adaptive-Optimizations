@@ -26,7 +26,7 @@ class MachineFunction;
 class OProfileWrapper;
 class IntelJITEventsWrapper;
 class ObjectImage;
-class JITOnlineProfileInfo;
+class JITOnlineProfileSetting;
 
 /// JITEvent_EmittedFunctionDetails - Helper struct for containing information
 /// about a generated machine code function.
@@ -127,8 +127,9 @@ public:
   static JITEventListener *createOnlineProfileJITEventListener();
   virtual void NotifyFunctionExecute(const Function *F) {};
   virtual void dump() {};
+
   virtual int getStat(const Function *) { return 0; };
-  virtual JITOnlineProfileInfo *getProfileInfo() { return 0; };
+  virtual JITOnlineProfileSetting *getProfileSetting() { return 0; };
 
 };
 

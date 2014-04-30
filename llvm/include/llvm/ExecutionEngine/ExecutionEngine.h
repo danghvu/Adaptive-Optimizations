@@ -15,6 +15,7 @@
 #ifndef LLVM_EXECUTIONENGINE_EXECUTIONENGINE_H
 #define LLVM_EXECUTIONENGINE_EXECUTIONENGINE_H
 
+
 #include "llvm-c/ExecutionEngine.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
@@ -29,6 +30,7 @@
 #include <string>
 #include <vector>
 
+#include "llvm/ExecutionEngine/OnlineProfileSetting.h"
 #include "llvm/PassManager.h"
 
 namespace llvm {
@@ -49,19 +51,6 @@ class ObjectCache;
 class RTDyldMemoryManager;
 class Triple;
 class Type;
-
-// temporarily save this class here for easy compilation
-class JITOnlineProfileInfo {
-  public:
-    JITOnlineProfileInfo() {
-      // TODO
-    }
-
-    DenseMap<const Function *, int> funcFreq;
-    const static int TH_ENABLE_BB_PROFILE = 4;
-    const static int TH_ENABLE_APPLY_OPT = 8;
-};
-
 
 /// \brief Helper class for helping synchronize access to the global address map
 /// table.
@@ -418,8 +407,8 @@ public:
   virtual void *recompileAndRelinkFunction(Function *F) = 0;
 
   virtual void *reoptimizeAndRelinkFunction(Function *F) { return recompileAndRelinkFunction(F); }
-  virtual JITOnlineProfileInfo *getProfileInfo() { return NULL; }
-  virtual void setProfileInfo(JITOnlineProfileInfo *info) { }
+  virtual JITOnlineProfileSetting *getProfileSetting() { return NULL; }
+  virtual void setProfileSetting(JITOnlineProfileSetting *setting) { }
 
   virtual FunctionPassManager* getFPM() {return NULL;};
 

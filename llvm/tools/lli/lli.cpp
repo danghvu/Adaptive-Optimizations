@@ -427,7 +427,7 @@ int main(int argc, char **argv, char * const *envp) {
   if (OnlineProfile) {
     oprofile = JITEventListener::createOnlineProfileJITEventListener();
     EE->RegisterJITEventListener(oprofile);
-    EE->setProfileInfo(oprofile->getProfileInfo());
+    EE->setProfileSetting(oprofile->getProfileSetting());
   }
 
   if (!NoLazyCompilation && RemoteMCJIT) {

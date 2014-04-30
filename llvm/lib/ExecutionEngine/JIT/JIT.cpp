@@ -677,28 +677,27 @@ void *JIT::reoptimizeAndRelinkFunction(Function *F) {
     stat += EventListeners[I]->getStat(F);
   }
 
-  dbgs() << "[reoptimization & relink] Stat: " << stat << "\n";
+  DEBUG( dbgs() << "[reoptimization & relink] Stat: " << stat << "\n"; );
 
-  int t1 = getProfileInfo()->TH_ENABLE_BB_PROFILE;
-  int t2 = getProfileInfo()->TH_ENABLE_APPLY_OPT;
+  int t1 = getProfileSetting()->TH_ENABLE_BB_PROFILE;
+  int t2 = getProfileSetting()->TH_ENABLE_APPLY_OPT;
 
-  bool res = false;
+  // return early if stat is still low
   if (stat < t1) return OldAddr;
-  else if (stat == t1) {
-    res = ProfileInfo[F]->run();
+
+  bool changed = false;
+  if (stat == t1) {
+    changed = ProfileInfo[F]->run();
   }
-  // No profiling code was added, but we still want to inline things
-  else if (stat > t1 && !res && stat == t2) {
-    FunctionPassManager* FPM = new FunctionPassManager(jitstate->getModule());
-    FPM->add(createDynamicInlinerPass());
-    FPM->doInitialization();
-    FPM->run(*F);
-    FPM->doFinalization();
-    delete FPM;
-    dbgs() << F->getName() << "[reoptimization & relink] results:\n";
-    F->dump();
+  // When stat == t1+t2 and only 1 basic block, we should inline it
+  else if (F->size() == 1 && stat == t1 + t2) {
+    ProfileInfo[F]->doOptimization();
+    DEBUG( dbgs() << F->getName() << "[reoptimization & relink] results:\n" );
+    DEBUG( F->dump() );
+    changed = true;
   }
 
+  if (!changed) return OldAddr;
 
   // Delete the old function mapping.
   addGlobalMapping(F, 0);
