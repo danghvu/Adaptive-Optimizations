@@ -51,6 +51,10 @@ JITProfiling::JITProfiling(Function* Func, ExecutionEngine* JIT) {
   alreadyRemovedInsts = false;
 }
 
+bool JITProfiling::hasPInstruction() {
+  return previouslyExecuted && !alreadyRemovedInsts;
+}
+
 bool JITProfiling::run(bool changed) {
   // If the function only has a single basic block, no profiling is needed (profiling
   // information can come from the function profiling of the JIT)

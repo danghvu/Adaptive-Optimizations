@@ -659,7 +659,7 @@ void *JITResolver::JITCompilerFn(void *Stub) {
 
     Result = JR->TheJIT->getPointerToFunction(F);
   } else {
-    JR->TheJIT->reoptimizeAndRelinkFunction(F);
+    Result = JR->TheJIT->reoptimizeAndRelinkFunction(F, Result);
   }
 
   // Reacquire the lock to update the GOT map.

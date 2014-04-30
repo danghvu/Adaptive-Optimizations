@@ -406,7 +406,7 @@ public:
   /// VM::getPointerToFunction().
   virtual void *recompileAndRelinkFunction(Function *F) = 0;
 
-  virtual void *reoptimizeAndRelinkFunction(Function *F) { return recompileAndRelinkFunction(F); }
+  virtual void *reoptimizeAndRelinkFunction(Function *F, void *R) { return recompileAndRelinkFunction(F); }
   virtual JITOnlineProfileSetting *getProfileSetting() { return NULL; }
   virtual void setProfileSetting(JITOnlineProfileSetting *setting) { }
 

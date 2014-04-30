@@ -247,6 +247,7 @@ bool JIT::removeModule(Module *M) {
 GenericValue JIT::runFunction(Function *F,
                               const std::vector<GenericValue> &ArgValues) {
   assert(F && "Function *F was null at entry to run()");
+  DEBUG (dbgs() << " runFunction " << F->getName() << "\n" );
   NotifyFunctionExecute(*F);
 
   void *FPtr = getPointerToFunction(F);
@@ -666,9 +667,7 @@ void *JIT::recompileAndRelinkFunction(Function *F) {
   return Addr;
 }
 
-void *JIT::reoptimizeAndRelinkFunction(Function *F) {
-  void *OldAddr = getPointerToGlobalIfAvailable(F);
-
+void *JIT::reoptimizeAndRelinkFunction(Function *F, void *OldAddr) {
   // If it's not already compiled there is no reason to patch it up.
   if (OldAddr == 0) { return getPointerToFunction(F); }
 
@@ -677,7 +676,7 @@ void *JIT::reoptimizeAndRelinkFunction(Function *F) {
     stat += EventListeners[I]->getStat(F);
   }
 
-  DEBUG( dbgs() << "[reoptimization & relink] Stat: " << stat << "\n"; );
+  DEBUG( dbgs() << "[reoptimization & relink] Stat: " << F->getName() << " " << stat << "\n" );
 
   int t1 = getProfileSetting()->TH_ENABLE_BB_PROFILE;
   int t2 = getProfileSetting()->TH_ENABLE_APPLY_OPT;
@@ -689,8 +688,9 @@ void *JIT::reoptimizeAndRelinkFunction(Function *F) {
   if (stat == t1) {
     changed = ProfileInfo[F]->run();
   }
-  // When stat == t1+t2 and only 1 basic block, we should inline it
-  else if (F->size() == 1 && stat == t1 + t2) {
+  // When stat == t1+t2 double check if anything was done by basicblock profiling
+  // If hasPInstruction return true then we expect BProfiling to do optimizing later
+  else if (stat == t1 + t2 && !ProfileInfo[F]->hasPInstruction()) {
     ProfileInfo[F]->doOptimization();
     DEBUG( dbgs() << F->getName() << "[reoptimization & relink] results:\n" );
     DEBUG( F->dump() );

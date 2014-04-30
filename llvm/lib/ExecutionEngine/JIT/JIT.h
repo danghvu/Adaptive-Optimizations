@@ -215,7 +215,7 @@ public:
   virtual FunctionPassManager *getFPM();
 
   // those are specific to our Online Profiler -- TODO: how to make it more generic?
-  virtual void *reoptimizeAndRelinkFunction(Function *F);
+  virtual void *reoptimizeAndRelinkFunction(Function *F, void *R);
   virtual JITOnlineProfileSetting* getProfileSetting() { return JOPI; }
   virtual void setProfileSetting(JITOnlineProfileSetting *info) { JOPI = info; }
 

@@ -107,6 +107,7 @@ namespace llvm {
     void updateCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsigned thresh);
     void updateEdgeCountsDFS(BasicBlock* B, Edge E);
 
+    bool hasPInstruction();
     void doOptimization();
 
     bool ExitEdgesContains(SmallVector<ConstEdge, 16> vec, ConstEdge elem);
