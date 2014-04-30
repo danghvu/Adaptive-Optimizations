@@ -129,9 +129,6 @@ void LLVMAddTypeBasedAliasAnalysisPass(LLVMPassManagerRef PM);
 /** See llvm::createBasicAliasAnalysisPass function */
 void LLVMAddBasicAliasAnalysisPass(LLVMPassManagerRef PM);
 
-void LLVMAddBProfilingPass(LLVMPassManagerRef PM);
-
-void LLVMAddRemoveBProfilingPass(LLVMPassManagerRef PM);
 /**
  * @}
  */

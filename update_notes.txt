@@ -1,0 +1,26 @@
+Removed completely:
+llvm/lib/Transforms/Instrumentation/BProfiling.cpp
+
+Removed (put in REPLACE with original code):
+llvm/include/llvm-c/Scalar.h
+llvm/include/llvm/Transforms/Instrumentation.h
+llvm/include/llvm/Transforms/Scalar.h
+llvm/lib/Transforms/Instrumentation/LLVMBuild.txt
+
+Updated:
+llvm/include/llvm/LinkAllPasses.h
+llvm/include/llvm/InitializePasses.h
+llvm/tools/lli/lli.cpp
+llvm/lib/ExecutionEngine/LLVMBuild.txt
+llvm/lib/ExecutionEngine/Makefile
+llvm/lib/ExecutionEngine/JIT/JIT.cpp
+llvm/lib/ExecutionEngine/JIT/JIT.h
+llvm/lib/ExecutionEngine/JIT/LLVMBuild.txt
+
+Added:
+llvm/tools/lli/LLVMBuild.txt
+llvm/tools/lli/Makefile
+llvm/lib/ExecutionEngine/JITProfiling/JITProfiling.h
+llvm/lib/ExecutionEngine/JITProfiling/JITProfiling.cpp
+llvm/lib/ExecutionEngine/JITProfiling/LLVMBuild.txt
+llvm/lib/ExecutionEngine/JITProfiling/Makefile

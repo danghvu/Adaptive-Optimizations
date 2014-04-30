@@ -15,6 +15,7 @@
 #define JIT_H
 
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "../JITProfiling/JITProfiling.h"
 #include "llvm/PassManager.h"
 #include "llvm/Support/ValueHandle.h"
 
@@ -79,6 +80,8 @@ class JIT : public ExecutionEngine {
   /// taken.
   BasicBlockAddressMapTy BasicBlockAddressMap;
 
+  // Profiling information for each function
+  DenseMap<Function*, JITProfiling*> ProfileInfo;
 
   JIT(Module *M, TargetMachine &tm, TargetJITInfo &tji,
       JITMemoryManager *JMM, bool AllocateGVsWithCode);

@@ -127,10 +127,6 @@ ModulePass *createDebugIRPass(bool HideDebugIntrinsics,
 ///       seen by the debugger.
 ModulePass *createDebugIRPass();
 
-class ExecutionEngine;
-FunctionPass* createBProfilingPass();
-FunctionPass* createBProfilingPass(ExecutionEngine* jit);
-
 } // End llvm namespace
 
 #endif

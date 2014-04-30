@@ -20,12 +20,14 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/JITMemoryManager.h"
+#include "../JITProfiling/JITProfiling.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/GlobalVariable.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/Module.h"
 #include "llvm/Support/Dwarf.h"
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -35,10 +37,6 @@
 #include "llvm/Target/TargetMachine.h"
 
 #include "llvm/Support/Debug.h"
-#include "llvm/Transforms/IPO.h"
-#include "llvm/Transforms/Instrumentation.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include <stdio.h>
 using namespace llvm;
 
@@ -164,15 +162,18 @@ JIT::JIT(Module *M, TargetMachine &tm, TargetJITInfo &tji,
   MutexGuard locked(lock);
   FunctionPassManager &PM = jitstate->getPM(locked);
   PM.add(new DataLayout(*TM.getDataLayout()));
-
   // Turn the machine code intermediate representation into bytes in memory that
   // may be executed.
   if (TM.addPassesToEmitMachineCode(PM, *JCE)) {
     report_fatal_error("Target does not support machine code emission!");
   }
 
-  // Initialize passes.
+  // Add profiling classes for each function
+  for (Module::iterator MI = M->begin(), ME = M->end(); MI != ME; ++MI) {
+    ProfileInfo[MI] = new JITProfiling(MI);
+  }
 
+  // Initialize passes.
   PM.doInitialization();
 }
 
@@ -675,36 +676,12 @@ void *JIT::reoptimizeAndRelinkFunction(Function *F) {
   for (unsigned I = 0, S = EventListeners.size(); I < S; ++I) {
     stat += EventListeners[I]->getStat(F);
   }
+  if (stat == 2) {
+    fprintf(stderr, "HERE!\n");
+    bool res = ProfileInfo[F]->run();
+  }
 
   dbgs() << "[reoptimization & relink] Stat: " << stat << "\n";
-
-  int t1 = getProfileInfo()->TH_ENABLE_BB_PROFILE;
-  int t2 = getProfileInfo()->TH_ENABLE_APPLY_OPT;
-
-  if (stat < t1) return OldAddr;
-  else if (stat == t1 && F->size() > 1) {
-    dbgs() << F->getName() << "[reoptimization & relink] adding BBprofiling \n";
-    FunctionPassManager *FPM = new FunctionPassManager(jitstate->getModule());
-    FunctionPass* FP = createBProfilingPass(this);
-    FPM->add(new DataLayout(*TM.getDataLayout()));
-    FPM->add(createUnifyFunctionExitNodesPass());
-    FPM->add(FP);
-    FPM->doInitialization();
-    FPM->run(*F);
-    FPM->doFinalization();
-    // TODO: do not delete FPM since BBProfiling need this object, memory leak ?
-  } else if (stat > t1 && F->size() == 1 && stat == t2) {
-    // IF there is only 1 basic block, we need to do optimization ourselves;
-    dbgs() << F->getName() << "[reoptimization & relink] adding DynamicInliner\n";
-    FunctionPassManager *FPM = new FunctionPassManager(jitstate->getModule());
-    FPM->doInitialization();
-    FPM->add(createDynamicInlinerPass());
-    FPM->run(*F);
-    FPM->doFinalization();
-    delete FPM;
-    dbgs() << F->getName() << "[reoptimization & relink] result:\n";
-    F->dump();
-  }
 
   // Delete the old function mapping.
   addGlobalMapping(F, 0);

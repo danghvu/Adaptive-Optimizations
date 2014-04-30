@@ -23,6 +23,7 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/ExecutionEngine/Interpreter.h"
 #include "llvm/ExecutionEngine/JIT.h"
+#include "../../lib/ExecutionEngine/JITProfiling/JITProfiling.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/JITMemoryManager.h"
 #include "llvm/ExecutionEngine/MCJIT.h"
@@ -48,12 +49,8 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
-#include <cerrno>
-
 #include "llvm/Transforms/Instrumentation.h"
-#include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
-#include "llvm/Transforms/Scalar.h"
-#include "llvm/Analysis/LoopInfo.h"
+#include <cerrno>
 
 #ifdef __CYGWIN__
 #include <cygwin/version.h>
@@ -297,7 +294,6 @@ int main(int argc, char **argv, char * const *envp) {
   // This is also need to be added to be used in JIT
   PassRegistry &Registry = *PassRegistry::getPassRegistry();
   initializeCore(Registry);
-  initializeBProfilingPass(Registry);
 
   cl::ParseCommandLineOptions(argc, argv,
                               "llvm interpreter & dynamic compiler\n");
@@ -464,6 +460,11 @@ int main(int argc, char **argv, char * const *envp) {
     errs() << '\'' << EntryFunc << "\' function not found in module.\n";
     return -1;
   }
+
+  // Required in order to properly link JITProfiling with lli
+  // TODO: Add something like -Wl,-static -lLLVMJITProfiling to Makefile to
+  //       force linking?
+  JITProfiling* JITP = new JITProfiling(EntryFn);
 
   // Reset errno to zero on entry to main.
   errno = 0;
