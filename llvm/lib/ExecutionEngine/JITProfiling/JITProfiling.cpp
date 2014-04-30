@@ -17,11 +17,10 @@
 #define DEBUG_TYPE "brooks8"
 #include "JITProfiling.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "llvm/Transforms/Instrumentation.h"
+#include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Transforms/IPO.h"
-#include "llvm/Transforms/Scalar.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/ADT/DepthFirstIterator.h"
@@ -36,6 +35,7 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/InstIterator.h"
+#include "llvm/Support/Debug.h"
 #include <stdio.h>
 #include <queue>
 #include <string>
@@ -44,8 +44,9 @@
 namespace llvm {
 
 // Constructor for the object
-JITProfiling::JITProfiling(Function* Func) {
+JITProfiling::JITProfiling(Function* Func, ExecutionEngine* JIT) {
   F = Func;
+  TheJIT = JIT;
   previouslyExecuted = false;
   alreadyRemovedInsts = false;
 }
@@ -134,7 +135,7 @@ void* JITProfiling::CallbackFunction(BasicBlock* B) {
       E = std::make_pair(B, *succ_begin(B));
     }
   }
-  unsigned threshold = 2;//(TheJIT->getProfileInfo())->TH_ENABLE_APPLY_OPT;
+  unsigned threshold = (TheJIT->getProfileInfo())->TH_ENABLE_APPLY_OPT;
   EdgeCounts[E] += 1;
   fprintf(stderr, "Threshold: %u | Edge count: ", threshold);
   printEdge(E, EdgeCounts[E]);
@@ -147,6 +148,20 @@ void* JITProfiling::CallbackFunction(BasicBlock* B) {
     fprintf(stderr, "An edge is now equal to the threshold! Removing profiling...\n");
     // Remove profiling instructions
     removeInstructions();
+
+    // TODO: For testing purposes, added running inline pass:
+    if (FPM != NULL)
+      delete FPM;
+    FPM = new FunctionPassManager(F->getParent());
+    FPM->add(createDynamicInlinerPass());
+    FPM->doInitialization();
+    FPM->run(*F);
+    FPM->doFinalization();
+
+    dbgs() << F->getName() << "[JITProfiling callback] results:\n";
+    F->dump();
+
+    //TheJIT->
 
     // Need to make sure nothing is done in callback once instructions are removed!
     // Since the machine code for callback will still remain until the function is

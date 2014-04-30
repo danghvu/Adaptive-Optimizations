@@ -59,7 +59,7 @@ namespace llvm {
 
   class JITProfiling {
   public:
-    JITProfiling(Function* Func);
+    JITProfiling(Function* Func, ExecutionEngine* JIT);
 
     void* CallbackFunction(BasicBlock* B);
     bool  run(bool changed = true);
@@ -79,10 +79,10 @@ namespace llvm {
     BlockSet       ProfileBlocks;
 
     // Specific to keeping track of edge/block counts
-    EdgeCountSet        EdgeCounts;
-    BlockCountSet       BlockCounts;
-    ExecutionEngine*    TheJIT;
-    //FunctionPassManager FPM;
+    EdgeCountSet         EdgeCounts;
+    BlockCountSet        BlockCounts;
+    ExecutionEngine*     TheJIT;
+    FunctionPassManager* FPM;
 
     struct EdgeWeightCompare {
       bool operator()(const EdgeWeight& l, EdgeWeight& r) const {

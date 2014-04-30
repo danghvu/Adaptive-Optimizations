@@ -170,7 +170,7 @@ JIT::JIT(Module *M, TargetMachine &tm, TargetJITInfo &tji,
 
   // Add profiling classes for each function
   for (Module::iterator MI = M->begin(), ME = M->end(); MI != ME; ++MI) {
-    ProfileInfo[MI] = new JITProfiling(MI);
+    ProfileInfo[MI] = new JITProfiling(MI, this);
   }
 
   // Initialize passes.
@@ -676,12 +676,29 @@ void *JIT::reoptimizeAndRelinkFunction(Function *F) {
   for (unsigned I = 0, S = EventListeners.size(); I < S; ++I) {
     stat += EventListeners[I]->getStat(F);
   }
-  if (stat == 2) {
-    fprintf(stderr, "HERE!\n");
-    bool res = ProfileInfo[F]->run();
-  }
 
   dbgs() << "[reoptimization & relink] Stat: " << stat << "\n";
+
+  int t1 = getProfileInfo()->TH_ENABLE_BB_PROFILE;
+  int t2 = getProfileInfo()->TH_ENABLE_APPLY_OPT;
+
+  bool res = false;
+  if (stat < t1) return OldAddr;
+  else if (stat == t1) {
+    res = ProfileInfo[F]->run();
+  }
+  // No profiling code was added, but we still want to inline things
+  else if (stat > t1 && !res && stat == t2) {
+    FunctionPassManager* FPM = new FunctionPassManager(jitstate->getModule());
+    FPM->add(createDynamicInlinerPass());
+    FPM->doInitialization();
+    FPM->run(*F);
+    FPM->doFinalization();
+    delete FPM;
+    dbgs() << F->getName() << "[reoptimization & relink] results:\n";
+    F->dump();
+  }
+
 
   // Delete the old function mapping.
   addGlobalMapping(F, 0);

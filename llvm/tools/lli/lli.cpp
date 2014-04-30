@@ -464,7 +464,7 @@ int main(int argc, char **argv, char * const *envp) {
   // Required in order to properly link JITProfiling with lli
   // TODO: Add something like -Wl,-static -lLLVMJITProfiling to Makefile to
   //       force linking?
-  JITProfiling* JITP = new JITProfiling(EntryFn);
+  JITProfiling* JITP = new JITProfiling(EntryFn, EE);
 
   // Reset errno to zero on entry to main.
   errno = 0;
