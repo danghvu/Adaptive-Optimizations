@@ -94,16 +94,16 @@ bool JITProfiling::run(bool changed) {
   // the entire analysis again
   else if (changed) {
     // Clear data structures
-    MaxSpanningTree.clear();
-    ProfileEdges.clear();
-    ProfileBlocks.clear();
-    EdgeCounts.clear();
-    BlockCounts.clear();
+    MaxSpanningTree->clear();
+    ProfileEdges->clear();
+    ProfileBlocks->clear();
+    EdgeCounts->clear();
+    BlockCounts->clear();
 
     // Run analysis and insert instructions
     getWeights();
     constructMaxSpanTree();
-    bool results = insertInstructions();
+    results = insertInstructions();
 
     // Reset the edge counts
     initializeEdgeCounts();
@@ -115,23 +115,10 @@ bool JITProfiling::run(bool changed) {
   // stays the same.  This means the initial analysis is not needed! (Only need to
   // insert profiling code again
   else {
-    result = insertInstructions();
+    results = insertInstructions();
     initializeEdgeCounts();
-    return result;
+    return results;
   }
-
-
-  getWeights();
-  printAllWeights();
-
-  constructMaxSpanTree();
-  printMaxSpanTree();
-  printInsertionEdges();
-  bool result = insertInstructions();
-
-  initializeEdgeCounts();
-
-  return result;
 }
 
 void* JITProfiling::CallbackFunction(BasicBlock* B) {
@@ -354,7 +341,7 @@ void JITProfiling::removeInstructions() {
 }
 
 bool JITProfiling::insertInstructions() {
-  ProfilingBlocks.clear();
+  ProfileBlocks->clear();
 
   // Insert allocation for profiling variables
   bool insertedInsts = false;
@@ -641,9 +628,6 @@ void JITProfiling::getWeights() {
       BasicBlock* b1 = CurrentBlock;
       BasicBlock* b2 = *SI;
       if (VisitedBlocks.count(*SI) == 0) {
-        s1 = CurrentBlock->getName().str();
-        s2 = (*SI)->getName().str();
-
         Worklist.push_back(*SI);
         VisitedBlocks.insert(*SI);
       }
