@@ -62,7 +62,7 @@
 using namespace llvm;
 
 namespace {
-  JITOnlineProfileData *oprofile;
+  JITProfileData *ProfileData;
   cl::opt<bool> OnlineProfile("enable-online-profile",
                               cl::desc("Online profile: enable online profiling and profile-based optimization"),
                               cl::init(false));
@@ -433,8 +433,8 @@ int main(int argc, char **argv, char * const *envp) {
                 JITEventListener::createIntelJITEventListener());
 
   if (OnlineProfile) {
-    oprofile = new JITOnlineProfileData(OnlineProfileConstT1, OnlineProfileConstT2);
-    EE->setProfileData(oprofile);
+    ProfileData = new JITProfileData(OnlineProfileConstT1, OnlineProfileConstT2);
+    EE->setProfileData(ProfileData);
   }
 
   if (!NoLazyCompilation && RemoteMCJIT) {
@@ -514,7 +514,7 @@ int main(int argc, char **argv, char * const *envp) {
     EE->runStaticConstructorsDestructors(true);
 
     if (OnlineProfile) {
-      oprofile->dump();
+      ProfileData->DumpFuncFreq();
     }
 
     // If the program didn't call exit explicitly, we should call it now.
@@ -593,7 +593,7 @@ int main(int argc, char **argv, char * const *envp) {
     Target->stop();
   }
   if (OnlineProfile)
-    delete oprofile;
+    delete ProfileData;
 
   return Result;
 }

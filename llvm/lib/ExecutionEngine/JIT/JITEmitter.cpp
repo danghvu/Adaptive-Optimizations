@@ -640,7 +640,7 @@ void *JITResolver::JITCompilerFn(void *Stub) {
   }
 
   if (JR->TheJIT->getProfileData() != NULL) {
-    JR->TheJIT->getJITProfiling(F)->insertFunctionCallback();
+    JR->TheJIT->initProfiling(F);
   }
 
   // If we have already code generated the function, just return the address.
