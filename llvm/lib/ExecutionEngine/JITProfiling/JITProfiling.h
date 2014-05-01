@@ -88,7 +88,9 @@ namespace llvm {
     ExecutionEngine*     TheJIT;
     FunctionPassManager* FPM;
 
-    std::vector<Instruction*>  callBackInst;
+    // This is to save the Function Pass that insert the instructions
+    // so we can clean up
+    FunctionPassManager* FPM_Function;
 
     struct EdgeWeightCompare {
       bool operator()(const EdgeWeight& l, EdgeWeight& r) const {
@@ -129,6 +131,8 @@ namespace llvm {
     void printEdgeCounts();
     void printBlockCounts();
   };
+
+  FunctionPass *createJITFunctionProfilingPass(JITProfiling *);
 }
 
 #endif

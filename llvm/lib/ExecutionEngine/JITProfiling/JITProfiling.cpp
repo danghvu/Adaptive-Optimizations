@@ -45,7 +45,6 @@
 #include <functional>
 
 STATISTIC(numInsertedBB, "Number of profiling basic blocks inserted");
-STATISTIC(numInsertedCallbackFunc, "Number of inserted function profiling callback");
 STATISTIC(numberOfOptimizedFunc, "Number of function was optimized");
 
 using namespace llvm;
@@ -54,9 +53,8 @@ using namespace llvm;
 #include "llvm/IR/Function.h"
 #include "llvm/Support/raw_ostream.h"
 
-using namespace llvm;
-
 namespace {
+
   class GetEdgeWeights : public FunctionPass {
 
     public:
@@ -194,7 +192,7 @@ namespace {
 }
 
 char GetEdgeWeights::ID = 0;
-static RegisterPass<GetEdgeWeights> X("getedgeweights", "For getting weights of edge in a CFG (required only for JITProfiling)", false, false);
+static RegisterPass<GetEdgeWeights> XY("getedgeweights", "For getting weights of edge in a CFG (required only for JITProfiling)", false, false);
 
 namespace llvm {
 
@@ -343,58 +341,18 @@ void* MyCallbackFunction(JITProfiling* BP, BasicBlock* B) {
   return BP->CallbackFunction(B);
 }
 
-void *MyCallbackFunctionT1(JITProfiling *BP) {
-  return BP->CallbackFunction();
-}
-
 void JITProfiling::insertFunctionCallback() {
-  numInsertedCallbackFunc++;
-
-  // Create a pointer type of size sizeof(void*)
-  PointerType* VoidPointerTy = PointerType::get(IntegerType::get(F->getContext(), CHAR_BIT), 0);
-
-  //  Create a vector of the argument types
-  std::vector<Type*> FunctionArgsTy;
-  FunctionArgsTy.push_back(VoidPointerTy);
-
-  // Create the function type: PointerTy func(PointerTy)
-  FunctionType* FunctionTy = FunctionType::get(VoidPointerTy, FunctionArgsTy, false);
-
-  // Create the function-pointer type
-  PointerType* FunctionPtrTy = PointerType::get(FunctionTy, 0);
-
-  // Insert the inttoptr instructions for the function callback and this function pass
-  // (both never change)
-  intptr_t FP      = reinterpret_cast<intptr_t>(MyCallbackFunctionT1);
-  intptr_t ThisObj = reinterpret_cast<intptr_t>(this);
-
-  Value* fnptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FP));
-  Value* bpptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, ThisObj));
-
-  IntToPtrInst* FuncAddrToPtrInst = new IntToPtrInst(fnptr, FunctionPtrTy);
-  IntToPtrInst* BPAddrToPtrInst = new IntToPtrInst(bpptr, VoidPointerTy);
-
-  // Make the function call
-  std::vector<Value*> ArrayRefVec;
-  ArrayRefVec.push_back(BPAddrToPtrInst);
-  CallInst* FuncCallInst = CallInst::Create(FuncAddrToPtrInst, ArrayRef<Value*>(ArrayRefVec));
-  F->getEntryBlock().getInstList().push_front(FuncCallInst);
-  F->getEntryBlock().getInstList().push_front(BPAddrToPtrInst);
-  F->getEntryBlock().getInstList().push_front(FuncAddrToPtrInst);
-
-  callBackInst.push_back(FuncCallInst);
-  callBackInst.push_back(BPAddrToPtrInst);
-  callBackInst.push_back(FuncAddrToPtrInst);
-
-  DEBUG( dbgs() << "[JITProfiling] Inserted Callback to " << F->getName() << "\n" );
+  assert(FPM_Function == NULL);
+  FPM_Function = new FunctionPassManager(F->getParent());
+  FPM_Function->add(createJITFunctionProfilingPass(this));
+  FPM_Function->doInitialization();
+  FPM_Function->run(*F);
+  FPM_Function->doFinalization();
 }
 
 void JITProfiling::removeFunctionCallback() {
-  for (std::vector<Instruction*>::iterator II = callBackInst.begin();
-      II != callBackInst.end(); ++II) {
-    (*II)->eraseFromParent();
-  }
-  callBackInst.clear();
+  delete FPM_Function;
+  FPM_Function = NULL;
 }
 
 void* JITProfiling::CallbackFunction() {
