@@ -60,8 +60,11 @@ namespace llvm {
   class JITProfiling {
   public:
     JITProfiling(Function* Func, ExecutionEngine* JIT);
+    virtual ~JITProfiling() { }
 
     void* CallbackFunction(BasicBlock* B);
+    void* CallbackFunction();
+
     bool  run(bool changed = true);
 
     Function* F;
@@ -107,6 +110,7 @@ namespace llvm {
     void updateCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsigned thresh);
     void updateEdgeCountsDFS(BasicBlock* B, Edge E);
 
+    void insertFunctionCallback();
     bool hasPInstruction();
     void doOptimization();
 

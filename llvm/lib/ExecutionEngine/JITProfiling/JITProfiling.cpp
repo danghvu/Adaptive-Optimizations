@@ -19,6 +19,7 @@
 
 #include "JITProfiling.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/OnlineProfileData.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
@@ -44,6 +45,8 @@
 #include <functional>
 
 STATISTIC(numInsertedBB, "Number of profiling basic blocks inserted");
+STATISTIC(numInsertedCallbackFunc, "Number of inserted function profiling callback");
+STATISTIC(numberOfOptimizedFunc, "Number of function was optimized");
 
 namespace llvm {
 
@@ -124,6 +127,7 @@ void JITProfiling::doOptimization() {
   FPM->doInitialization();
   FPM->run(*F);
   FPM->doFinalization();
+  numberOfOptimizedFunc++;
 }
 
 void* JITProfiling::CallbackFunction(BasicBlock* B) {
@@ -153,7 +157,7 @@ void* JITProfiling::CallbackFunction(BasicBlock* B) {
       E = std::make_pair(B, *succ_begin(B));
     }
   }
-  unsigned threshold = (TheJIT->getProfileSetting())->TH_ENABLE_APPLY_OPT;
+  unsigned threshold = (TheJIT->getProfileData())->getThresholdT1();
   EdgeCounts[E] += 1;
   DEBUG( dbgs() << "Threshold: " << threshold << "  | Edge count: " );
   printEdge(E, EdgeCounts[E]);
@@ -201,6 +205,79 @@ void JITProfiling::initializeEdgeCounts() {
 
 void* MyCallbackFunction(JITProfiling* BP, BasicBlock* B) {
   return BP->CallbackFunction(B);
+}
+
+void *MyCallbackFunctionT1(JITProfiling *BP) {
+  return BP->CallbackFunction();
+}
+
+void JITProfiling::insertFunctionCallback() {
+  numInsertedCallbackFunc++;
+
+  // Create a pointer type of size sizeof(void*)
+  PointerType* VoidPointerTy = PointerType::get(IntegerType::get(F->getContext(), CHAR_BIT), 0);
+
+  //  Create a vector of the argument types
+  std::vector<Type*> FunctionArgsTy;
+  FunctionArgsTy.push_back(VoidPointerTy);
+
+  // Create the function type: PointerTy func(PointerTy)
+  FunctionType* FunctionTy = FunctionType::get(VoidPointerTy, FunctionArgsTy, false);
+
+  // Create the function-pointer type
+  PointerType* FunctionPtrTy = PointerType::get(FunctionTy, 0);
+
+  // Insert the inttoptr instructions for the function callback and this function pass
+  // (both never change)
+  intptr_t FP      = reinterpret_cast<intptr_t>(MyCallbackFunctionT1);
+  intptr_t ThisObj = reinterpret_cast<intptr_t>(this);
+
+  Value* fnptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FP));
+  Value* bpptr = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, ThisObj));
+
+  IntToPtrInst* FuncAddrToPtrInst = new IntToPtrInst(fnptr, FunctionPtrTy);
+  IntToPtrInst* BPAddrToPtrInst = new IntToPtrInst(bpptr, VoidPointerTy);
+
+  // Make the function call
+  std::vector<Value*> ArrayRefVec;
+  ArrayRefVec.push_back(BPAddrToPtrInst);
+  CallInst* FuncCallInst = CallInst::Create(FuncAddrToPtrInst, ArrayRef<Value*>(ArrayRefVec));
+  F->getEntryBlock().getInstList().push_front(FuncCallInst);
+  F->getEntryBlock().getInstList().push_front(BPAddrToPtrInst);
+  F->getEntryBlock().getInstList().push_front(FuncAddrToPtrInst);
+
+  DEBUG( dbgs() << "[JITProfiling] Inserted Callback to " << F->getName() << "\n" );
+}
+
+void* JITProfiling::CallbackFunction() {
+  DEBUG( dbgs() << "Inside callback " << F->getName() << "\n" );
+  JITOnlineProfileData *data = TheJIT->getProfileData();
+  int stat = data->funcFreq[F] + 1;
+  data->funcFreq[F] = stat;
+
+  int t1 = data->getThresholdT1();
+  if (stat < t1) return 0;
+
+  int t2 = data->getThresholdT2();
+  bool changed = false;
+
+  if (stat == t1) {
+    changed = run();
+  }
+  // When stat == t1+t2 double check if anything was done by basicblock profiling
+  // If hasPInstruction return true then we expect BProfiling to do optimizing later
+  else if (stat == t1 + t2 && !hasPInstruction()) {
+    doOptimization();
+    DEBUG( dbgs() << "reoptimized " << F->getName() << "\n" );
+    DEBUG( F->dump() );
+    changed = true;
+  }
+
+  // if it's changed we must tell the JIT to recompile
+  if (changed)
+    TheJIT->recompileAndRelinkFunction(F);
+
+  return 0;
 }
 
 void JITProfiling::updateCounts(SmallPtrSet<BasicBlock*, 8> HotBlocks, unsigned thresh) {

@@ -379,7 +379,6 @@ LLVM_LIBRARY_VISIBILITY void LLVMX86CompilationCallback2(intptr_t *StackPtr,
   // Rewrite the call target... so that we don't end up here every time we
   // execute the call.
 #if defined (X86_64_JIT)
-  if (!isStub) return; //TODO: check if NewVal == currentRet
   assert(isStub &&
          "X86-64 doesn't support rewriting non-stub lazy compilation calls:"
          " the call instruction varies too much.");
@@ -397,12 +396,10 @@ LLVM_LIBRARY_VISIBILITY void LLVMX86CompilationCallback2(intptr_t *StackPtr,
     // PC-relative branch instead of loading the actual address.  (This is
     // considerably shorter than the 64-bit immediate load already there.)
     // We assume here intptr_t is 64 bits.
-    intptr_t diff = NewVal-RetAddr+7 - 0xd; // original without 0xd - vu
+    intptr_t diff = NewVal-RetAddr+7;
     if (diff >= -2147483648LL && diff <= 2147483647LL) {
-      //*(unsigned char*)(RetAddr-0xc) = 0xE9;
-      //*(intptr_t *)(RetAddr-0xb) = diff & 0xffffffff;
-      *(unsigned char*)(RetAddr+0x1) = 0xE9;
-      *(intptr_t *)(RetAddr+0x2) = diff & 0xffffffff;
+      *(unsigned char*)(RetAddr-0xc) = 0xE9;
+      *(intptr_t *)(RetAddr-0xb) = diff & 0xffffffff;
     } else {
       *(intptr_t *)(RetAddr - 0xa) = NewVal;
       ((unsigned char*)RetAddr)[0] = (2 | (4 << 3) | (3 << 6));
@@ -416,7 +413,7 @@ LLVM_LIBRARY_VISIBILITY void LLVMX86CompilationCallback2(intptr_t *StackPtr,
 
   // Change the return address to reexecute the call instruction...
 #if defined (X86_64_JIT)
-  //*RetAddrLoc -= 0xd;
+  *RetAddrLoc -= 0xd;
 #else
   *RetAddrLoc -= 5;
 #endif
@@ -467,7 +464,7 @@ TargetJITInfo::StubLayout X86JITInfo::getStubLayout() {
   // The 32-bit stub contains a 5-byte call|jmp.
   // If the stub is a call to the compilation callback, an extra byte is added
   // to mark it as a stub.
-  StubLayout Result = {14*2, 4};
+  StubLayout Result = {14, 4};
   return Result;
 }
 

@@ -173,11 +173,19 @@ JIT::JIT(Module *M, TargetMachine &tm, TargetJITInfo &tji,
     ProfileInfo[MI] = new JITProfiling(MI, this);
   }
 
+  JOPI = NULL;
+
   // Initialize passes.
   PM.doInitialization();
 }
 
 JIT::~JIT() {
+  // Cleanup ProfileInfo
+  Module *M = jitstate->getModule();
+  for (Module::iterator MI = M->begin(), ME = M->end(); MI != ME; ++MI) {
+    delete ProfileInfo[MI];
+  }
+
   // Cleanup.
   AllJits->Remove(this);
   delete jitstate;
@@ -666,52 +674,6 @@ void *JIT::recompileAndRelinkFunction(Function *F) {
   TJI.replaceMachineCodeForFunction(OldAddr, Addr);
   return Addr;
 }
-
-void *JIT::reoptimizeAndRelinkFunction(Function *F, void *OldAddr) {
-  // If it's not already compiled there is no reason to patch it up.
-  if (OldAddr == 0) { return getPointerToFunction(F); }
-
-  int stat = 0;
-  for (unsigned I = 0, S = EventListeners.size(); I < S; ++I) {
-    stat += EventListeners[I]->getStat(F);
-  }
-
-  DEBUG( dbgs() << "[reoptimization & relink] Stat: " << F->getName() << " " << stat << "\n" );
-
-  int t1 = getProfileSetting()->TH_ENABLE_BB_PROFILE;
-  int t2 = getProfileSetting()->TH_ENABLE_APPLY_OPT;
-
-  // return early if stat is still low
-  if (stat < t1) return OldAddr;
-
-  bool changed = false;
-  if (stat == t1) {
-    changed = ProfileInfo[F]->run();
-  }
-  // When stat == t1+t2 double check if anything was done by basicblock profiling
-  // If hasPInstruction return true then we expect BProfiling to do optimizing later
-  else if (stat == t1 + t2 && !ProfileInfo[F]->hasPInstruction()) {
-    ProfileInfo[F]->doOptimization();
-    DEBUG( dbgs() << F->getName() << "[reoptimization & relink] results:\n" );
-    DEBUG( F->dump() );
-    changed = true;
-  }
-
-  if (!changed) return OldAddr;
-
-  // Delete the old function mapping.
-  addGlobalMapping(F, 0);
-
-  // Recodegen the function
-  runJITOnFunction(F);
-
-  // Update state, forward the old function to the new function.
-  void *Addr = getPointerToGlobalIfAvailable(F);
-  assert(Addr && "Code generation didn't add function to GlobalAddress table!");
-  TJI.replaceMachineCodeForFunction(OldAddr, Addr);
-  return Addr;
-}
-
 
 /// getMemoryForGV - This method abstracts memory allocation of global
 /// variable so that the JIT can allocate thread local variables depending

@@ -62,10 +62,18 @@
 using namespace llvm;
 
 namespace {
-  JITEventListener *oprofile;
+  JITOnlineProfileData *oprofile;
   cl::opt<bool> OnlineProfile("enable-online-profile",
                               cl::desc("Online profile: enable online profiling and profile-based optimization"),
                               cl::init(false));
+  cl::opt<int> OnlineProfileConstT1("t1",
+                              cl::desc("Online profile: threshold for basic block profile"),
+                              cl::init(4));
+
+  cl::opt<int> OnlineProfileConstT2("t2",
+                              cl::desc("Online profile: threshold for applying optimization"),
+                              cl::init(8));
+
 
   cl::opt<std::string>
   InputFile(cl::desc("<input bitcode>"), cl::Positional, cl::init("-"));
@@ -425,9 +433,8 @@ int main(int argc, char **argv, char * const *envp) {
                 JITEventListener::createIntelJITEventListener());
 
   if (OnlineProfile) {
-    oprofile = JITEventListener::createOnlineProfileJITEventListener();
-    EE->RegisterJITEventListener(oprofile);
-    EE->setProfileSetting(oprofile->getProfileSetting());
+    oprofile = new JITOnlineProfileData(OnlineProfileConstT1, OnlineProfileConstT2);
+    EE->setProfileData(oprofile);
   }
 
   if (!NoLazyCompilation && RemoteMCJIT) {
@@ -506,8 +513,9 @@ int main(int argc, char **argv, char * const *envp) {
     // Run static destructors.
     EE->runStaticConstructorsDestructors(true);
 
-    if (OnlineProfile)
+    if (OnlineProfile) {
       oprofile->dump();
+    }
 
     // If the program didn't call exit explicitly, we should call it now.
     // This ensures that any atexit handlers get called correctly.
