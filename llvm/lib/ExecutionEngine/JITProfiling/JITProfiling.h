@@ -39,6 +39,7 @@
 #include "llvm/Support/InstIterator.h"
 #include <stdio.h>
 #include <queue>
+#include <vector>
 #include <string>
 #include <functional>
 
@@ -87,6 +88,8 @@ namespace llvm {
     ExecutionEngine*     TheJIT;
     FunctionPassManager* FPM;
 
+    std::vector<Instruction*>  callBackInst;
+
     struct EdgeWeightCompare {
       bool operator()(const EdgeWeight& l, EdgeWeight& r) const {
         return l.second < r.second;
@@ -111,6 +114,7 @@ namespace llvm {
     void updateEdgeCountsDFS(BasicBlock* B, Edge E);
 
     void insertFunctionCallback();
+    void removeFunctionCallback();
     bool hasPInstruction();
     void doOptimization();
 

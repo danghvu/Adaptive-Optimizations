@@ -246,7 +246,19 @@ void JITProfiling::insertFunctionCallback() {
   F->getEntryBlock().getInstList().push_front(BPAddrToPtrInst);
   F->getEntryBlock().getInstList().push_front(FuncAddrToPtrInst);
 
+  callBackInst.push_back(FuncCallInst);
+  callBackInst.push_back(BPAddrToPtrInst);
+  callBackInst.push_back(FuncAddrToPtrInst);
+
   DEBUG( dbgs() << "[JITProfiling] Inserted Callback to " << F->getName() << "\n" );
+}
+
+void JITProfiling::removeFunctionCallback() {
+  for (std::vector<Instruction*>::iterator II = callBackInst.begin();
+      II != callBackInst.end(); ++II) {
+    (*II)->eraseFromParent();
+  }
+  callBackInst.clear();
 }
 
 void* JITProfiling::CallbackFunction() {
@@ -263,6 +275,8 @@ void* JITProfiling::CallbackFunction() {
 
   if (stat == t1) {
     changed = run();
+    if (changed)
+      removeFunctionCallback();
   }
   // When stat == t1+t2 double check if anything was done by basicblock profiling
   // If hasPInstruction return true then we expect BProfiling to do optimizing later
@@ -271,6 +285,7 @@ void* JITProfiling::CallbackFunction() {
     DEBUG( dbgs() << "reoptimized " << F->getName() << "\n" );
     DEBUG( F->dump() );
     changed = true;
+    removeFunctionCallback();
   }
 
   // if it's changed we must tell the JIT to recompile
