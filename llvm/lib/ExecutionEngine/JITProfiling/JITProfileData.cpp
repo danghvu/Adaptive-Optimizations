@@ -13,6 +13,7 @@
 // catch, particularly involving loop computations.
 //
 //===----------------------------------------------------------------------===//
+#define DEBUG_TYPE "profiledata"
 
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/JITProfileData.h"
@@ -35,11 +36,15 @@
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/InstIterator.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Transforms/Scalar.h"
 #include <stdio.h>
 #include <queue>
 #include <string>
 #include <functional>
 #include <sys/time.h>
+
+STATISTIC(fc_time, "Time for Function callback (usec)");
+STATISTIC(bb_time, "Time for BasicBlock callback (usec)");
 
 namespace llvm {
 
@@ -52,8 +57,8 @@ JITProfileData::JITProfileData(int t1, int t2, ExecutionEngine* J) {
   TH_ENABLE_APPLY_OPT  = t2;
 
   TheJIT = J;
-  fc_time = 0.0;
-  bb_time = 0.0;
+  fc_time = 0;
+  bb_time = 0;
 }
 
 
@@ -75,6 +80,17 @@ void JITProfileData::initializeProfiling(Function* F) {
   FuncData[F] = JFD;
 }
 
+void JITProfileData::doOptimization(Function *F) {
+  FunctionPassManager* FPM = new FunctionPassManager(F->getParent());
+  FPM->add(createDynamicInlinerPass());
+  FPM->add(createSCCPPass());
+  FPM->add(createAggressiveDCEPass());
+  FPM->doInitialization();
+  FPM->run(*F);
+  FPM->doFinalization();
+  delete FPM;
+}
+
 void* JITProfileData::BasicBlockCallback(Edge* B) {
   struct timeval t1, t2;
   gettimeofday(&t1, NULL);
@@ -85,7 +101,7 @@ void* JITProfileData::BasicBlockCallback(Edge* B) {
 
   if (JFD->removedProfiling) {
     gettimeofday(&t2, NULL);
-    bb_time += (double)(t2.tv_usec - t1.tv_usec) / 1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
+    bb_time += (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
     return 0;
   }
 
@@ -110,14 +126,14 @@ void* JITProfileData::BasicBlockCallback(Edge* B) {
     JFD->FPM = NULL;
     JFD->removedProfiling = true;
 
-    // TODO: Run optimizations based on the frequency of the blocks in the function
+    doOptimization(Func);
 
     // Re-emit the function so the profiling is removed and optimizations are seen!
     TheJIT->recompileAndRelinkFunction(Func);
   }
 
   gettimeofday(&t2, NULL);
-  bb_time += (double)(t2.tv_usec - t1.tv_usec) / 1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
+  bb_time += (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
   return 0;
 }
 
@@ -133,9 +149,11 @@ void* JITProfileData::FunctionCallback(Function* F) {
   int stat = FuncFreq[F];
   if (stat < getThresholdT1()) {
     gettimeofday(&t2, NULL);
-    fc_time += (double)(t2.tv_usec - t1.tv_usec) / 1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
+    fc_time += (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
     return 0;
   }
+
+  bool changed = false;
 
   JITFunctionData* JFD = FuncData[F];
   // If the updated frequency reaches the T2 threshold, then we need to add basic
@@ -162,11 +180,12 @@ void* JITProfileData::FunctionCallback(Function* F) {
 
       // Save this for later (so we can delete when it's done)
       JFD->FPM = FPM;
+      changed = true;
     }
     else {
       delete FPM;
       gettimeofday(&t2, NULL);
-      fc_time += (double)(t2.tv_usec - t1.tv_usec) / 1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
+      fc_time += (t2.tv_usec - t1.tv_usec) + (double)(t2.tv_sec - t1.tv_sec) * 1000000;
       return 0;
     }
   }
@@ -177,16 +196,20 @@ void* JITProfileData::FunctionCallback(Function* F) {
     DEBUG( dbgs() << "Removing fprofiling... " << F->getName() << "\n" );
     delete JFD->FPM;
     JFD->FPM = NULL;
-    // TODO: Optimizations here!
+    doOptimization(F);
+
+    changed = true;
   }
 
   // If we get here, there is something that was changed
   // Re-emit the function so the profiling is actually executed!
-  //dbgs() << "stat == T2 for function: " << F->getName() << "\n";
-  TheJIT->recompileAndRelinkFunction(F);
+  if (changed ) {
+    dbgs() << "stat == T2 for function: " << F->getName() << "\n";
+    TheJIT->recompileAndRelinkFunction(F);
+  }
 
   gettimeofday(&t2, NULL);
-  fc_time += (double)(t2.tv_usec - t1.tv_usec) / 1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
+  fc_time += (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
   return 0;
 }
 

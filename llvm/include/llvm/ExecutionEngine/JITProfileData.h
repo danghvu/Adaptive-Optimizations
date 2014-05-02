@@ -35,7 +35,6 @@ namespace llvm {
     public:
       JITProfileData(int t1, int t2, ExecutionEngine* J);
       ~JITProfileData() {
-        fprintf(stderr, "\n\n***** Function Callback time: %f\n***** Basicblock Callback time: %f\n", fc_time, bb_time);
         for (FuncDataMap::iterator I = FuncData.begin(), E = FuncData.end(); I != E; ++I) {
           if (I->second->FPM != NULL)
             delete I->second->FPM;
@@ -70,15 +69,12 @@ namespace llvm {
         }*/
       }
 
-      BasicBlock *ExitBB;
-
+      void doOptimization(Function *);
 
     private:
       // Thresholds
       int TH_ENABLE_BB_PROFILE;
       int TH_ENABLE_APPLY_OPT;
-
-      double fc_time, bb_time;
 
       // Function data
       FuncDataMap FuncData;
@@ -98,6 +94,7 @@ namespace llvm {
 
       // The JIT object
       ExecutionEngine* TheJIT;
+      BasicBlock *ExitBB;
   };
 }
 

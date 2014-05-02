@@ -185,7 +185,6 @@ namespace llvm {
     this->F         = &F;
     this->LI        = &getAnalysis<LoopInfo>();
     this->ExitBB = getAnalysis<UnifyFunctionExitNodes>().getReturnBlock();
-    JPD->ExitBB = this->ExitBB;
 
     // This value is somewhat arbitrary
     this->LoopMultiplier = 10;

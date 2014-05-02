@@ -60,9 +60,20 @@ FunctionPass *llvm::createDynamicInlinerPass() { return new DynamicInliner(); }
 
 bool DynamicInliner::runOnFunction(Function& F) {
   bool changed = false;
+  DEBUG( dbgs() << "Inlining ... " << F.getName() << "\n" );
+
+  std::vector<BasicBlock*> wl;
+
   for (Function::iterator I = F.begin(); I != F.end(); I++) {
-    changed = changed | runOnBasicBlock(*I);
+    //changed = changed | runOnBasicBlock(*I);
+    wl.push_back(&*I);
   }
+
+  for (std::vector<BasicBlock*>::iterator II = wl.begin(), IE = wl.end(); IE != II; ++II) {
+    changed = changed | runOnBasicBlock(*(*II));
+  }
+
+  DEBUG( dbgs() << "Finished .. \n" );
   return changed;
 }
 
@@ -81,6 +92,8 @@ bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
 
     worklist.push_back(CS);
   }
+
+  // dbgs() << worklist.size() << "\n";
 
   for (std::vector<CallSite>::iterator I = worklist.begin(); I!=worklist.end(); I++) {
     if (!shouldInline(*I)) continue;
