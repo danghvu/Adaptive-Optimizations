@@ -159,7 +159,7 @@ namespace llvm {
     void removeInstructions();
 
     // Auxillary method used in removeInstructions()
-    void removeProfiling(BasicBlock* B);
+    void replaceBranches(BasicBlock* B);
 
     // Auxillary method used in getWeights()
     bool ExitEdgesContains(SmallVector<ConstEdge, 16> vec, ConstEdge elem);
@@ -201,7 +201,6 @@ namespace llvm {
     constructMaxSpanTree();
 
     DEBUG( dbgs() << "[JITBBProfilingPass] Results for function:" );
-    F.dump();
     printAllWeights();
     printMaxSpanTree();
     printInsertionEdges();
@@ -318,7 +317,7 @@ namespace llvm {
     }
   }
 
-  void JITBBProfiling::removeProfiling(BasicBlock* B) {
+  void JITBBProfiling::replaceBranches(BasicBlock* B) {
     // If the block was inserted for specifically profiling (A -> B -> C), change
     // such that A -> C and remove B from function
     if (B->getName().str().find("ProfileBB") != std::string::npos) {
@@ -330,49 +329,7 @@ namespace llvm {
         if (TermA->getSuccessor(i) == B)
           TermA->setSuccessor(i, Succ);
       }
-//      B->eraseFromParent();
     }
-    /*
-    // Otherwise the instructions are either the first two, or the last two (before the terminator inst);
-    else {
-      DEBUG( dbgs() << "Existing BasicBlock [" << B->getName()  << "] has profiling instructions\n" );
-      IntToPtrInst* I = dyn_cast<IntToPtrInst>(&B->getInstList().front());
-
-      // If the first instruction is an inttoptr
-      if (I != NULL) {
-        ConstantInt* CI = dyn_cast<ConstantInt>(I->getOperand(0));
-        // And the inttoptr is specifically for the address of B, remove the first two instructions
-        if (CI != NULL && CI->getValue() == (intptr_t)B) {
-          // need to delete in reverse order here
-          Instruction *I1 = B->getInstList().begin();
-          Instruction *I2 = (++B->getInstList().begin());
-          DEBUG( dbgs() << "Removing instruction: " << *I1 << "\n" );
-          DEBUG( dbgs() << "Removing instruction: " << *I2 << "\n" );
-          I2->eraseFromParent();
-          I1->eraseFromParent();
-        }
-        // Otherwise remove the two instructions before the terminator
-        else {
-          BasicBlock::iterator ILT = B->getInstList().end();
-          ILT--; ILT--;
-          DEBUG( dbgs() << "Removing instruction: " << *ILT << "\n");
-          ILT = B->getInstList().erase(ILT);
-          ILT--;
-          DEBUG( dbgs() << "Removing instruction: " << *ILT << "\n");
-          ILT = B->getInstList().erase(ILT);
-        }
-      }
-      // Otherwise remove the two instructions before the terminator
-      else {
-          BasicBlock::iterator ILT = B->getInstList().end();
-          ILT--; ILT--;
-          DEBUG( dbgs() << "Removing instruction: " << *ILT << "\n");
-          ILT = B->getInstList().erase(ILT);
-          ILT--;
-          DEBUG( dbgs() << "Removing instruction: " << *ILT << "\n");
-          ILT = B->getInstList().erase(ILT);
-      }
-    }*/
   }
 
   void JITBBProfiling::removeInstructions() {
@@ -380,24 +337,15 @@ namespace llvm {
 
     DEBUG( dbgs() << "\n*** Removing profiling ***\n" );
     for (BlockSet::iterator BSI = ProfileBlocks.begin(), BSE = ProfileBlocks.end(); BSI != BSE; ++BSI) {
-      DEBUG( dbgs() << "Removing profiling from BB : " << (*BSI)->getName() << "\n" );
-      (*BSI)->dump();
-      removeProfiling(*BSI);
+      DEBUG( dbgs() << "Managing branches from BB : " << (*BSI)->getName() << "\n" );
+      replaceBranches(*BSI);
     }
 
-    fprintf(stderr, "Before: \n");
-    F->dump();
-
     for (InstructionSet::iterator I = ProfileInsts.begin(), E = ProfileInsts.end(); I != E; ++I) {
+      DEBUG( dbgs() << "Removing Instruction: " << *I << "\n" );
       (*I)->eraseFromParent();
     }
 
-    fprintf(stderr, "HERE\n");
-    F->dump();
-    // Remove the two inttoptrs for the pass and the function
-
-    //F->getEntryBlock().getInstList().front().eraseFromParent();
-    //F->getEntryBlock().getInstList().front().eraseFromParent();
     DEBUG( dbgs() << "\n*** Done removing profiling ***\n\n" );
   }
 
@@ -622,40 +570,40 @@ namespace llvm {
   }
 
   void JITBBProfiling::printAllWeights() {
-    dbgs() << "**** BlockWeights ****\n";
+    DEBUG( dbgs() << "**** BlockWeights ****\n" );
     for (BlockWeightMap::iterator DI = BlockWeights.begin(), DE = BlockWeights.end(); DI != DE; ++DI) {
-      dbgs() <<  DI->first->getName() << " " <<  DI->second << "\n";
+      DEBUG( dbgs() <<  DI->first->getName() << " " <<  DI->second << "\n" );
     }
 
-    dbgs() << "***** EdgeWeights *****\n";
+    DEBUG( dbgs() << "***** EdgeWeights *****\n" );
     for (EdgeWeightMap::iterator DI = EdgeWeights.begin(), DE = EdgeWeights.end(); DI != DE; ++DI) {
       printEdge(DI->first, DI->second);
     }
   }
 
   void JITBBProfiling::printMaxSpanTree() {
-    dbgs() << "**** Max Spanning Tree ****\n";
+    DEBUG( dbgs() << "**** Max Spanning Tree ****\n" );
     for (SetVector<Edge>::iterator I = MaxSpanningTree.begin(), E = MaxSpanningTree.end(); I != E; ++I) {
       printEdge(*I);
     }
   }
 
   void JITBBProfiling::printInsertionEdges() {
-    dbgs() << "**** Insertion Edges ****\n";
+    DEBUG( dbgs() << "**** Insertion Edges ****\n" );
     for (EdgePtrSet::iterator I = ProfileEdges.begin(), E = ProfileEdges.end(); I != E; ++I) {
       printEdge(*(*I));
     }
   }
 
   void JITBBProfiling::printEdge(Edge E) {
-    dbgs() <<  E.first->getName() << " -> " <<  E.second->getName() << "\n";
+    DEBUG( dbgs() <<  E.first->getName() << " -> " <<  E.second->getName() << "\n" );
   }
 
   void JITBBProfiling::printEdge(Edge E, float F) {
-    dbgs() <<  E.first->getName() << ": " << E.second->getName() << " " << F << "\n";
+    DEBUG( dbgs() <<  E.first->getName() << ": " << E.second->getName() << " " << F << "\n" );
   }
 
   void JITBBProfiling::printEdge(Edge E, unsigned U) {
-    dbgs() <<  E.first->getName() << ": " << E.second->getName() << " " << U << "\n" ;
+    DEBUG( dbgs() <<  E.first->getName() << ": " << E.second->getName() << " " << U << "\n" );
   }
 } // llvm namespace
