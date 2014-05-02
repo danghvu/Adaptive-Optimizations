@@ -29,7 +29,7 @@ Point nextToTop(stack<Point> &S)
 }
  
 // A utility function to swap two points
-int swap(Point &p1, Point &p2)
+void swap(Point &p1, Point &p2)
 {
     Point temp = p1;
     p1 = p2;
