@@ -158,22 +158,26 @@ void* JITProfileData::FunctionCallback(Function* F) {
 
       // Save this for later (so we can delete when it's done)
       FPMs[F] = FPM;
-
-      // Re-emit the function so the profiling is actually executed!
-      TheJIT->recompileAndRelinkFunction(F);
     }
     else {
       delete FPM;
+      return 0;
     }
   }
 
   // If there are no profiling instructions for basic blocks
   if (((*ProfileEdges)[F]->size() == 0) && stat == getThresholdT1() + getThresholdT2()) {
     // Remove function profiling (doesn't do us any good anymore)
+    DEBUG( dbgs() << "Removing fprofiling... " << F->getName() << "\n" );
     delete FPMs[F];
 
     // TODO: Optimizations here!
   }
+
+  // If we get here, there is something that was changed
+  // Re-emit the function so the profiling is actually executed!
+  TheJIT->recompileAndRelinkFunction(F);
+
   return 0;
 }
 
