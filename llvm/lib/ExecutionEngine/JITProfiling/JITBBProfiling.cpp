@@ -52,13 +52,15 @@ namespace llvm {
   typedef std::pair<BasicBlock*, BasicBlock*> Edge;
   typedef std::pair<Edge, float>              EdgeWeight;
   typedef SetVector<Edge>                     EdgeSet;
+  typedef SetVector<Edge*>                    EdgePtrSet;
   typedef SetVector<BasicBlock*>              BlockSet;
+  typedef std::vector<Instruction*>             InstructionSet;
   typedef DenseMap<Edge, float>               EdgeWeightMap;
   typedef DenseMap<BasicBlock*, float>        BlockWeightMap;
   typedef DenseMap<BasicBlock*, BlockSet>     BlockMap;
 
-  void* JITBasicBlockCallback(JITProfileData* JPD, BasicBlock* B) {
-    return JPD->BasicBlockCallback(B);
+  void* JITBasicBlockCallback(JITProfileData* JPD, Edge* E) {
+    return JPD->BasicBlockCallback(E);
   }
 
   class JITBBProfiling : public FunctionPass {
@@ -107,10 +109,13 @@ namespace llvm {
     int LoopMultiplier;
 
     // The edges which result in the optimal placement of profiling instructions
-    EdgeSet        ProfileEdges;
+    EdgePtrSet     ProfileEdges;
 
     // The basic blocks containing the profiling instructions
     BlockSet       ProfileBlocks;
+
+    // The actual instructions for profiling
+    InstructionSet  ProfileInsts;
 
     // The max spanning tree generated to be used for finding the optimal
     // set of insertion edges (based on edge weight)
@@ -195,7 +200,8 @@ namespace llvm {
     getWeights();
     constructMaxSpanTree();
 
-    DEBUG( dbgs() << "[JITBBProfilingPass] Results for function" << F.getName() << ":\n");
+    DEBUG( dbgs() << "[JITBBProfilingPass] Results for function:" );
+    F.dump();
     printAllWeights();
     printMaxSpanTree();
     printInsertionEdges();
@@ -324,8 +330,9 @@ namespace llvm {
         if (TermA->getSuccessor(i) == B)
           TermA->setSuccessor(i, Succ);
       }
-      B->eraseFromParent();
+//      B->eraseFromParent();
     }
+    /*
     // Otherwise the instructions are either the first two, or the last two (before the terminator inst);
     else {
       DEBUG( dbgs() << "Existing BasicBlock [" << B->getName()  << "] has profiling instructions\n" );
@@ -365,7 +372,7 @@ namespace llvm {
           DEBUG( dbgs() << "Removing instruction: " << *ILT << "\n");
           ILT = B->getInstList().erase(ILT);
       }
-    }
+    }*/
   }
 
   void JITBBProfiling::removeInstructions() {
@@ -374,11 +381,23 @@ namespace llvm {
     DEBUG( dbgs() << "\n*** Removing profiling ***\n" );
     for (BlockSet::iterator BSI = ProfileBlocks.begin(), BSE = ProfileBlocks.end(); BSI != BSE; ++BSI) {
       DEBUG( dbgs() << "Removing profiling from BB : " << (*BSI)->getName() << "\n" );
+      (*BSI)->dump();
       removeProfiling(*BSI);
     }
+
+    fprintf(stderr, "Before: \n");
+    F->dump();
+
+    for (InstructionSet::iterator I = ProfileInsts.begin(), E = ProfileInsts.end(); I != E; ++I) {
+      (*I)->eraseFromParent();
+    }
+
+    fprintf(stderr, "HERE\n");
+    F->dump();
     // Remove the two inttoptrs for the pass and the function
-    F->getEntryBlock().getInstList().front().eraseFromParent();
-    F->getEntryBlock().getInstList().front().eraseFromParent();
+
+    //F->getEntryBlock().getInstList().front().eraseFromParent();
+    //F->getEntryBlock().getInstList().front().eraseFromParent();
     DEBUG( dbgs() << "\n*** Done removing profiling ***\n\n" );
   }
 
@@ -416,11 +435,11 @@ namespace llvm {
     int i = 0;
     bool insertedInsts = false;
 
-    for (EdgeSet::iterator I = ProfileEdges.begin(), E = ProfileEdges.end(); I != E; ++I) {
+    for (EdgePtrSet::iterator I = ProfileEdges.begin(), E = ProfileEdges.end(); I != E; ++I) {
       insertedInsts = true;
       // Create a new BasicBlock
-      BasicBlock* E1 = I->first;
-      BasicBlock* E2 = I->second;
+      BasicBlock* E1 = (*I)->first;
+      BasicBlock* E2 = (*I)->second;
       BasicBlock* B;
 
       Instruction* LastInst = &E1->getInstList().back();
@@ -465,7 +484,7 @@ namespace llvm {
       }
 
       // Get the address of basic block B
-      intptr_t BBAddr = reinterpret_cast<intptr_t>(B);
+      intptr_t BBAddr = reinterpret_cast<intptr_t>(*I);
       Value* BBVal = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, BBAddr));
 
       // Perform inttoptr on the basic block
@@ -486,12 +505,18 @@ namespace llvm {
         B->getInstList().push_back(FuncCall);
         B->getInstList().push_back(BranchInst::Create(E2));
 
+        ProfileInsts.push_back(FuncCall);
+        ProfileInsts.push_back(BBInst);
+
         numInsertedInsts += 3;
       }
       else if (B == E2) {
         // Push everything to the front of E2 (everything has to be pushed in reverse)
         B->getInstList().push_front(FuncCall);
         B->getInstList().push_front(BBInst);
+
+        ProfileInsts.push_back(FuncCall);
+        ProfileInsts.push_back(BBInst);
 
         numInsertedInsts += 2;
       }
@@ -503,6 +528,11 @@ namespace llvm {
         B->getInstList().push_back(FuncCall);
         B->getInstList().push_back(BranchInst::Create(E2));
         E2->moveAfter(B);
+
+        ProfileInsts.push_back(FuncCall);
+        ProfileInsts.push_back(BBInst);
+
+        numInsertedInsts += 3;
       }
       ProfileBlocks.insert(B);
     }
@@ -512,6 +542,10 @@ namespace llvm {
       F->getEntryBlock().getInstList().pop_front();
       F->getEntryBlock().getInstList().pop_front();
       numInsertedInsts -= 2;
+    }
+    else {
+      ProfileInsts.push_back(FuncInst);
+      ProfileInsts.push_back(JPDInst);
     }
 
     return insertedInsts;
@@ -529,8 +563,8 @@ namespace llvm {
     Edge E;
     EdgeWeight EW;
 
-    EdgeSet* JPDProfileEdges = JPD->getProfileEdges(F);
-    EdgeSet* JPDNonProfileEdges = JPD->getNonProfileEdges(F);
+    EdgePtrSet* JPDProfileEdges    = JPD->getProfileEdges(F);
+    EdgeSet*    JPDNonProfileEdges = JPD->getNonProfileEdges(F);
 
     SmallPtrSet<BasicBlock*, 32> TreeNodes;
 
@@ -576,13 +610,13 @@ namespace llvm {
     }
 
     for (EdgeWeightMap::iterator IE = EdgeWeights.begin(), EE = EdgeWeights.end(); IE != EE; ++IE) {
-      E = (*IE).first;
-      if (MaxSpanningTree.count(E) == 0) {
-        ProfileEdges.insert(E);
-        JPDProfileEdges->insert(E);
+      Edge* temp = new Edge(IE->first);
+      if (MaxSpanningTree.count(*temp) == 0) {
+        ProfileEdges.insert(temp);
+        JPDProfileEdges->insert(temp);
       }
       else {
-        JPDNonProfileEdges->insert(E);
+        JPDNonProfileEdges->insert(*temp);
       }
     }
   }
@@ -608,8 +642,8 @@ namespace llvm {
 
   void JITBBProfiling::printInsertionEdges() {
     dbgs() << "**** Insertion Edges ****\n";
-    for (EdgeSet::iterator I = ProfileEdges.begin(), E = ProfileEdges.end(); I != E; ++I) {
-      printEdge(*I);
+    for (EdgePtrSet::iterator I = ProfileEdges.begin(), E = ProfileEdges.end(); I != E; ++I) {
+      printEdge(*(*I));
     }
   }
 

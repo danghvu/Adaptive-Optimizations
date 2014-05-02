@@ -75,19 +75,21 @@ void JITProfileData::initializeProfiling(Function* F) {
   FuncData[F] = JFD;
 }
 
-void* JITProfileData::BasicBlockCallback(BasicBlock* B) {
+void* JITProfileData::BasicBlockCallback(Edge* B) {
+
   // Don't do anything if we removed the profiling instructions
   // but the function is still being executed! (B is NULL if it was
-  // a basic block we added in the profiling pass and was removed)
-  if (B == NULL || FuncData[B->getParent()]->removedProfiling) {
+  // a basic block we inserted in the profiling pass)
+
+  if (FuncData[B->first->getParent()]->removedProfiling) {
     return 0;
   }
 
-  DEBUG( dbgs() << "Inside BB callback " << B->getName() << "\n" );
+  DEBUG( dbgs() << "Inside BB callback " << B->first->getName() << " -> " << B->second->getName() << "\n" );
 
   // Get the edge that the profiling exists on
-  Edge E;
-  if (B->getName().str().find("ProfileBB") != std::string::npos) {
+  Edge E = *B;
+/*  if (B->getName().str().find("ProfileBB") != std::string::npos) {
     // A profiling block we have added is guaranteed to only have one predecessor and one successor
     E = std::make_pair(*pred_begin(B), *succ_begin(B));
   }
@@ -109,26 +111,27 @@ void* JITProfileData::BasicBlockCallback(BasicBlock* B) {
       E = std::make_pair(B, *succ_begin(B));
     }
   }
-
+*/
   EdgeFreq[E] += 1;
   int stat = EdgeFreq[E];
   DEBUG( dbgs() << "New edge count: " << stat << "\n" );
 
   // If we meet the threshold or are past the threshold
   if (stat == getThresholdT2()) {
+    Function* Func = E.first->getParent();
     // Update the count information for edges and blocks in the function F
     // TODO: Add back hotblocks
-    updateCounts(B->getParent());
+    updateCounts(Func);
 
     // Delete the profiling instructions
     // TODO: only delete profiling on ones that == T2
-    delete FuncData[B->getParent()]->FPM;
-    FuncData[B->getParent()]->removedProfiling = true;
+    delete FuncData[Func]->FPM;
+    FuncData[Func]->removedProfiling = true;
 
     // TODO: Run optimizations based on the frequency of the blocks in the function
 
     // Re-emit the function so the profiling is removed and optimizations are seen!
-    TheJIT->recompileAndRelinkFunction(B->getParent());
+    TheJIT->recompileAndRelinkFunction(Func);
   }
 
   return 0;
@@ -196,8 +199,8 @@ void JITProfileData::initializeEdgeCounts(Function* F) {
     EdgeFreq[*I] = 0;
   }
 
-  for (EdgeSet::iterator I = FuncData[F]->ProfileEdges.begin(), E = FuncData[F]->ProfileEdges.end(); I != E; ++I) {
-    EdgeFreq[*I] = 0;
+  for (EdgePtrSet::iterator I = FuncData[F]->ProfileEdges.begin(), E = FuncData[F]->ProfileEdges.end(); I != E; ++I) {
+    EdgeFreq[*(*I)] = 0;
   }
 }
 

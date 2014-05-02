@@ -12,18 +12,17 @@ using namespace llvm;
 
 typedef std::pair<BasicBlock*, BasicBlock*> Edge;
 typedef SetVector<Edge>                     EdgeSet;
+typedef SetVector<Edge*>                    EdgePtrSet;
 typedef DenseMap<BasicBlock*, unsigned>     BlockCountMap;
 typedef DenseMap<Edge, unsigned>            EdgeCountMap;
 typedef DenseMap<Function*, unsigned>       FuncCountMap;
-typedef DenseMap<Function*, EdgeSet*>       EdgeMapSet;
-typedef DenseMap<Function*, FunctionPassManager*> FPMMap;
 
 typedef struct {
   FunctionPassManager* FPM;
-  EdgeSet ProfileEdges;
-  EdgeSet NonProfileEdges;
-  BasicBlock* ExitBlock;
-  bool removedProfiling;
+  EdgePtrSet           ProfileEdges;
+  EdgeSet              NonProfileEdges;
+  BasicBlock*          ExitBlock;
+  bool                 removedProfiling;
 } JITFunctionData;
 
 typedef DenseMap<Function*, JITFunctionData*> FuncDataMap;
@@ -34,21 +33,28 @@ namespace llvm {
   class JITProfileData {
     public:
       JITProfileData(int t1, int t2, ExecutionEngine* J);
-      ~JITProfileData() { }
+      ~JITProfileData() {
+        for (FuncDataMap::iterator I = FuncData.begin(), E = FuncData.end(); I != E; ++I) {
+          delete I->second->FPM;
+          for (EdgePtrSet::iterator II = I->second->ProfileEdges.begin(), EE = I->second->ProfileEdges.end(); II != EE; ++II) {
+            delete (*II);
+          }
+        }
+      }
 
       int getThresholdT1() { return TH_ENABLE_BB_PROFILE; };
       int getThresholdT2() { return TH_ENABLE_APPLY_OPT; }
 
       void* FunctionCallback(Function *F);
-      void* BasicBlockCallback(BasicBlock* B);
+      void* BasicBlockCallback(Edge* B);
 
       void initializeEdgeCounts(Function *F);
       void initializeProfiling(Function* F);
 
       // Used by JITBBProfilingPass to put in the corresponding edges
       JITFunctionData* getFuncData(Function* F) { return FuncData[F]; }
-      EdgeSet* getProfileEdges(Function* F)     { return &FuncData[F]->ProfileEdges; }
-      EdgeSet* getNonProfileEdges(Function* F)  { return &FuncData[F]->NonProfileEdges; }
+      EdgePtrSet* getProfileEdges(Function* F)     { return &FuncData[F]->ProfileEdges; }
+      EdgeSet*    getNonProfileEdges(Function* F)  { return &FuncData[F]->NonProfileEdges; }
 
       void setupUpdatingCounts(Function* F);
       void updateCounts(Function* F);
