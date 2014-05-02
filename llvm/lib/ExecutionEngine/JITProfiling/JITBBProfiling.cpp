@@ -194,6 +194,12 @@ namespace llvm {
     // TODO: Time-permitting: move getWeights() and constructMaxSpanTree() to a separate analysis pass
     getWeights();
     constructMaxSpanTree();
+
+    DEBUG( dbgs() << "[JITBBProfilingPass] Results for function" << F.getName() << ":\n");
+    printAllWeights();
+    printMaxSpanTree();
+    printInsertionEdges();
+    DEBUG( dbgs() << "[JITBBProfilingPass]\n" );
     return insertInstructions();
   }
 
@@ -342,10 +348,10 @@ namespace llvm {
         else {
           BasicBlock::iterator ILT = B->getInstList().end();
           ILT--; ILT--;
-          DEBUG( dbgs() << "Removing instruction: " << *ILT );
+          DEBUG( dbgs() << "Removing instruction: " << *ILT << "\n");
           ILT = B->getInstList().erase(ILT);
           ILT--;
-          DEBUG( dbgs() << "Removing instruction: " << *ILT);
+          DEBUG( dbgs() << "Removing instruction: " << *ILT << "\n");
           ILT = B->getInstList().erase(ILT);
         }
       }
@@ -353,10 +359,10 @@ namespace llvm {
       else {
           BasicBlock::iterator ILT = B->getInstList().end();
           ILT--; ILT--;
-          DEBUG( dbgs() << "Removing instruction: " << *ILT );
+          DEBUG( dbgs() << "Removing instruction: " << *ILT << "\n");
           ILT = B->getInstList().erase(ILT);
           ILT--;
-          DEBUG( dbgs() << "Removing instruction: " << *ILT );
+          DEBUG( dbgs() << "Removing instruction: " << *ILT << "\n");
           ILT = B->getInstList().erase(ILT);
       }
     }
@@ -451,6 +457,7 @@ namespace llvm {
               TI->setSuccessor(j, B);
           }
           ++i;
+          ++numInsertedBB;
         }
       }
       else {

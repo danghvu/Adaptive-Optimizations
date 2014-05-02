@@ -42,38 +42,47 @@
 
 namespace llvm {
 
-  FunctionPass *createJITFunctionProfilingPass(JITProfileData *);
-  FunctionPass *createJITBBProfilingPass(JITProfileData *);
+FunctionPass *createJITFunctionProfilingPass(JITProfileData *);
+FunctionPass *createJITBBProfilingPass(JITProfileData *);
 
 JITProfileData::JITProfileData(int t1, int t2, ExecutionEngine* J) {
   // Set the thresholds
   TH_ENABLE_BB_PROFILE = t1;
   TH_ENABLE_APPLY_OPT  = t2;
 
-  ProfileEdges    = new EdgeMapSet();
-  NonProfileEdges = new EdgeMapSet();
+  //ProfileEdges    = new EdgeMapSet();
+  //NonProfileEdges = new EdgeMapSet();
 
   TheJIT = J;
 }
 
 
-// Called only once per function
+// Called only once per function before being emitted
 void JITProfileData::initializeProfiling(Function* F) {
+  JITFunctionData* JFD = new JITFunctionData();
+
   // Create a function pass manager specific to function F
   FunctionPassManager* FPM = new FunctionPassManager(F->getParent());
-  FPMs[F] = FPM;
-
-  (*ProfileEdges)[F]    = new EdgeSet();
-  (*NonProfileEdges)[F] = new EdgeSet();
+  JFD->FPM = FPM;
+  JFD->removedProfiling = false;
 
   // Add function profiling to F
   FPM->add(createJITFunctionProfilingPass(this));
   FPM->doInitialization();
   FPM->run(*F);
   FPM->doFinalization();
+
+  FuncData[F] = JFD;
 }
 
 void* JITProfileData::BasicBlockCallback(BasicBlock* B) {
+  // Don't do anything if we removed the profiling instructions
+  // but the function is still being executed! (B is NULL if it was
+  // a basic block we added in the profiling pass and was removed)
+  if (B == NULL || FuncData[B->getParent()]->removedProfiling) {
+    return 0;
+  }
+
   DEBUG( dbgs() << "Inside BB callback " << B->getName() << "\n" );
 
   // Get the edge that the profiling exists on
@@ -113,7 +122,8 @@ void* JITProfileData::BasicBlockCallback(BasicBlock* B) {
 
     // Delete the profiling instructions
     // TODO: only delete profiling on ones that == T2
-    delete FPMs[B->getParent()];
+    delete FuncData[B->getParent()]->FPM;
+    FuncData[B->getParent()]->removedProfiling = true;
 
     // TODO: Run optimizations based on the frequency of the blocks in the function
 
@@ -152,12 +162,12 @@ void* JITProfileData::FunctionCallback(Function* F) {
     // be populated in ProfileEdges and NonProfileEdges
     initializeEdgeCounts(F);
 
-    if ((*ProfileEdges)[F]->size() != 0) {
+    if (FuncData[F]->ProfileEdges.size() != 0) {
       // Actually removes function profiling instructions
-      delete FPMs[F];
+      delete FuncData[F]->FPM;
 
       // Save this for later (so we can delete when it's done)
-      FPMs[F] = FPM;
+      FuncData[F]->FPM = FPM;
     }
     else {
       delete FPM;
@@ -166,10 +176,10 @@ void* JITProfileData::FunctionCallback(Function* F) {
   }
 
   // If there are no profiling instructions for basic blocks
-  if (((*ProfileEdges)[F]->size() == 0) && stat == getThresholdT1() + getThresholdT2()) {
+  if ((FuncData[F]->ProfileEdges.size() == 0) && stat == getThresholdT1() + getThresholdT2()) {
     // Remove function profiling (doesn't do us any good anymore)
     DEBUG( dbgs() << "Removing fprofiling... " << F->getName() << "\n" );
-    delete FPMs[F];
+    delete FuncData[F]->FPM;
 
     // TODO: Optimizations here!
   }
@@ -182,18 +192,18 @@ void* JITProfileData::FunctionCallback(Function* F) {
 }
 
 void JITProfileData::initializeEdgeCounts(Function* F) {
-  for (EdgeSet::iterator I = (*NonProfileEdges)[F]->begin(), E = (*NonProfileEdges)[F]->end(); I != E; ++I) {
+  for (EdgeSet::iterator I = FuncData[F]->NonProfileEdges.begin(), E = FuncData[F]->NonProfileEdges.end(); I != E; ++I) {
     EdgeFreq[*I] = 0;
   }
 
-  for (EdgeSet::iterator I = (*ProfileEdges)[F]->begin(), E = (*ProfileEdges)[F]->end(); I != E; ++I) {
+  for (EdgeSet::iterator I = FuncData[F]->ProfileEdges.begin(), E = FuncData[F]->ProfileEdges.end(); I != E; ++I) {
     EdgeFreq[*I] = 0;
   }
 }
 
 void JITProfileData::setupUpdatingCounts(Function* F) {
   // Clear counts for edges in F that do not have profiling
-  for (EdgeSet::iterator I = (*NonProfileEdges)[F]->begin(), E = (*NonProfileEdges)[F]->end(); I != E; ++I) {
+  for (EdgeSet::iterator I = FuncData[F]->NonProfileEdges.begin(), E = FuncData[F]->NonProfileEdges.end(); I != E; ++I) {
     EdgeFreq[*I] = 0;
   }
 
@@ -217,14 +227,14 @@ void JITProfileData::updateCounts(Function* F) {
 
 void JITProfileData::updateEdgeCounts(Function* F, BasicBlock* B, Edge E) {
   Edge E1;
-  EdgeSet* ES = (*NonProfileEdges)[F];
+  EdgeSet ES = FuncData[F]->NonProfileEdges;
 
   // Calculate the in dependencies
   unsigned in = 0;
   // If B is the entry block, we have to do the exit->entry edge as well
   if (B == &F->getEntryBlock()) {
-    E1 = std::make_pair(ExitBB, B);
-    if ((E1.first != E.first || E1.second != E.second) && ES->count(E1) != 0) {
+    E1 = std::make_pair(FuncData[F]->ExitBlock, B);
+    if ((E1.first != E.first || E1.second != E.second) && ES.count(E1) != 0) {
       updateEdgeCounts(F, E1.first, E1);
     }
   }
@@ -234,7 +244,7 @@ void JITProfileData::updateEdgeCounts(Function* F, BasicBlock* B, Edge E) {
       E1 = std::make_pair(*pred_begin(*PI), B);
     else
       E1 = std::make_pair(*PI, B);
-    if ((E1.first != E.first || E1.second != E.second) && ES->count(E1) != 0) {
+    if ((E1.first != E.first || E1.second != E.second) && ES.count(E1) != 0) {
       updateEdgeCounts(F, E1.first, E1);
     }
     in += EdgeFreq[E1];
@@ -248,7 +258,7 @@ void JITProfileData::updateEdgeCounts(Function* F, BasicBlock* B, Edge E) {
     else
       E1 = std::make_pair(B, *SI);
 
-    if ((E1.first != E.first || E1.second != E.second) && ES->count(E1) != 0) {
+    if ((E1.first != E.first || E1.second != E.second) && ES.count(E1) != 0) {
       updateEdgeCounts(F, E1.second, E1);
     }
     out += EdgeFreq[E1];

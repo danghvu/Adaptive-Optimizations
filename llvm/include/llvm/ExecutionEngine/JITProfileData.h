@@ -18,6 +18,16 @@ typedef DenseMap<Function*, unsigned>       FuncCountMap;
 typedef DenseMap<Function*, EdgeSet*>       EdgeMapSet;
 typedef DenseMap<Function*, FunctionPassManager*> FPMMap;
 
+typedef struct {
+  FunctionPassManager* FPM;
+  EdgeSet ProfileEdges;
+  EdgeSet NonProfileEdges;
+  BasicBlock* ExitBlock;
+  bool removedProfiling;
+} JITFunctionData;
+
+typedef DenseMap<Function*, JITFunctionData*> FuncDataMap;
+
 namespace llvm {
   class ExecutionEngine;
   // temporarily save this class here for easy compilation
@@ -36,8 +46,9 @@ namespace llvm {
       void initializeProfiling(Function* F);
 
       // Used by JITBBProfilingPass to put in the corresponding edges
-      EdgeSet* getProfileEdges(Function* F)    { return (*ProfileEdges)[F]; }
-      EdgeSet* getNonProfileEdges(Function* F) { return (*NonProfileEdges)[F]; }
+      JITFunctionData* getFuncData(Function* F) { return FuncData[F]; }
+      EdgeSet* getProfileEdges(Function* F)     { return &FuncData[F]->ProfileEdges; }
+      EdgeSet* getNonProfileEdges(Function* F)  { return &FuncData[F]->NonProfileEdges; }
 
       void setupUpdatingCounts(Function* F);
       void updateCounts(Function* F);
@@ -52,14 +63,18 @@ namespace llvm {
 
       BasicBlock *ExitBB;
 
+
     private:
       // Thresholds
       int TH_ENABLE_BB_PROFILE;
       int TH_ENABLE_APPLY_OPT;
 
+      // Function data
+      FuncDataMap FuncData;
+
       // Function pass manager for running the function and
       // basic block profiling passes
-      FPMMap FPMs;
+      //FPMMap FPMs;
 
       // The frequency variables
       FuncCountMap  FuncFreq;
@@ -67,8 +82,8 @@ namespace llvm {
       BlockCountMap BlockFreq;
 
       // Edge information for each function
-      EdgeMapSet*   ProfileEdges;
-      EdgeMapSet*   NonProfileEdges;
+      //EdgeMapSet*   ProfileEdges;
+      //EdgeMapSet*   NonProfileEdges;
 
       // The JIT object
       ExecutionEngine* TheJIT;

@@ -113,6 +113,7 @@ namespace {
         callBackInst.push_back(CallbackInst);
 
         DEBUG( dbgs() << "[JITProfiling] Inserted Callback to " << F.getName() << "\n" );
+        return true;
       }
 
     private:
