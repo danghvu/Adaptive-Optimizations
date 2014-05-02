@@ -16,11 +16,7 @@ entry:
   store i32 0, i32* %retval
   store i32 %argc, i32* %argc.addr, align 4
   store i8** %argv, i8*** %argv.addr, align 8
-  %call = call i64 @time(i64* null) #3
-  %conv = trunc i64 %call to i32
-  call void @srand(i32 %conv) #3
-  %call1 = call i32 @rand() #3
-  store i32 %call1, i32* %x, align 4
+  store i32 5, i32* %x, align 4
   %0 = load i32* %x, align 4
   %rem = srem i32 %0, 2
   store i32 %rem, i32* %y, align 4
@@ -30,33 +26,22 @@ entry:
 
 if.then:                                          ; preds = %entry
   %2 = load i32* %x, align 4
-  %call3 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([12 x i8]* @.str, i32 0, i32 0), i32 %2)
+  %call = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([12 x i8]* @.str, i32 0, i32 0), i32 %2)
   br label %if.end
 
 if.else:                                          ; preds = %entry
   %3 = load i32* %x, align 4
-  %call4 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([11 x i8]* @.str1, i32 0, i32 0), i32 %3)
+  %call1 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([11 x i8]* @.str1, i32 0, i32 0), i32 %3)
   br label %if.end
 
 if.end:                                           ; preds = %if.else, %if.then
   ret i32 0
 }
 
-; Function Attrs: nounwind
-declare void @srand(i32) #1
-
-; Function Attrs: nounwind
-declare i64 @time(i64*) #1
-
-; Function Attrs: nounwind
-declare i32 @rand() #1
-
-declare i32 @printf(i8*, ...) #2
+declare i32 @printf(i8*, ...) #1
 
 attributes #0 = { nounwind uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { nounwind "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #2 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #3 = { nounwind }
+attributes #1 = { "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 
 !llvm.ident = !{!0}
 

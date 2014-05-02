@@ -1,0 +1,2930 @@
+Args: lli -enable-online-profile -t1=0 -t2=0 -debug loop1.ll 
+Subtarget features: SSELevel 8, 3DNowLevel 0, 64bit 1
+CGP: Found      local addrmode: [Base:%retval]
+CGP: Found      local addrmode: [Base:%argc.addr]
+CGP: Found      local addrmode: [Base:%argv.addr]
+CGP: Found      local addrmode: [Base:%x]
+CGP: Found      local addrmode: [Base:%i]
+CGP: Found      local addrmode: [Base:%i]
+CGP: Found      local addrmode: [Base:%i]
+CGP: Found      local addrmode: [Base:%x]
+CGP: Found      local addrmode: [Base:%x]
+CGP: Found      local addrmode: [Base:%i]
+CGP: Found      local addrmode: [Base:%i]
+Computing probabilities for for.inc
+set edge for.inc -> 0 successor weight to 124
+Computing probabilities for for.body
+set edge for.body -> 0 successor weight to 124
+Computing probabilities for for.end
+Computing probabilities for for.cond
+set edge for.cond -> 0 successor weight to 124
+set edge for.cond -> 1 successor weight to 4
+Computing probabilities for entry
+
+
+
+=== main
+Initial selection DAG: BB#0 'main:entry'
+SelectionDAG has 18 nodes:
+  0x3293a68: ch = EntryToken
+
+  0x32b76e0: i32 = Constant<0>
+
+  0x32b78e0: i64 = Constant<0>
+
+  0x32b79e0: i64 = undef
+
+            0x3293a68: <multiple use>
+            0x32b76e0: <multiple use>
+            0x32b77e0: i64 = FrameIndex<0>
+
+            0x32b79e0: <multiple use>
+          0x32b7ae0: ch = store 0x3293a68, 0x32b76e0, 0x32b77e0, 0x32b79e0<ST4[%retval]> [ORD=6]
+
+            0x3293a68: <multiple use>
+            0x32b72e0: i32 = Register %vreg0
+
+          0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0
+
+          0x32b7be0: i64 = FrameIndex<1>
+
+          0x32b79e0: <multiple use>
+        0x32b7ce0: ch = store 0x32b7ae0, 0x32b73e0, 0x32b7be0, 0x32b79e0<ST4[%argc.addr]> [ORD=7]
+
+          0x3293a68: <multiple use>
+          0x32b74e0: i64 = Register %vreg1
+
+        0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0
+
+        0x32b7de0: i64 = FrameIndex<2>
+
+        0x32b79e0: <multiple use>
+      0x32b7ee0: ch = store 0x32b7ce0, 0x32b75e0, 0x32b7de0, 0x32b79e0<ST8[%argv.addr]> [ORD=8]
+
+      0x32b76e0: <multiple use>
+      0x32b7fe0: i64 = FrameIndex<3>
+
+      0x32b79e0: <multiple use>
+    0x32b80e0: ch = store 0x32b7ee0, 0x32b76e0, 0x32b7fe0, 0x32b79e0<ST4[%x]> [ORD=9]
+
+    0x32b76e0: <multiple use>
+    0x32b9520: i64 = FrameIndex<4>
+
+    0x32b79e0: <multiple use>
+  0x32b9620: ch = store 0x32b80e0, 0x32b76e0, 0x32b9520, 0x32b79e0<ST4[%i]> [ORD=10]
+
+
+Optimized lowered selection DAG: BB#0 'main:entry'
+SelectionDAG has 17 nodes:
+  0x3293a68: ch = EntryToken
+
+  0x32b76e0: i32 = Constant<0>
+
+  0x32b79e0: i64 = undef
+
+            0x3293a68: <multiple use>
+            0x32b76e0: <multiple use>
+            0x32b77e0: i64 = FrameIndex<0>
+
+            0x32b79e0: <multiple use>
+          0x32b7ae0: ch = store 0x3293a68, 0x32b76e0, 0x32b77e0, 0x32b79e0<ST4[%retval]> [ORD=6]
+
+            0x3293a68: <multiple use>
+            0x32b72e0: i32 = Register %vreg0
+
+          0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0
+
+          0x32b7be0: i64 = FrameIndex<1>
+
+          0x32b79e0: <multiple use>
+        0x32b7ce0: ch = store 0x32b7ae0, 0x32b73e0, 0x32b7be0, 0x32b79e0<ST4[%argc.addr]> [ORD=7]
+
+          0x3293a68: <multiple use>
+          0x32b74e0: i64 = Register %vreg1
+
+        0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0
+
+        0x32b7de0: i64 = FrameIndex<2>
+
+        0x32b79e0: <multiple use>
+      0x32b7ee0: ch = store 0x32b7ce0, 0x32b75e0, 0x32b7de0, 0x32b79e0<ST8[%argv.addr]> [ORD=8]
+
+      0x32b76e0: <multiple use>
+      0x32b7fe0: i64 = FrameIndex<3>
+
+      0x32b79e0: <multiple use>
+    0x32b80e0: ch = store 0x32b7ee0, 0x32b76e0, 0x32b7fe0, 0x32b79e0<ST4[%x]> [ORD=9]
+
+    0x32b76e0: <multiple use>
+    0x32b9520: i64 = FrameIndex<4>
+
+    0x32b79e0: <multiple use>
+  0x32b9620: ch = store 0x32b80e0, 0x32b76e0, 0x32b9520, 0x32b79e0<ST4[%i]> [ORD=10]
+
+
+Legally typed node: 0x32b9520: i64 = FrameIndex<4> [ID=0]
+
+Legally typed node: 0x32b7fe0: i64 = FrameIndex<3> [ID=0]
+
+Legally typed node: 0x32b7de0: i64 = FrameIndex<2> [ID=0]
+
+Legally typed node: 0x32b7be0: i64 = FrameIndex<1> [ID=0]
+
+Legally typed node: 0x32b79e0: i64 = undef [ID=0]
+
+Legally typed node: 0x32b77e0: i64 = FrameIndex<0> [ID=0]
+
+Legally typed node: 0x32b76e0: i32 = Constant<0> [ID=0]
+
+Legally typed node: 0x32b74e0: i64 = Register %vreg1 [ID=0]
+
+Legally typed node: 0x32b72e0: i32 = Register %vreg0 [ID=0]
+
+Legally typed node: 0x3293a68: ch = EntryToken [ID=0]
+
+Legally typed node: 0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0 [ID=0]
+
+Legally typed node: 0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0 [ID=0]
+
+Legally typed node: 0x32b7ae0: ch = store 0x3293a68, 0x32b76e0, 0x32b77e0, 0x32b79e0<ST4[%retval]> [ORD=6] [ID=0]
+
+Legally typed node: 0x32b7ce0: ch = store 0x32b7ae0, 0x32b73e0, 0x32b7be0, 0x32b79e0<ST4[%argc.addr]> [ORD=7] [ID=0]
+
+Legally typed node: 0x32b7ee0: ch = store 0x32b7ce0, 0x32b75e0, 0x32b7de0, 0x32b79e0<ST8[%argv.addr]> [ORD=8] [ID=0]
+
+Legally typed node: 0x32b80e0: ch = store 0x32b7ee0, 0x32b76e0, 0x32b7fe0, 0x32b79e0<ST4[%x]> [ORD=9] [ID=0]
+
+Legally typed node: 0x32b9620: ch = store 0x32b80e0, 0x32b76e0, 0x32b9520, 0x32b79e0<ST4[%i]> [ORD=10] [ID=0]
+
+Legally typed node: 0x7fffbcf630a0: ch = handlenode 0x32b9620 [ID=0]
+
+Type-legalized selection DAG: BB#0 'main:entry'
+SelectionDAG has 17 nodes:
+  0x3293a68: ch = EntryToken [ID=-3]
+
+  0x32b76e0: i32 = Constant<0> [ID=-3]
+
+  0x32b79e0: i64 = undef [ID=-3]
+
+            0x3293a68: <multiple use>
+            0x32b76e0: <multiple use>
+            0x32b77e0: i64 = FrameIndex<0> [ID=-3]
+
+            0x32b79e0: <multiple use>
+          0x32b7ae0: ch = store 0x3293a68, 0x32b76e0, 0x32b77e0, 0x32b79e0<ST4[%retval]> [ORD=6] [ID=-3]
+
+            0x3293a68: <multiple use>
+            0x32b72e0: i32 = Register %vreg0 [ID=-3]
+
+          0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0 [ID=-3]
+
+          0x32b7be0: i64 = FrameIndex<1> [ID=-3]
+
+          0x32b79e0: <multiple use>
+        0x32b7ce0: ch = store 0x32b7ae0, 0x32b73e0, 0x32b7be0, 0x32b79e0<ST4[%argc.addr]> [ORD=7] [ID=-3]
+
+          0x3293a68: <multiple use>
+          0x32b74e0: i64 = Register %vreg1 [ID=-3]
+
+        0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0 [ID=-3]
+
+        0x32b7de0: i64 = FrameIndex<2> [ID=-3]
+
+        0x32b79e0: <multiple use>
+      0x32b7ee0: ch = store 0x32b7ce0, 0x32b75e0, 0x32b7de0, 0x32b79e0<ST8[%argv.addr]> [ORD=8] [ID=-3]
+
+      0x32b76e0: <multiple use>
+      0x32b7fe0: i64 = FrameIndex<3> [ID=-3]
+
+      0x32b79e0: <multiple use>
+    0x32b80e0: ch = store 0x32b7ee0, 0x32b76e0, 0x32b7fe0, 0x32b79e0<ST4[%x]> [ORD=9] [ID=-3]
+
+    0x32b76e0: <multiple use>
+    0x32b9520: i64 = FrameIndex<4> [ID=-3]
+
+    0x32b79e0: <multiple use>
+  0x32b9620: ch = store 0x32b80e0, 0x32b76e0, 0x32b9520, 0x32b79e0<ST4[%i]> [ORD=10] [ID=-3]
+
+
+Legalized selection DAG: BB#0 'main:entry'
+SelectionDAG has 17 nodes:
+  0x3293a68: ch = EntryToken [ID=0]
+
+  0x32b76e0: i32 = Constant<0> [ID=3]
+
+  0x32b79e0: i64 = undef [ID=5]
+
+            0x3293a68: <multiple use>
+            0x32b76e0: <multiple use>
+            0x32b77e0: i64 = FrameIndex<0> [ID=4]
+
+            0x32b79e0: <multiple use>
+          0x32b7ae0: ch = store 0x3293a68, 0x32b76e0, 0x32b77e0, 0x32b79e0<ST4[%retval]> [ORD=6] [ID=12]
+
+            0x3293a68: <multiple use>
+            0x32b72e0: i32 = Register %vreg0 [ID=1]
+
+          0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0 [ID=10]
+
+          0x32b7be0: i64 = FrameIndex<1> [ID=6]
+
+          0x32b79e0: <multiple use>
+        0x32b7ce0: ch = store 0x32b7ae0, 0x32b73e0, 0x32b7be0, 0x32b79e0<ST4[%argc.addr]> [ORD=7] [ID=13]
+
+          0x3293a68: <multiple use>
+          0x32b74e0: i64 = Register %vreg1 [ID=2]
+
+        0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0 [ID=11]
+
+        0x32b7de0: i64 = FrameIndex<2> [ID=7]
+
+        0x32b79e0: <multiple use>
+      0x32b7ee0: ch = store 0x32b7ce0, 0x32b75e0, 0x32b7de0, 0x32b79e0<ST8[%argv.addr]> [ORD=8] [ID=14]
+
+      0x32b76e0: <multiple use>
+      0x32b7fe0: i64 = FrameIndex<3> [ID=8]
+
+      0x32b79e0: <multiple use>
+    0x32b80e0: ch = store 0x32b7ee0, 0x32b76e0, 0x32b7fe0, 0x32b79e0<ST4[%x]> [ORD=9] [ID=15]
+
+    0x32b76e0: <multiple use>
+    0x32b9520: i64 = FrameIndex<4> [ID=9]
+
+    0x32b79e0: <multiple use>
+  0x32b9620: ch = store 0x32b80e0, 0x32b76e0, 0x32b9520, 0x32b79e0<ST4[%i]> [ORD=10] [ID=16]
+
+
+Optimized legalized selection DAG: BB#0 'main:entry'
+SelectionDAG has 17 nodes:
+  0x3293a68: ch = EntryToken [ID=0]
+
+  0x32b76e0: i32 = Constant<0> [ID=3]
+
+  0x32b79e0: i64 = undef [ID=5]
+
+            0x3293a68: <multiple use>
+            0x32b76e0: <multiple use>
+            0x32b77e0: i64 = FrameIndex<0> [ID=4]
+
+            0x32b79e0: <multiple use>
+          0x32b7ae0: ch = store 0x3293a68, 0x32b76e0, 0x32b77e0, 0x32b79e0<ST4[%retval]> [ORD=6] [ID=12]
+
+            0x3293a68: <multiple use>
+            0x32b72e0: i32 = Register %vreg0 [ID=1]
+
+          0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0 [ID=10]
+
+          0x32b7be0: i64 = FrameIndex<1> [ID=6]
+
+          0x32b79e0: <multiple use>
+        0x32b7ce0: ch = store 0x32b7ae0, 0x32b73e0, 0x32b7be0, 0x32b79e0<ST4[%argc.addr]> [ORD=7] [ID=13]
+
+          0x3293a68: <multiple use>
+          0x32b74e0: i64 = Register %vreg1 [ID=2]
+
+        0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0 [ID=11]
+
+        0x32b7de0: i64 = FrameIndex<2> [ID=7]
+
+        0x32b79e0: <multiple use>
+      0x32b7ee0: ch = store 0x32b7ce0, 0x32b75e0, 0x32b7de0, 0x32b79e0<ST8[%argv.addr]> [ORD=8] [ID=14]
+
+      0x32b76e0: <multiple use>
+      0x32b7fe0: i64 = FrameIndex<3> [ID=8]
+
+      0x32b79e0: <multiple use>
+    0x32b80e0: ch = store 0x32b7ee0, 0x32b76e0, 0x32b7fe0, 0x32b79e0<ST4[%x]> [ORD=9] [ID=15]
+
+    0x32b76e0: <multiple use>
+    0x32b9520: i64 = FrameIndex<4> [ID=9]
+
+    0x32b79e0: <multiple use>
+  0x32b9620: ch = store 0x32b80e0, 0x32b76e0, 0x32b9520, 0x32b79e0<ST4[%i]> [ORD=10] [ID=16]
+
+
+===== Instruction selection begins: BB#0 'entry'
+Selecting: 0x32b9620: ch = store 0x32b80e0, 0x32b76e0, 0x32b9520, 0x32b79e0<ST4[%i]> [ORD=10] [ID=16]
+
+ISEL: Starting pattern match on root node: 0x32b9620: ch = store 0x32b80e0, 0x32b76e0, 0x32b9520, 0x32b79e0<ST4[%i]> [ORD=10] [ID=16]
+
+  Skipped scope entry (due to false predicate) at index 13, continuing at 58
+  Skipped scope entry (due to false predicate) at index 59, continuing at 104
+  Skipped scope entry (due to false predicate) at index 105, continuing at 188
+  Skipped scope entry (due to false predicate) at index 189, continuing at 212
+  Skipped scope entry (due to false predicate) at index 213, continuing at 236
+  Skipped scope entry (due to false predicate) at index 237, continuing at 260
+  Match failed at index 264
+  Continuing at 284
+  Match failed at index 285
+  Continuing at 308
+  Continuing at 309
+  Match failed at index 313
+  Continuing at 10708
+  Match failed at index 10713
+  Continuing at 11131
+  Match failed at index 11135
+  Continuing at 11509
+  TypeSwitch[i32] from 11516 to 11599
+MatchAddress: X86ISelAddressMode 0x7fffbcf62bf0
+Base_Reg nul Base.FrameIndex 0
+ Scale1
+IndexReg nul Disp 0
+GV nul CP nul
+ES nul JT-1 Align0
+  Morphed node: 0x32b9620: ch = MOV32mi 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b80e0<Mem:ST4[%i]> [ORD=10]
+
+ISEL: Match complete!
+=> 0x32b9620: ch = MOV32mi 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b80e0<Mem:ST4[%i]> [ORD=10]
+
+Selecting: 0x32b80e0: ch = store 0x32b7ee0, 0x32b76e0, 0x32b7fe0, 0x32b79e0<ST4[%x]> [ORD=9] [ID=15]
+
+ISEL: Starting pattern match on root node: 0x32b80e0: ch = store 0x32b7ee0, 0x32b76e0, 0x32b7fe0, 0x32b79e0<ST4[%x]> [ORD=9] [ID=15]
+
+  Initial Opcode index to 5
+  Skipped scope entry (due to false predicate) at index 13, continuing at 58
+  Skipped scope entry (due to false predicate) at index 59, continuing at 104
+  Skipped scope entry (due to false predicate) at index 105, continuing at 188
+  Skipped scope entry (due to false predicate) at index 189, continuing at 212
+  Skipped scope entry (due to false predicate) at index 213, continuing at 236
+  Skipped scope entry (due to false predicate) at index 237, continuing at 260
+  Match failed at index 264
+  Continuing at 284
+  Match failed at index 285
+  Continuing at 308
+  Continuing at 309
+  Match failed at index 313
+  Continuing at 10708
+  Match failed at index 10713
+  Continuing at 11131
+  Match failed at index 11135
+  Continuing at 11509
+  TypeSwitch[i32] from 11516 to 11599
+MatchAddress: X86ISelAddressMode 0x7fffbcf62bf0
+Base_Reg nul Base.FrameIndex 0
+ Scale1
+IndexReg nul Disp 0
+GV nul CP nul
+ES nul JT-1 Align0
+  Morphed node: 0x32b80e0: ch = MOV32mi 0x32b9520, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b7ee0<Mem:ST4[%x]> [ORD=9]
+
+ISEL: Match complete!
+=> 0x32b80e0: ch = MOV32mi 0x32b9520, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b7ee0<Mem:ST4[%x]> [ORD=9]
+
+Selecting: 0x32b7ee0: ch = store 0x32b7ce0, 0x32b75e0, 0x32b7de0, 0x32b79e0<ST8[%argv.addr]> [ORD=8] [ID=14]
+
+ISEL: Starting pattern match on root node: 0x32b7ee0: ch = store 0x32b7ce0, 0x32b75e0, 0x32b7de0, 0x32b79e0<ST8[%argv.addr]> [ORD=8] [ID=14]
+
+  Initial Opcode index to 5
+  Skipped scope entry (due to false predicate) at index 13, continuing at 58
+  Skipped scope entry (due to false predicate) at index 59, continuing at 104
+  Skipped scope entry (due to false predicate) at index 105, continuing at 188
+  Skipped scope entry (due to false predicate) at index 189, continuing at 212
+  Skipped scope entry (due to false predicate) at index 213, continuing at 236
+  Skipped scope entry (due to false predicate) at index 237, continuing at 260
+  Skipped scope entry (due to false predicate) at index 261, continuing at 284
+  Match failed at index 288
+  Continuing at 308
+  Continuing at 309
+  Match failed at index 313
+  Continuing at 10708
+  Match failed at index 10713
+  Continuing at 11131
+  Match failed at index 11135
+  Continuing at 11509
+  Match failed at index 11513
+  Continuing at 11624
+  Match failed at index 11628
+  Continuing at 11859
+  Skipped scope entry (due to false predicate) at index 11864, continuing at 11950
+  Skipped scope entry (due to false predicate) at index 11951, continuing at 12064
+  Skipped scope entry (due to false predicate) at index 12065, continuing at 12137
+  Skipped scope entry (due to false predicate) at index 12138, continuing at 12161
+  Skipped scope entry (due to false predicate) at index 12162, continuing at 12185
+  Skipped scope entry (due to false predicate) at index 12186, continuing at 12209
+MatchAddress: X86ISelAddressMode 0x7fffbcf62bf0
+Base_Reg nul Base.FrameIndex 0
+ Scale1
+IndexReg nul Disp 0
+GV nul CP nul
+ES nul JT-1 Align0
+  Morphed node: 0x32b7ee0: ch = MOV64mr 0x32b7fe0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b75e0, 0x32b7ce0<Mem:ST8[%argv.addr]> [ORD=8]
+
+ISEL: Match complete!
+=> 0x32b7ee0: ch = MOV64mr 0x32b7fe0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b75e0, 0x32b7ce0<Mem:ST8[%argv.addr]> [ORD=8]
+
+Selecting: 0x32b7ce0: ch = store 0x32b7ae0, 0x32b73e0, 0x32b7be0, 0x32b79e0<ST4[%argc.addr]> [ORD=7] [ID=13]
+
+ISEL: Starting pattern match on root node: 0x32b7ce0: ch = store 0x32b7ae0, 0x32b73e0, 0x32b7be0, 0x32b79e0<ST4[%argc.addr]> [ORD=7] [ID=13]
+
+  Initial Opcode index to 5
+  Skipped scope entry (due to false predicate) at index 13, continuing at 58
+  Skipped scope entry (due to false predicate) at index 59, continuing at 104
+  Skipped scope entry (due to false predicate) at index 105, continuing at 188
+  Skipped scope entry (due to false predicate) at index 189, continuing at 212
+  Skipped scope entry (due to false predicate) at index 213, continuing at 236
+  Skipped scope entry (due to false predicate) at index 237, continuing at 260
+  Match failed at index 264
+  Continuing at 284
+  Match failed at index 285
+  Continuing at 308
+  Continuing at 309
+  Match failed at index 313
+  Continuing at 10708
+  Match failed at index 10713
+  Continuing at 11131
+  Match failed at index 11135
+  Continuing at 11509
+  Match failed at index 11513
+  Continuing at 11624
+  Match failed at index 11628
+  Continuing at 11859
+  Skipped scope entry (due to false predicate) at index 11864, continuing at 11950
+  Skipped scope entry (due to false predicate) at index 11951, continuing at 12064
+  Skipped scope entry (due to false predicate) at index 12065, continuing at 12137
+  Skipped scope entry (due to false predicate) at index 12138, continuing at 12161
+  Skipped scope entry (due to false predicate) at index 12162, continuing at 12185
+MatchAddress: X86ISelAddressMode 0x7fffbcf62bf0
+Base_Reg nul Base.FrameIndex 0
+ Scale1
+IndexReg nul Disp 0
+GV nul CP nul
+ES nul JT-1 Align0
+  Morphed node: 0x32b7ce0: ch = MOV32mr 0x32b7de0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b73e0, 0x32b7ae0<Mem:ST4[%argc.addr]> [ORD=7]
+
+ISEL: Match complete!
+=> 0x32b7ce0: ch = MOV32mr 0x32b7de0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b73e0, 0x32b7ae0<Mem:ST4[%argc.addr]> [ORD=7]
+
+Selecting: 0x32b7ae0: ch = store 0x3293a68, 0x32b76e0, 0x32b77e0, 0x32b79e0<ST4[%retval]> [ORD=6] [ID=12]
+
+ISEL: Starting pattern match on root node: 0x32b7ae0: ch = store 0x3293a68, 0x32b76e0, 0x32b77e0, 0x32b79e0<ST4[%retval]> [ORD=6] [ID=12]
+
+  Initial Opcode index to 5
+  Skipped scope entry (due to false predicate) at index 13, continuing at 58
+  Skipped scope entry (due to false predicate) at index 59, continuing at 104
+  Skipped scope entry (due to false predicate) at index 105, continuing at 188
+  Skipped scope entry (due to false predicate) at index 189, continuing at 212
+  Skipped scope entry (due to false predicate) at index 213, continuing at 236
+  Skipped scope entry (due to false predicate) at index 237, continuing at 260
+  Match failed at index 264
+  Continuing at 284
+  Match failed at index 285
+  Continuing at 308
+  Continuing at 309
+  Match failed at index 313
+  Continuing at 10708
+  Match failed at index 10713
+  Continuing at 11131
+  Match failed at index 11135
+  Continuing at 11509
+  TypeSwitch[i32] from 11516 to 11599
+MatchAddress: X86ISelAddressMode 0x7fffbcf62bf0
+Base_Reg nul Base.FrameIndex 0
+ Scale1
+IndexReg nul Disp 0
+GV nul CP nul
+ES nul JT-1 Align0
+  Morphed node: 0x32b7ae0: ch = MOV32mi 0x32b7be0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x3293a68<Mem:ST4[%retval]> [ORD=6]
+
+ISEL: Match complete!
+=> 0x32b7ae0: ch = MOV32mi 0x32b7be0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x3293a68<Mem:ST4[%retval]> [ORD=6]
+
+Selecting: 0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0 [ID=11]
+
+=> 0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0
+
+Selecting: 0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0 [ID=10]
+
+=> 0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0
+
+Selecting: 0x32b74e0: i64 = Register %vreg1 [ID=2]
+
+=> 0x32b74e0: i64 = Register %vreg1
+
+Selecting: 0x32b72e0: i32 = Register %vreg0 [ID=1]
+
+=> 0x32b72e0: i32 = Register %vreg0
+
+Selecting: 0x3293a68: ch = EntryToken [ID=0]
+
+=> 0x3293a68: ch = EntryToken
+
+===== Instruction selection ends:
+Selected selection DAG: BB#0 'main:entry'
+SelectionDAG has 19 nodes:
+  0x3293a68: ch = EntryToken
+
+  0x32b78e0: i64 = Register %noreg
+
+  0x32b9820: i8 = TargetConstant<1>
+
+  0x32b9920: i32 = TargetConstant<0>
+
+  0x32b9a20: i32 = Register %noreg
+
+    0x32b9720: i64 = TargetFrameIndex<4>
+
+    0x32b9820: <multiple use>
+    0x32b78e0: <multiple use>
+    0x32b9920: <multiple use>
+    0x32b9a20: <multiple use>
+    0x32b9920: <multiple use>
+      0x32b9520: i64 = TargetFrameIndex<3>
+
+      0x32b9820: <multiple use>
+      0x32b78e0: <multiple use>
+      0x32b9920: <multiple use>
+      0x32b9a20: <multiple use>
+      0x32b9920: <multiple use>
+        0x32b7fe0: i64 = TargetFrameIndex<2>
+
+        0x32b9820: <multiple use>
+        0x32b78e0: <multiple use>
+        0x32b9920: <multiple use>
+        0x32b9a20: <multiple use>
+          0x3293a68: <multiple use>
+          0x32b74e0: i64 = Register %vreg1
+
+        0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0
+
+          0x32b7de0: i64 = TargetFrameIndex<1>
+
+          0x32b9820: <multiple use>
+          0x32b78e0: <multiple use>
+          0x32b9920: <multiple use>
+          0x32b9a20: <multiple use>
+            0x3293a68: <multiple use>
+            0x32b72e0: i32 = Register %vreg0
+
+          0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0
+
+            0x32b7be0: i64 = TargetFrameIndex<0>
+
+            0x32b9820: <multiple use>
+            0x32b78e0: <multiple use>
+            0x32b9920: <multiple use>
+            0x32b9a20: <multiple use>
+            0x32b9920: <multiple use>
+            0x3293a68: <multiple use>
+          0x32b7ae0: ch = MOV32mi 0x32b7be0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x3293a68<Mem:ST4[%retval]> [ORD=6]
+
+        0x32b7ce0: ch = MOV32mr 0x32b7de0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b73e0, 0x32b7ae0<Mem:ST4[%argc.addr]> [ORD=7]
+
+      0x32b7ee0: ch = MOV64mr 0x32b7fe0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b75e0, 0x32b7ce0<Mem:ST8[%argv.addr]> [ORD=8]
+
+    0x32b80e0: ch = MOV32mi 0x32b9520, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b7ee0<Mem:ST4[%x]> [ORD=9]
+
+  0x32b9620: ch = MOV32mi 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b80e0<Mem:ST4[%i]> [ORD=10]
+
+
+********** List Scheduling BB#0 'entry' **********
+SU(0): 0x32b9620: ch = MOV32mi 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b80e0<Mem:ST4[%i]> [ORD=10] [ID=0]
+
+  # preds left       : 1
+  # succs left       : 0
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 4
+  Height             : 0
+  Predecessors:
+   ch  SU(1): Latency=1
+
+SU(1): 0x32b80e0: ch = MOV32mi 0x32b9520, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b7ee0<Mem:ST4[%x]> [ORD=9] [ID=1]
+
+  # preds left       : 1
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 3
+  Height             : 1
+  Predecessors:
+   ch  SU(2): Latency=1
+  Successors:
+   ch  SU(0): Latency=1
+
+SU(2): 0x32b7ee0: ch = MOV64mr 0x32b7fe0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b75e0, 0x32b7ce0<Mem:ST8[%argv.addr]> [ORD=8] [ID=2]
+
+  # preds left       : 2
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 2
+  Height             : 2
+  Predecessors:
+   val SU(6): Latency=1
+   ch  SU(3): Latency=1
+  Successors:
+   ch  SU(1): Latency=1
+
+SU(3): 0x32b7ce0: ch = MOV32mr 0x32b7de0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b73e0, 0x32b7ae0<Mem:ST4[%argc.addr]> [ORD=7] [ID=3]
+
+  # preds left       : 2
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 1
+  Height             : 3
+  Predecessors:
+   val SU(5): Latency=1
+   ch  SU(4): Latency=1
+  Successors:
+   ch  SU(2): Latency=1
+
+SU(4): 0x32b7ae0: ch = MOV32mi 0x32b7be0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x3293a68<Mem:ST4[%retval]> [ORD=6] [ID=4]
+
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 0
+  Height             : 4
+  Successors:
+   ch  SU(3): Latency=1
+
+SU(5): 0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0 [ID=5]
+
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 1
+  Latency            : 1
+  Depth              : 0
+  Height             : 4
+  Successors:
+   val SU(3): Latency=1
+
+SU(6): 0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0 [ID=6]
+
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 1
+  Latency            : 1
+  Depth              : 0
+  Height             : 3
+  Successors:
+   val SU(2): Latency=1
+
+
+Examining Available:
+Height 0: SU(0): 0x32b9620: ch = MOV32mi 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b80e0<Mem:ST4[%i]> [ORD=10] [ID=0]
+
+
+*** Scheduling [0]: SU(0): 0x32b9620: ch = MOV32mi 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b80e0<Mem:ST4[%i]> [ORD=10] [ID=0]
+
+
+Examining Available:
+Height 1: SU(1): 0x32b80e0: ch = MOV32mi 0x32b9520, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b7ee0<Mem:ST4[%x]> [ORD=9] [ID=1]
+
+
+*** Scheduling [1]: SU(1): 0x32b80e0: ch = MOV32mi 0x32b9520, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b7ee0<Mem:ST4[%x]> [ORD=9] [ID=1]
+
+
+Examining Available:
+Height 2: SU(2): 0x32b7ee0: ch = MOV64mr 0x32b7fe0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b75e0, 0x32b7ce0<Mem:ST8[%argv.addr]> [ORD=8] [ID=2]
+
+
+*** Scheduling [2]: SU(2): 0x32b7ee0: ch = MOV64mr 0x32b7fe0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b75e0, 0x32b7ce0<Mem:ST8[%argv.addr]> [ORD=8] [ID=2]
+
+
+Examining Available:
+Height 3: SU(6): 0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0 [ID=6]
+
+Height 3: SU(3): 0x32b7ce0: ch = MOV32mr 0x32b7de0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b73e0, 0x32b7ae0<Mem:ST4[%argc.addr]> [ORD=7] [ID=3]
+
+
+*** Scheduling [3]: SU(6): 0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0 [ID=6]
+
+
+Examining Available:
+Height 3: SU(3): 0x32b7ce0: ch = MOV32mr 0x32b7de0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b73e0, 0x32b7ae0<Mem:ST4[%argc.addr]> [ORD=7] [ID=3]
+
+
+*** Scheduling [4]: SU(3): 0x32b7ce0: ch = MOV32mr 0x32b7de0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b73e0, 0x32b7ae0<Mem:ST4[%argc.addr]> [ORD=7] [ID=3]
+
+
+Examining Available:
+Height 5: SU(5): 0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0 [ID=5]
+
+Height 5: SU(4): 0x32b7ae0: ch = MOV32mi 0x32b7be0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x3293a68<Mem:ST4[%retval]> [ORD=6] [ID=4]
+
+
+*** Scheduling [5]: SU(5): 0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0 [ID=5]
+
+
+Examining Available:
+Height 5: SU(4): 0x32b7ae0: ch = MOV32mi 0x32b7be0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x3293a68<Mem:ST4[%retval]> [ORD=6] [ID=4]
+
+
+*** Scheduling [6]: SU(4): 0x32b7ae0: ch = MOV32mi 0x32b7be0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x3293a68<Mem:ST4[%retval]> [ORD=6] [ID=4]
+
+*** Final schedule ***
+SU(4): 0x32b7ae0: ch = MOV32mi 0x32b7be0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x3293a68<Mem:ST4[%retval]> [ORD=6] [ID=4]
+
+SU(5): 0x32b73e0: i32,ch = CopyFromReg 0x3293a68, 0x32b72e0 [ID=5]
+
+SU(3): 0x32b7ce0: ch = MOV32mr 0x32b7de0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b73e0, 0x32b7ae0<Mem:ST4[%argc.addr]> [ORD=7] [ID=3]
+
+SU(6): 0x32b75e0: i64,ch = CopyFromReg 0x3293a68, 0x32b74e0 [ID=6]
+
+SU(2): 0x32b7ee0: ch = MOV64mr 0x32b7fe0, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b75e0, 0x32b7ce0<Mem:ST8[%argv.addr]> [ORD=8] [ID=2]
+
+SU(1): 0x32b80e0: ch = MOV32mi 0x32b9520, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b7ee0<Mem:ST4[%x]> [ORD=9] [ID=1]
+
+SU(0): 0x32b9620: ch = MOV32mi 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b9920, 0x32b9a20, 0x32b9920, 0x32b80e0<Mem:ST4[%i]> [ORD=10] [ID=0]
+
+
+Total amount of phi nodes to update: 0
+Initial selection DAG: BB#1 'main:for.cond'
+SelectionDAG has 14 nodes:
+  0x3293a68: ch = EntryToken
+
+  0x32b7de0: i64 = Constant<0>
+
+      0x3293a68: <multiple use>
+            0x3293a68: <multiple use>
+            0x32b7be0: i64 = FrameIndex<4>
+
+            0x32b7fe0: i64 = undef
+
+          0x32b9520: i32,ch = load 0x3293a68, 0x32b7be0, 0x32b7fe0<LD4[%i]> [ORD=12]
+
+          0x32b9a20: i32 = Constant<10>
+
+          0x32b9920: ch = setlt
+
+        0x32b9820: i1 = setcc 0x32b9520, 0x32b9a20, 0x32b9920 [ORD=13]
+
+        0x32b9720: i1 = Constant<-1>
+
+      0x32b78e0: i1 = xor 0x32b9820, 0x32b9720 [ORD=14]
+
+      0x32b9620: ch = BasicBlock<for.end 0x32b1210>
+
+    0x32b80e0: ch = brcond 0x3293a68, 0x32b78e0, 0x32b9620 [ORD=14]
+
+    0x32b7ee0: ch = BasicBlock<for.body 0x32b10b0>
+
+  0x32b7ce0: ch = br 0x32b80e0, 0x32b7ee0 [ORD=14]
+
+
+
+Replacing.3 0x32b78e0: i1 = xor 0x32b9820, 0x32b9720 [ORD=14]
+
+With: 0x32b75e0: i1 = setcc 0x32b9520, 0x32b9a20, 0x32b7ae0 [ORD=14]
+
+
+Replacing.3 0x32b75e0: i1 = setcc 0x32b9520, 0x32b9a20, 0x32b7ae0 [ORD=14]
+
+With: 0x32b9720: i1 = setcc 0x32b9520, 0x32b9920, 0x32b9820 [ORD=14]
+
+Optimized lowered selection DAG: BB#1 'main:for.cond'
+SelectionDAG has 11 nodes:
+  0x3293a68: ch = EntryToken
+
+      0x3293a68: <multiple use>
+          0x3293a68: <multiple use>
+          0x32b7be0: i64 = FrameIndex<4>
+
+          0x32b7fe0: i64 = undef
+
+        0x32b9520: i32,ch = load 0x3293a68, 0x32b7be0, 0x32b7fe0<LD4[%i]> [ORD=12]
+
+        0x32b9920: i32 = Constant<9>
+
+        0x32b9820: ch = setgt
+
+      0x32b9720: i1 = setcc 0x32b9520, 0x32b9920, 0x32b9820 [ORD=14]
+
+      0x32b9620: ch = BasicBlock<for.end 0x32b1210>
+
+    0x32b80e0: ch = brcond 0x3293a68, 0x32b9720, 0x32b9620 [ORD=14]
+
+    0x32b7ee0: ch = BasicBlock<for.body 0x32b10b0>
+
+  0x32b7ce0: ch = br 0x32b80e0, 0x32b7ee0 [ORD=14]
+
+
+Legally typed node: 0x32b9820: ch = setgt [ID=0]
+
+Legally typed node: 0x32b9920: i32 = Constant<9> [ID=0]
+
+Legally typed node: 0x32b7ee0: ch = BasicBlock<for.body 0x32b10b0> [ID=0]
+
+Legally typed node: 0x32b9620: ch = BasicBlock<for.end 0x32b1210> [ID=0]
+
+Legally typed node: 0x32b7fe0: i64 = undef [ID=0]
+
+Legally typed node: 0x32b7be0: i64 = FrameIndex<4> [ID=0]
+
+Legally typed node: 0x3293a68: ch = EntryToken [ID=0]
+
+Legally typed node: 0x32b9520: i32,ch = load 0x3293a68, 0x32b7be0, 0x32b7fe0<LD4[%i]> [ORD=12] [ID=0]
+
+Promote integer result: 0x32b9720: i1 = setcc 0x32b9520, 0x32b9920, 0x32b9820 [ORD=14] [ID=0]
+
+Promote integer operand: 0x32b80e0: ch = brcond 0x3293a68, 0x32b9720, 0x32b9620 [ORD=14] [ID=0]
+
+Promote integer operand: 0x32b9a20: i8 = zero_extend 0x32b9720 [ORD=14] [ID=0]
+
+Legally typed node: 0x32b7ae0: i8 = Constant<1> [ID=0]
+
+Legally typed node: 0x32b7de0: i8 = setcc 0x32b9520, 0x32b9920, 0x32b9820 [ORD=14] [ID=0]
+
+Legally typed node: 0x32b75e0: i8 = and 0x32b7de0, 0x32b7ae0 [ORD=14] [ID=0]
+
+Legally typed node: 0x32b80e0: ch = brcond 0x3293a68, 0x32b75e0, 0x32b9620 [ORD=14] [ID=0]
+
+Legally typed node: 0x32b7ce0: ch = br 0x32b80e0, 0x32b7ee0 [ORD=14] [ID=0]
+
+Legally typed node: 0x7fffbcf630a0: ch = handlenode 0x32b7ce0 [ID=0]
+
+Type-legalized selection DAG: BB#1 'main:for.cond'
+SelectionDAG has 13 nodes:
+  0x3293a68: ch = EntryToken [ID=-3]
+
+      0x3293a68: <multiple use>
+            0x3293a68: <multiple use>
+            0x32b7be0: i64 = FrameIndex<4> [ID=-3]
+
+            0x32b7fe0: i64 = undef [ID=-3]
+
+          0x32b9520: i32,ch = load 0x3293a68, 0x32b7be0, 0x32b7fe0<LD4[%i]> [ORD=12] [ID=-3]
+
+          0x32b9920: i32 = Constant<9> [ID=-3]
+
+          0x32b9820: ch = setgt [ID=-3]
+
+        0x32b7de0: i8 = setcc 0x32b9520, 0x32b9920, 0x32b9820 [ORD=14] [ID=-3]
+
+        0x32b7ae0: i8 = Constant<1> [ID=-3]
+
+      0x32b75e0: i8 = and 0x32b7de0, 0x32b7ae0 [ORD=14] [ID=-3]
+
+      0x32b9620: ch = BasicBlock<for.end 0x32b1210> [ID=-3]
+
+    0x32b80e0: ch = brcond 0x3293a68, 0x32b75e0, 0x32b9620 [ORD=14] [ID=-3]
+
+    0x32b7ee0: ch = BasicBlock<for.body 0x32b10b0> [ID=-3]
+
+  0x32b7ce0: ch = br 0x32b80e0, 0x32b7ee0 [ORD=14] [ID=-3]
+
+
+
+Replacing.2 0x32b75e0: i8 = and 0x32b7de0, 0x32b7ae0 [ORD=14] [ID=-3]
+
+With: 0x32b7de0: i8 = setcc 0x32b9520, 0x32b9920, 0x32b9820 [ORD=14] [ID=-3]
+
+Optimized type-legalized selection DAG: BB#1 'main:for.cond'
+SelectionDAG has 11 nodes:
+  0x3293a68: ch = EntryToken [ID=-3]
+
+      0x3293a68: <multiple use>
+          0x3293a68: <multiple use>
+          0x32b7be0: i64 = FrameIndex<4> [ID=-3]
+
+          0x32b7fe0: i64 = undef [ID=-3]
+
+        0x32b9520: i32,ch = load 0x3293a68, 0x32b7be0, 0x32b7fe0<LD4[%i]> [ORD=12] [ID=-3]
+
+        0x32b9920: i32 = Constant<9> [ID=-3]
+
+        0x32b9820: ch = setgt [ID=-3]
+
+      0x32b7de0: i8 = setcc 0x32b9520, 0x32b9920, 0x32b9820 [ORD=14] [ID=-3]
+
+      0x32b9620: ch = BasicBlock<for.end 0x32b1210> [ID=-3]
+
+    0x32b80e0: ch = brcond 0x3293a68, 0x32b7de0, 0x32b9620 [ORD=14] [ID=-3]
+
+    0x32b7ee0: ch = BasicBlock<for.body 0x32b10b0> [ID=-3]
+
+  0x32b7ce0: ch = br 0x32b80e0, 0x32b7ee0 [ORD=14] [ID=-3]
+
+
+Legalized selection DAG: BB#1 'main:for.cond'
+SelectionDAG has 11 nodes:
+  0x3293a68: ch = EntryToken [ID=0]
+
+      0x3293a68: <multiple use>
+      0x32b9620: ch = BasicBlock<for.end 0x32b1210> [ID=3]
+
+      0x32b75e0: i8 = Constant<5>
+
+          0x3293a68: <multiple use>
+          0x32b7be0: i64 = FrameIndex<4> [ID=1]
+
+          0x32b7fe0: i64 = undef [ID=2]
+
+        0x32b9520: i32,ch = load 0x3293a68, 0x32b7be0, 0x32b7fe0<LD4[%i]> [ORD=12] [ID=7]
+
+        0x32b9920: i32 = Constant<9> [ID=5]
+
+      0x32b7ae0: i32,i32 = X86ISD::SUB 0x32b9520, 0x32b9920 [ORD=12]
+
+    0x32b9a20: ch = X86ISD::BRCOND 0x3293a68, 0x32b9620, 0x32b75e0, 0x32b7ae0:1 [ORD=14]
+
+    0x32b7ee0: ch = BasicBlock<for.body 0x32b10b0> [ID=4]
+
+  0x32b7ce0: ch = br 0x32b9a20, 0x32b7ee0 [ORD=14] [ID=10]
+
+
+Optimized legalized selection DAG: BB#1 'main:for.cond'
+SelectionDAG has 11 nodes:
+  0x3293a68: ch = EntryToken [ID=0]
+
+      0x3293a68: <multiple use>
+      0x32b9620: ch = BasicBlock<for.end 0x32b1210> [ID=3]
+
+      0x32b75e0: i8 = Constant<5>
+
+          0x3293a68: <multiple use>
+          0x32b7be0: i64 = FrameIndex<4> [ID=1]
+
+          0x32b7fe0: i64 = undef [ID=2]
+
+        0x32b9520: i32,ch = load 0x3293a68, 0x32b7be0, 0x32b7fe0<LD4[%i]> [ORD=12] [ID=7]
+
+        0x32b9920: i32 = Constant<9> [ID=5]
+
+      0x32b7ae0: i32,i32 = X86ISD::SUB 0x32b9520, 0x32b9920 [ORD=12]
+
+    0x32b9a20: ch = X86ISD::BRCOND 0x3293a68, 0x32b9620, 0x32b75e0, 0x32b7ae0:1 [ORD=14]
+
+    0x32b7ee0: ch = BasicBlock<for.body 0x32b10b0> [ID=4]
+
+  0x32b7ce0: ch = br 0x32b9a20, 0x32b7ee0 [ORD=14] [ID=10]
+
+
+===== Instruction selection begins: BB#1 'for.cond'
+Selecting: 0x32b7ce0: ch = br 0x32b9a20, 0x32b7ee0 [ORD=14] [ID=10]
+
+ISEL: Starting pattern match on root node: 0x32b7ce0: ch = br 0x32b9a20, 0x32b7ee0 [ORD=14] [ID=10]
+
+  Initial Opcode index to 95705
+  Morphed node: 0x32b7ce0: ch = JMP_4 0x32b7ee0, 0x32b9a20 [ORD=14]
+
+ISEL: Match complete!
+=> 0x32b7ce0: ch = JMP_4 0x32b7ee0, 0x32b9a20 [ORD=14]
+
+Selecting: 0x32b9a20: ch = X86ISD::BRCOND 0x3293a68, 0x32b9620, 0x32b75e0, 0x32b7ae0:1 [ORD=14] [ID=9]
+
+ISEL: Starting pattern match on root node: 0x32b9a20: ch = X86ISD::BRCOND 0x3293a68, 0x32b9620, 0x32b75e0, 0x32b7ae0:1 [ORD=14] [ID=9]
+
+  Initial Opcode index to 93272
+  Skipped scope entry (due to false predicate) at index 93284, continuing at 93299
+  Skipped scope entry (due to false predicate) at index 93300, continuing at 93315
+  Skipped scope entry (due to false predicate) at index 93316, continuing at 93331
+  Skipped scope entry (due to false predicate) at index 93332, continuing at 93347
+  Skipped scope entry (due to false predicate) at index 93348, continuing at 93363
+  Skipped scope entry (due to false predicate) at index 93364, continuing at 93379
+  Skipped scope entry (due to false predicate) at index 93380, continuing at 93395
+  Skipped scope entry (due to false predicate) at index 93396, continuing at 93411
+  Skipped scope entry (due to false predicate) at index 93412, continuing at 93427
+  Skipped scope entry (due to false predicate) at index 93428, continuing at 93443
+  Skipped scope entry (due to false predicate) at index 93444, continuing at 93459
+  Skipped scope entry (due to false predicate) at index 93460, continuing at 93475
+  Skipped scope entry (due to false predicate) at index 93476, continuing at 93491
+  Skipped scope entry (due to false predicate) at index 93492, continuing at 93507
+  Skipped scope entry (due to false predicate) at index 93508, continuing at 93523
+  Morphed node: 0x32b9a20: ch = JG_4 0x32b9620, 0x32b9820, 0x32b9820:1 [ORD=14]
+
+ISEL: Match complete!
+=> 0x32b9a20: ch = JG_4 0x32b9620, 0x32b9820, 0x32b9820:1 [ORD=14]
+
+Selecting: 0x32b7ae0: i32,i32 = X86ISD::SUB 0x32b9520, 0x32b9920 [ORD=12] [ID=8]
+
+ISEL: Starting pattern match on root node: 0x32b7ae0: i32,i32 = X86ISD::SUB 0x32b9520, 0x32b9920 [ORD=12] [ID=8]
+
+  Initial Opcode index to 68720
+  Match failed at index 68725
+  Continuing at 68832
+  Match failed at index 68835
+  Continuing at 68885
+  Match failed at index 68901
+  Continuing at 68915
+  Morphed node: 0x32b7ae0: i32,i32 = SUB32ri8 0x32b9520, 0x32b75e0 [ORD=12]
+
+ISEL: Match complete!
+=> 0x32b7ae0: i32,i32 = SUB32ri8 0x32b9520, 0x32b75e0 [ORD=12]
+
+Selecting: 0x32b9520: i32,ch = load 0x3293a68, 0x32b7be0, 0x32b7fe0<LD4[%i]> [ORD=12] [ID=7]
+
+ISEL: Starting pattern match on root node: 0x32b9520: i32,ch = load 0x3293a68, 0x32b7be0, 0x32b7fe0<LD4[%i]> [ORD=12] [ID=7]
+
+  Initial Opcode index to 83164
+  Match failed at index 83173
+  Continuing at 83191
+  Match failed at index 83194
+  Continuing at 83212
+MatchAddress: X86ISelAddressMode 0x7fffbcf62bf0
+Base_Reg nul Base.FrameIndex 0
+ Scale1
+IndexReg nul Disp 0
+GV nul CP nul
+ES nul JT-1 Align0
+  Morphed node: 0x32b9520: i32,ch = MOV32rm 0x32b7de0, 0x32b80e0, 0x32b9920, 0x32b78e0, 0x32b73e0, 0x3293a68<Mem:LD4[%i]> [ORD=12]
+
+ISEL: Match complete!
+=> 0x32b9520: i32,ch = MOV32rm 0x32b7de0, 0x32b80e0, 0x32b9920, 0x32b78e0, 0x32b73e0, 0x3293a68<Mem:LD4[%i]> [ORD=12]
+
+Selecting: 0x32b7ee0: ch = BasicBlock<for.body 0x32b10b0> [ID=4]
+
+=> 0x32b7ee0: ch = BasicBlock<for.body 0x32b10b0>
+
+Selecting: 0x32b9620: ch = BasicBlock<for.end 0x32b1210> [ID=3]
+
+=> 0x32b9620: ch = BasicBlock<for.end 0x32b1210>
+
+Selecting: 0x3293a68: ch = EntryToken [ID=0]
+
+=> 0x3293a68: ch = EntryToken
+
+===== Instruction selection ends:
+Selected selection DAG: BB#1 'main:for.cond'
+SelectionDAG has 15 nodes:
+  0x3293a68: ch = EntryToken
+
+    0x3293a68: <multiple use>
+    0x32b9720: i32 = Register %EFLAGS
+
+        0x32b7de0: i64 = TargetFrameIndex<4>
+
+        0x32b80e0: i8 = TargetConstant<1>
+
+        0x32b9920: i64 = Register %noreg
+
+        0x32b78e0: i32 = TargetConstant<0>
+
+        0x32b73e0: i32 = Register %noreg
+
+        0x3293a68: <multiple use>
+      0x32b9520: i32,ch = MOV32rm 0x32b7de0, 0x32b80e0, 0x32b9920, 0x32b78e0, 0x32b73e0, 0x3293a68<Mem:LD4[%i]> [ORD=12]
+
+      0x32b75e0: i32 = TargetConstant<9>
+
+    0x32b7ae0: i32,i32 = SUB32ri8 0x32b9520, 0x32b75e0 [ORD=12]
+
+  0x32b9820: ch,glue = CopyToReg 0x3293a68, 0x32b9720, 0x32b7ae0:1 [ORD=14]
+
+    0x32b7ee0: ch = BasicBlock<for.body 0x32b10b0>
+
+      0x32b9620: ch = BasicBlock<for.end 0x32b1210>
+
+      0x32b9820: <multiple use>
+      0x32b9820: <multiple use>
+    0x32b9a20: ch = JG_4 0x32b9620, 0x32b9820, 0x32b9820:1 [ORD=14]
+
+  0x32b7ce0: ch = JMP_4 0x32b7ee0, 0x32b9a20 [ORD=14]
+
+
+********** List Scheduling BB#1 'for.cond' **********
+SU(0): 0x32b7ce0: ch = JMP_4 0x32b7ee0, 0x32b9a20 [ORD=14] [ID=0]
+
+  # preds left       : 1
+  # succs left       : 0
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 3
+  Height             : 0
+  Predecessors:
+   ch  SU(1): Latency=1
+
+SU(1): 0x32b9a20: ch = JG_4 0x32b9620, 0x32b9820, 0x32b9820:1 [ORD=14] [ID=1]
+
+    0x32b9820: ch,glue = CopyToReg 0x3293a68, 0x32b9720, 0x32b7ae0:1 [ORD=14] [ID=1]
+
+  # preds left       : 1
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 2
+  Height             : 1
+  Predecessors:
+   val SU(2): Latency=1 Reg=%EFLAGS
+  Successors:
+   ch  SU(0): Latency=1
+
+SU(2): 0x32b7ae0: i32,i32 = SUB32ri8 0x32b9520, 0x32b75e0 [ORD=12] [ID=2]
+
+  # preds left       : 1
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 1
+  Height             : 2
+  Predecessors:
+   val SU(3): Latency=1
+  Successors:
+   val SU(1): Latency=1 Reg=%EFLAGS
+
+SU(3): 0x32b9520: i32,ch = MOV32rm 0x32b7de0, 0x32b80e0, 0x32b9920, 0x32b78e0, 0x32b73e0, 0x3293a68<Mem:LD4[%i]> [ORD=12] [ID=3]
+
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 1
+  Latency            : 1
+  Depth              : 0
+  Height             : 3
+  Successors:
+   val SU(2): Latency=1
+
+
+Examining Available:
+Height 0: SU(0): 0x32b7ce0: ch = JMP_4 0x32b7ee0, 0x32b9a20 [ORD=14] [ID=0]
+
+
+*** Scheduling [0]: SU(0): 0x32b7ce0: ch = JMP_4 0x32b7ee0, 0x32b9a20 [ORD=14] [ID=0]
+
+
+Examining Available:
+Height 1: SU(1): 0x32b9a20: ch = JG_4 0x32b9620, 0x32b9820, 0x32b9820:1 [ORD=14] [ID=1]
+
+    0x32b9820: ch,glue = CopyToReg 0x3293a68, 0x32b9720, 0x32b7ae0:1 [ORD=14] [ID=1]
+
+
+*** Scheduling [1]: SU(1): 0x32b9a20: ch = JG_4 0x32b9620, 0x32b9820, 0x32b9820:1 [ORD=14] [ID=1]
+
+    0x32b9820: ch,glue = CopyToReg 0x3293a68, 0x32b9720, 0x32b7ae0:1 [ORD=14] [ID=1]
+
+
+Examining Available:
+Height 2: SU(2): 0x32b7ae0: i32,i32 = SUB32ri8 0x32b9520, 0x32b75e0 [ORD=12] [ID=2]
+
+
+*** Scheduling [2]: SU(2): 0x32b7ae0: i32,i32 = SUB32ri8 0x32b9520, 0x32b75e0 [ORD=12] [ID=2]
+
+
+Examining Available:
+Height 3: SU(3): 0x32b9520: i32,ch = MOV32rm 0x32b7de0, 0x32b80e0, 0x32b9920, 0x32b78e0, 0x32b73e0, 0x3293a68<Mem:LD4[%i]> [ORD=12] [ID=3]
+
+
+*** Scheduling [3]: SU(3): 0x32b9520: i32,ch = MOV32rm 0x32b7de0, 0x32b80e0, 0x32b9920, 0x32b78e0, 0x32b73e0, 0x3293a68<Mem:LD4[%i]> [ORD=12] [ID=3]
+
+*** Final schedule ***
+SU(3): 0x32b9520: i32,ch = MOV32rm 0x32b7de0, 0x32b80e0, 0x32b9920, 0x32b78e0, 0x32b73e0, 0x3293a68<Mem:LD4[%i]> [ORD=12] [ID=3]
+
+SU(2): 0x32b7ae0: i32,i32 = SUB32ri8 0x32b9520, 0x32b75e0 [ORD=12] [ID=2]
+
+SU(1): 0x32b9a20: ch = JG_4 0x32b9620, 0x32b9820, 0x32b9820:1 [ORD=14] [ID=1]
+
+    0x32b9820: ch,glue = CopyToReg 0x3293a68, 0x32b9720, 0x32b7ae0:1 [ORD=14] [ID=1]
+
+SU(0): 0x32b7ce0: ch = JMP_4 0x32b7ee0, 0x32b9a20 [ORD=14] [ID=0]
+
+
+Total amount of phi nodes to update: 0
+Initial selection DAG: BB#4 'main:for.end'
+SelectionDAG has 6 nodes:
+  0x32b80e0: i32 = Register %EAX
+
+    0x3293a68: ch = EntryToken
+
+    0x32b80e0: <multiple use>
+    0x32b73e0: i32 = Constant<0>
+
+  0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15]
+
+    0x32b7de0: <multiple use>
+    0x32b78e0: i16 = TargetConstant<0>
+
+    0x32b80e0: <multiple use>
+    0x32b7de0: <multiple use>
+  0x32b9920: ch = X86ISD::RET_FLAG 0x32b7de0, 0x32b78e0, 0x32b80e0, 0x32b7de0:1 [ORD=15]
+
+
+Optimized lowered selection DAG: BB#4 'main:for.end'
+SelectionDAG has 6 nodes:
+  0x32b80e0: i32 = Register %EAX
+
+    0x3293a68: ch = EntryToken
+
+    0x32b80e0: <multiple use>
+    0x32b73e0: i32 = Constant<0>
+
+  0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15]
+
+    0x32b7de0: <multiple use>
+    0x32b78e0: i16 = TargetConstant<0>
+
+    0x32b80e0: <multiple use>
+    0x32b7de0: <multiple use>
+  0x32b9920: ch = X86ISD::RET_FLAG 0x32b7de0, 0x32b78e0, 0x32b80e0, 0x32b7de0:1 [ORD=15]
+
+
+Legally typed node: 0x32b80e0: i32 = Register %EAX [ID=0]
+
+Legally typed node: 0x32b78e0: i16 = TargetConstant<0> [ID=0]
+
+Legally typed node: 0x32b73e0: i32 = Constant<0> [ID=0]
+
+Legally typed node: 0x3293a68: ch = EntryToken [ID=0]
+
+Legally typed node: 0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15] [ID=0]
+
+Legally typed node: 0x32b9920: ch = X86ISD::RET_FLAG 0x32b7de0, 0x32b78e0, 0x32b80e0, 0x32b7de0:1 [ORD=15] [ID=0]
+
+Legally typed node: 0x7fffbcf630a0: ch = handlenode 0x32b9920 [ID=0]
+
+Type-legalized selection DAG: BB#4 'main:for.end'
+SelectionDAG has 6 nodes:
+  0x32b80e0: i32 = Register %EAX [ID=-3]
+
+    0x3293a68: ch = EntryToken [ID=-3]
+
+    0x32b80e0: <multiple use>
+    0x32b73e0: i32 = Constant<0> [ID=-3]
+
+  0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15] [ID=-3]
+
+    0x32b7de0: <multiple use>
+    0x32b78e0: i16 = TargetConstant<0> [ID=-3]
+
+    0x32b80e0: <multiple use>
+    0x32b7de0: <multiple use>
+  0x32b9920: ch = X86ISD::RET_FLAG 0x32b7de0, 0x32b78e0, 0x32b80e0, 0x32b7de0:1 [ORD=15] [ID=-3]
+
+
+Legalized selection DAG: BB#4 'main:for.end'
+SelectionDAG has 6 nodes:
+  0x32b80e0: i32 = Register %EAX [ID=3]
+
+    0x3293a68: ch = EntryToken [ID=0]
+
+    0x32b80e0: <multiple use>
+    0x32b73e0: i32 = Constant<0> [ID=1]
+
+  0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15] [ID=4]
+
+    0x32b7de0: <multiple use>
+    0x32b78e0: i16 = TargetConstant<0> [ID=2]
+
+    0x32b80e0: <multiple use>
+    0x32b7de0: <multiple use>
+  0x32b9920: ch = X86ISD::RET_FLAG 0x32b7de0, 0x32b78e0, 0x32b80e0, 0x32b7de0:1 [ORD=15] [ID=5]
+
+
+Optimized legalized selection DAG: BB#4 'main:for.end'
+SelectionDAG has 6 nodes:
+  0x32b80e0: i32 = Register %EAX [ID=3]
+
+    0x3293a68: ch = EntryToken [ID=0]
+
+    0x32b80e0: <multiple use>
+    0x32b73e0: i32 = Constant<0> [ID=1]
+
+  0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15] [ID=4]
+
+    0x32b7de0: <multiple use>
+    0x32b78e0: i16 = TargetConstant<0> [ID=2]
+
+    0x32b80e0: <multiple use>
+    0x32b7de0: <multiple use>
+  0x32b9920: ch = X86ISD::RET_FLAG 0x32b7de0, 0x32b78e0, 0x32b80e0, 0x32b7de0:1 [ORD=15] [ID=5]
+
+
+===== Instruction selection begins: BB#4 'for.end'
+Selecting: 0x32b9920: ch = X86ISD::RET_FLAG 0x32b7de0, 0x32b78e0, 0x32b80e0, 0x32b7de0:1 [ORD=15] [ID=5]
+
+ISEL: Starting pattern match on root node: 0x32b9920: ch = X86ISD::RET_FLAG 0x32b7de0, 0x32b78e0, 0x32b80e0, 0x32b7de0:1 [ORD=15] [ID=5]
+
+  Initial Opcode index to 93235
+  Morphed node: 0x32b9920: ch = RET 0x32b80e0, 0x32b7de0, 0x32b7de0:1 [ORD=15]
+
+ISEL: Match complete!
+=> 0x32b9920: ch = RET 0x32b80e0, 0x32b7de0, 0x32b7de0:1 [ORD=15]
+
+Selecting: 0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15] [ID=4]
+
+=> 0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15]
+
+Selecting: 0x32b80e0: i32 = Register %EAX [ID=3]
+
+=> 0x32b80e0: i32 = Register %EAX
+
+Selecting: 0x32b73e0: i32 = Constant<0> [ID=1]
+
+ISEL: Starting pattern match on root node: 0x32b73e0: i32 = Constant<0> [ID=1]
+
+  Initial Opcode index to 82786
+  Match failed at index 82790
+  Continuing at 82816
+  Match failed at index 82818
+  Continuing at 82847
+  TypeSwitch[i32] from 82850 to 82853
+  Morphed node: 0x32b73e0: i32,i32 = MOV32r0
+
+ISEL: Match complete!
+=> 0x32b73e0: i32,i32 = MOV32r0
+
+Selecting: 0x3293a68: ch = EntryToken [ID=0]
+
+=> 0x3293a68: ch = EntryToken
+
+===== Instruction selection ends:
+Selected selection DAG: BB#4 'main:for.end'
+SelectionDAG has 5 nodes:
+  0x32b80e0: i32 = Register %EAX
+
+    0x3293a68: ch = EntryToken
+
+    0x32b80e0: <multiple use>
+    0x32b73e0: i32,i32 = MOV32r0
+
+  0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15]
+
+    0x32b80e0: <multiple use>
+    0x32b7de0: <multiple use>
+    0x32b7de0: <multiple use>
+  0x32b9920: ch = RET 0x32b80e0, 0x32b7de0, 0x32b7de0:1 [ORD=15]
+
+
+********** List Scheduling BB#4 'for.end' **********
+SU(0): 0x32b9920: ch = RET 0x32b80e0, 0x32b7de0, 0x32b7de0:1 [ORD=15] [ID=0]
+
+    0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15] [ID=0]
+
+  # preds left       : 1
+  # succs left       : 0
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 1
+  Height             : 0
+  Predecessors:
+   val SU(1): Latency=1
+
+SU(1): 0x32b73e0: i32,i32 = MOV32r0 [ID=1]
+
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 1
+  Latency            : 1
+  Depth              : 0
+  Height             : 1
+  Successors:
+   val SU(0): Latency=1
+
+
+Examining Available:
+Height 0: SU(0): 0x32b9920: ch = RET 0x32b80e0, 0x32b7de0, 0x32b7de0:1 [ORD=15] [ID=0]
+
+    0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15] [ID=0]
+
+
+*** Scheduling [0]: SU(0): 0x32b9920: ch = RET 0x32b80e0, 0x32b7de0, 0x32b7de0:1 [ORD=15] [ID=0]
+
+    0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15] [ID=0]
+
+
+Examining Available:
+Height 1: SU(1): 0x32b73e0: i32,i32 = MOV32r0 [ID=1]
+
+
+*** Scheduling [1]: SU(1): 0x32b73e0: i32,i32 = MOV32r0 [ID=1]
+
+*** Final schedule ***
+SU(1): 0x32b73e0: i32,i32 = MOV32r0 [ID=1]
+
+SU(0): 0x32b9920: ch = RET 0x32b80e0, 0x32b7de0, 0x32b7de0:1 [ORD=15] [ID=0]
+
+    0x32b7de0: ch,glue = CopyToReg 0x3293a68, 0x32b80e0, 0x32b73e0 [ORD=15] [ID=0]
+
+
+Total amount of phi nodes to update: 0
+Initial selection DAG: BB#2 'main:for.body'
+SelectionDAG has 10 nodes:
+  0x3293a68: ch = EntryToken
+
+  0x32b7de0: i64 = Constant<0>
+
+  0x32b80e0: i64 = undef
+
+    0x3293a68: <multiple use>
+    0x32b9920: i64 = FrameIndex<4>
+
+    0x32b80e0: <multiple use>
+  0x32b73e0: i32,ch = load 0x3293a68, 0x32b9920, 0x32b80e0<LD4[%i]> [ORD=16]
+
+  0x32b78e0: i64 = FrameIndex<3>
+
+    0x3293a68: <multiple use>
+    0x32b78e0: <multiple use>
+    0x32b80e0: <multiple use>
+  0x32b75e0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b80e0<LD4[%x]> [ORD=17]
+
+      0x32b73e0: <multiple use>
+      0x32b75e0: <multiple use>
+    0x32b9720: ch = TokenFactor 0x32b73e0:1, 0x32b75e0:1 [ORD=19]
+
+      0x32b75e0: <multiple use>
+      0x32b73e0: <multiple use>
+    0x32b9820: i32 = add 0x32b75e0, 0x32b73e0 [ORD=18]
+
+    0x32b78e0: <multiple use>
+    0x32b80e0: <multiple use>
+  0x32b7ce0: ch = store 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b80e0<ST4[%x]> [ORD=19]
+
+
+Optimized lowered selection DAG: BB#2 'main:for.body'
+SelectionDAG has 9 nodes:
+  0x3293a68: ch = EntryToken
+
+  0x32b80e0: i64 = undef
+
+    0x3293a68: <multiple use>
+    0x32b9920: i64 = FrameIndex<4>
+
+    0x32b80e0: <multiple use>
+  0x32b73e0: i32,ch = load 0x3293a68, 0x32b9920, 0x32b80e0<LD4[%i]> [ORD=16]
+
+  0x32b78e0: i64 = FrameIndex<3>
+
+    0x3293a68: <multiple use>
+    0x32b78e0: <multiple use>
+    0x32b80e0: <multiple use>
+  0x32b75e0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b80e0<LD4[%x]> [ORD=17]
+
+      0x32b73e0: <multiple use>
+      0x32b75e0: <multiple use>
+    0x32b9720: ch = TokenFactor 0x32b73e0:1, 0x32b75e0:1 [ORD=19]
+
+      0x32b75e0: <multiple use>
+      0x32b73e0: <multiple use>
+    0x32b9820: i32 = add 0x32b75e0, 0x32b73e0 [ORD=18]
+
+    0x32b78e0: <multiple use>
+    0x32b80e0: <multiple use>
+  0x32b7ce0: ch = store 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b80e0<ST4[%x]> [ORD=19]
+
+
+Legally typed node: 0x32b78e0: i64 = FrameIndex<3> [ID=0]
+
+Legally typed node: 0x32b80e0: i64 = undef [ID=0]
+
+Legally typed node: 0x32b9920: i64 = FrameIndex<4> [ID=0]
+
+Legally typed node: 0x3293a68: ch = EntryToken [ID=0]
+
+Legally typed node: 0x32b73e0: i32,ch = load 0x3293a68, 0x32b9920, 0x32b80e0<LD4[%i]> [ORD=16] [ID=0]
+
+Legally typed node: 0x32b75e0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b80e0<LD4[%x]> [ORD=17] [ID=0]
+
+Legally typed node: 0x32b9820: i32 = add 0x32b75e0, 0x32b73e0 [ORD=18] [ID=0]
+
+Legally typed node: 0x32b9720: ch = TokenFactor 0x32b73e0:1, 0x32b75e0:1 [ORD=19] [ID=0]
+
+Legally typed node: 0x32b7ce0: ch = store 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b80e0<ST4[%x]> [ORD=19] [ID=0]
+
+Legally typed node: 0x7fffbcf630a0: ch = handlenode 0x32b7ce0 [ID=0]
+
+Type-legalized selection DAG: BB#2 'main:for.body'
+SelectionDAG has 9 nodes:
+  0x3293a68: ch = EntryToken [ID=-3]
+
+  0x32b80e0: i64 = undef [ID=-3]
+
+    0x3293a68: <multiple use>
+    0x32b9920: i64 = FrameIndex<4> [ID=-3]
+
+    0x32b80e0: <multiple use>
+  0x32b73e0: i32,ch = load 0x3293a68, 0x32b9920, 0x32b80e0<LD4[%i]> [ORD=16] [ID=-3]
+
+  0x32b78e0: i64 = FrameIndex<3> [ID=-3]
+
+    0x3293a68: <multiple use>
+    0x32b78e0: <multiple use>
+    0x32b80e0: <multiple use>
+  0x32b75e0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b80e0<LD4[%x]> [ORD=17] [ID=-3]
+
+      0x32b73e0: <multiple use>
+      0x32b75e0: <multiple use>
+    0x32b9720: ch = TokenFactor 0x32b73e0:1, 0x32b75e0:1 [ORD=19] [ID=-3]
+
+      0x32b75e0: <multiple use>
+      0x32b73e0: <multiple use>
+    0x32b9820: i32 = add 0x32b75e0, 0x32b73e0 [ORD=18] [ID=-3]
+
+    0x32b78e0: <multiple use>
+    0x32b80e0: <multiple use>
+  0x32b7ce0: ch = store 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b80e0<ST4[%x]> [ORD=19] [ID=-3]
+
+
+Legalized selection DAG: BB#2 'main:for.body'
+SelectionDAG has 9 nodes:
+  0x3293a68: ch = EntryToken [ID=0]
+
+  0x32b80e0: i64 = undef [ID=2]
+
+  0x32b78e0: i64 = FrameIndex<3> [ID=3]
+
+    0x3293a68: <multiple use>
+    0x32b9920: i64 = FrameIndex<4> [ID=1]
+
+    0x32b80e0: <multiple use>
+  0x32b73e0: i32,ch = load 0x3293a68, 0x32b9920, 0x32b80e0<LD4[%i]> [ORD=16] [ID=4]
+
+    0x3293a68: <multiple use>
+    0x32b78e0: <multiple use>
+    0x32b80e0: <multiple use>
+  0x32b75e0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b80e0<LD4[%x]> [ORD=17] [ID=5]
+
+      0x32b73e0: <multiple use>
+      0x32b75e0: <multiple use>
+    0x32b9720: ch = TokenFactor 0x32b73e0:1, 0x32b75e0:1 [ORD=19] [ID=6]
+
+      0x32b75e0: <multiple use>
+      0x32b73e0: <multiple use>
+    0x32b9820: i32 = add 0x32b75e0, 0x32b73e0 [ORD=18] [ID=7]
+
+    0x32b78e0: <multiple use>
+    0x32b80e0: <multiple use>
+  0x32b7ce0: ch = store 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b80e0<ST4[%x]> [ORD=19] [ID=8]
+
+
+Optimized legalized selection DAG: BB#2 'main:for.body'
+SelectionDAG has 9 nodes:
+  0x3293a68: ch = EntryToken [ID=0]
+
+  0x32b80e0: i64 = undef [ID=2]
+
+  0x32b78e0: i64 = FrameIndex<3> [ID=3]
+
+    0x3293a68: <multiple use>
+    0x32b9920: i64 = FrameIndex<4> [ID=1]
+
+    0x32b80e0: <multiple use>
+  0x32b73e0: i32,ch = load 0x3293a68, 0x32b9920, 0x32b80e0<LD4[%i]> [ORD=16] [ID=4]
+
+    0x3293a68: <multiple use>
+    0x32b78e0: <multiple use>
+    0x32b80e0: <multiple use>
+  0x32b75e0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b80e0<LD4[%x]> [ORD=17] [ID=5]
+
+      0x32b73e0: <multiple use>
+      0x32b75e0: <multiple use>
+    0x32b9720: ch = TokenFactor 0x32b73e0:1, 0x32b75e0:1 [ORD=19] [ID=6]
+
+      0x32b75e0: <multiple use>
+      0x32b73e0: <multiple use>
+    0x32b9820: i32 = add 0x32b75e0, 0x32b73e0 [ORD=18] [ID=7]
+
+    0x32b78e0: <multiple use>
+    0x32b80e0: <multiple use>
+  0x32b7ce0: ch = store 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b80e0<ST4[%x]> [ORD=19] [ID=8]
+
+
+===== Instruction selection begins: BB#2 'for.body'
+Selecting: 0x32b7ce0: ch = store 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b80e0<ST4[%x]> [ORD=19] [ID=8]
+
+ISEL: Starting pattern match on root node: 0x32b7ce0: ch = store 0x32b9720, 0x32b9820, 0x32b78e0, 0x32b80e0<ST4[%x]> [ORD=19] [ID=8]
+
+  Initial Opcode index to 5
+  Skipped scope entry (due to false predicate) at index 13, continuing at 58
+  Skipped scope entry (due to false predicate) at index 59, continuing at 104
+  Skipped scope entry (due to false predicate) at index 105, continuing at 188
+  Skipped scope entry (due to false predicate) at index 189, continuing at 212
+  Skipped scope entry (due to false predicate) at index 213, continuing at 236
+  Skipped scope entry (due to false predicate) at index 237, continuing at 260
+  Match failed at index 264
+  Continuing at 284
+  Match failed at index 285
+  Continuing at 308
+  Continuing at 309
+  OpcodeSwitch from 313 to 3657
+  Match failed at index 3678
+  Continuing at 3709
+  Match failed at index 3715
+  Continuing at 3748
+  Match failed at index 3754
+  Continuing at 3787
+  Match failed at index 3793
+  Continuing at 3824
+  Match failed at index 3830
+  Continuing at 3863
+  Match failed at index 3869
+  Continuing at 3902
+  Match failed at index 3908
+  Continuing at 3950
+  Match failed at index 3956
+  Continuing at 3998
+  Match failed at index 4004
+  Continuing at 4044
+  Match failed at index 4050
+  Continuing at 4092
+  Match failed at index 4098
+  Continuing at 4140
+  Match failed at index 4146
+  Continuing at 4186
+  Match failed at index 4192
+  Continuing at 4237
+  Match failed at index 4243
+  Continuing at 4288
+  Skipped scope entry (due to false predicate) at index 4299, continuing at 4344
+  Skipped scope entry (due to false predicate) at index 4345, continuing at 4394
+  Match failed at index 4297
+  Continuing at 4395
+  Match failed at index 4403
+  Continuing at 4645
+  Match failed at index 4646
+  Continuing at 4675
+  Match failed at index 4676
+  Continuing at 4705
+MatchAddress: X86ISelAddressMode 0x7fffbcf62bf0
+Base_Reg nul Base.FrameIndex 0
+ Scale1
+IndexReg nul Disp 0
+GV nul CP nul
+ES nul JT-1 Align0
+  Morphed node: 0x32b7ce0: i32,ch = ADD32mr 0x32b9a20, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x32b73e0, 0x32b73e0:1<Mem:ST4[%x] LD4[%x]> [ORD=19]
+
+ISEL: Match complete!
+=> 0x32b7ce0: i32,ch = ADD32mr 0x32b9a20, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x32b73e0, 0x32b73e0:1<Mem:ST4[%x] LD4[%x]> [ORD=19]
+
+Selecting: 0x32b73e0: i32,ch = load 0x3293a68, 0x32b9920, 0x32b80e0<LD4[%i]> [ORD=16] [ID=4]
+
+ISEL: Starting pattern match on root node: 0x32b73e0: i32,ch = load 0x3293a68, 0x32b9920, 0x32b80e0<LD4[%i]> [ORD=16] [ID=4]
+
+  Initial Opcode index to 83164
+  Match failed at index 83173
+  Continuing at 83191
+  Match failed at index 83194
+  Continuing at 83212
+MatchAddress: X86ISelAddressMode 0x7fffbcf62bf0
+Base_Reg nul Base.FrameIndex 0
+ Scale1
+IndexReg nul Disp 0
+GV nul CP nul
+ES nul JT-1 Align0
+  Morphed node: 0x32b73e0: i32,ch = MOV32rm 0x32b78e0, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x3293a68<Mem:LD4[%i]> [ORD=16]
+
+ISEL: Match complete!
+=> 0x32b73e0: i32,ch = MOV32rm 0x32b78e0, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x3293a68<Mem:LD4[%i]> [ORD=16]
+
+Selecting: 0x3293a68: ch = EntryToken [ID=0]
+
+=> 0x3293a68: ch = EntryToken
+
+===== Instruction selection ends:
+Selected selection DAG: BB#2 'main:for.body'
+SelectionDAG has 9 nodes:
+    0x32b78e0: i64 = TargetFrameIndex<4>
+
+    0x32b7ae0: <multiple use>
+    0x32b7de0: <multiple use>
+    0x32b9520: <multiple use>
+    0x32b7ee0: <multiple use>
+    0x3293a68: ch = EntryToken
+
+  0x32b73e0: i32,ch = MOV32rm 0x32b78e0, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x3293a68<Mem:LD4[%i]> [ORD=16]
+
+  0x32b7de0: i64 = Register %noreg
+
+  0x32b7ae0: i8 = TargetConstant<1>
+
+  0x32b9520: i32 = TargetConstant<0>
+
+  0x32b7ee0: i32 = Register %noreg
+
+    0x32b9a20: i64 = TargetFrameIndex<3>
+
+    0x32b7ae0: <multiple use>
+    0x32b7de0: <multiple use>
+    0x32b9520: <multiple use>
+    0x32b7ee0: <multiple use>
+    0x32b73e0: <multiple use>
+    0x32b73e0: <multiple use>
+  0x32b7ce0: i32,ch = ADD32mr 0x32b9a20, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x32b73e0, 0x32b73e0:1<Mem:ST4[%x] LD4[%x]> [ORD=19]
+
+
+********** List Scheduling BB#2 'for.body' **********
+SU(0): 0x32b7ce0: i32,ch = ADD32mr 0x32b9a20, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x32b73e0, 0x32b73e0:1<Mem:ST4[%x] LD4[%x]> [ORD=19] [ID=0]
+
+  # preds left       : 2
+  # succs left       : 0
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 1
+  Height             : 0
+  Predecessors:
+   val SU(1): Latency=1
+   ch  SU(1): Latency=1
+
+SU(1): 0x32b73e0: i32,ch = MOV32rm 0x32b78e0, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x3293a68<Mem:LD4[%i]> [ORD=16] [ID=1]
+
+  # preds left       : 0
+  # succs left       : 2
+  # rdefs left       : 1
+  Latency            : 1
+  Depth              : 0
+  Height             : 1
+  Successors:
+   val SU(0): Latency=1
+   ch  SU(0): Latency=1
+
+
+Examining Available:
+Height 0: SU(0): 0x32b7ce0: i32,ch = ADD32mr 0x32b9a20, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x32b73e0, 0x32b73e0:1<Mem:ST4[%x] LD4[%x]> [ORD=19] [ID=0]
+
+
+*** Scheduling [0]: SU(0): 0x32b7ce0: i32,ch = ADD32mr 0x32b9a20, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x32b73e0, 0x32b73e0:1<Mem:ST4[%x] LD4[%x]> [ORD=19] [ID=0]
+
+
+Examining Available:
+Height 1: SU(1): 0x32b73e0: i32,ch = MOV32rm 0x32b78e0, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x3293a68<Mem:LD4[%i]> [ORD=16] [ID=1]
+
+
+*** Scheduling [1]: SU(1): 0x32b73e0: i32,ch = MOV32rm 0x32b78e0, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x3293a68<Mem:LD4[%i]> [ORD=16] [ID=1]
+
+*** Final schedule ***
+SU(1): 0x32b73e0: i32,ch = MOV32rm 0x32b78e0, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x3293a68<Mem:LD4[%i]> [ORD=16] [ID=1]
+
+SU(0): 0x32b7ce0: i32,ch = ADD32mr 0x32b9a20, 0x32b7ae0, 0x32b7de0, 0x32b9520, 0x32b7ee0, 0x32b73e0, 0x32b73e0:1<Mem:ST4[%x] LD4[%x]> [ORD=19] [ID=0]
+
+
+Total amount of phi nodes to update: 0
+Initial selection DAG: BB#3 'main:for.inc'
+SelectionDAG has 10 nodes:
+  0x32b78e0: i64 = FrameIndex<4>
+
+  0x32b7ee0: i64 = Constant<0>
+
+  0x32b9520: i64 = undef
+
+    0x3293a68: ch = EntryToken
+
+    0x32b78e0: <multiple use>
+    0x32b9520: <multiple use>
+  0x32b7ae0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b9520<LD4[%i]> [ORD=21]
+
+      0x32b7ae0: <multiple use>
+        0x32b7ae0: <multiple use>
+        0x32b9a20: i32 = Constant<1>
+
+      0x32b7de0: i32 = add 0x32b7ae0, 0x32b9a20 [ORD=22]
+
+      0x32b78e0: <multiple use>
+      0x32b9520: <multiple use>
+    0x32b7ce0: ch = store 0x32b7ae0:1, 0x32b7de0, 0x32b78e0, 0x32b9520<ST4[%i]> [ORD=23]
+
+    0x32b73e0: ch = BasicBlock<for.cond 0x32b1000>
+
+  0x32b9920: ch = br 0x32b7ce0, 0x32b73e0 [ORD=24]
+
+
+Optimized lowered selection DAG: BB#3 'main:for.inc'
+SelectionDAG has 9 nodes:
+  0x32b78e0: i64 = FrameIndex<4>
+
+  0x32b9520: i64 = undef
+
+    0x3293a68: ch = EntryToken
+
+    0x32b78e0: <multiple use>
+    0x32b9520: <multiple use>
+  0x32b7ae0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b9520<LD4[%i]> [ORD=21]
+
+      0x32b7ae0: <multiple use>
+        0x32b7ae0: <multiple use>
+        0x32b9a20: i32 = Constant<1>
+
+      0x32b7de0: i32 = add 0x32b7ae0, 0x32b9a20 [ORD=22]
+
+      0x32b78e0: <multiple use>
+      0x32b9520: <multiple use>
+    0x32b7ce0: ch = store 0x32b7ae0:1, 0x32b7de0, 0x32b78e0, 0x32b9520<ST4[%i]> [ORD=23]
+
+    0x32b73e0: ch = BasicBlock<for.cond 0x32b1000>
+
+  0x32b9920: ch = br 0x32b7ce0, 0x32b73e0 [ORD=24]
+
+
+Legally typed node: 0x32b73e0: ch = BasicBlock<for.cond 0x32b1000> [ID=0]
+
+Legally typed node: 0x32b9a20: i32 = Constant<1> [ID=0]
+
+Legally typed node: 0x32b9520: i64 = undef [ID=0]
+
+Legally typed node: 0x32b78e0: i64 = FrameIndex<4> [ID=0]
+
+Legally typed node: 0x3293a68: ch = EntryToken [ID=0]
+
+Legally typed node: 0x32b7ae0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b9520<LD4[%i]> [ORD=21] [ID=0]
+
+Legally typed node: 0x32b7de0: i32 = add 0x32b7ae0, 0x32b9a20 [ORD=22] [ID=0]
+
+Legally typed node: 0x32b7ce0: ch = store 0x32b7ae0:1, 0x32b7de0, 0x32b78e0, 0x32b9520<ST4[%i]> [ORD=23] [ID=0]
+
+Legally typed node: 0x32b9920: ch = br 0x32b7ce0, 0x32b73e0 [ORD=24] [ID=0]
+
+Legally typed node: 0x7fffbcf630a0: ch = handlenode 0x32b9920 [ID=0]
+
+Type-legalized selection DAG: BB#3 'main:for.inc'
+SelectionDAG has 9 nodes:
+  0x32b78e0: i64 = FrameIndex<4> [ID=-3]
+
+  0x32b9520: i64 = undef [ID=-3]
+
+    0x3293a68: ch = EntryToken [ID=-3]
+
+    0x32b78e0: <multiple use>
+    0x32b9520: <multiple use>
+  0x32b7ae0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b9520<LD4[%i]> [ORD=21] [ID=-3]
+
+      0x32b7ae0: <multiple use>
+        0x32b7ae0: <multiple use>
+        0x32b9a20: i32 = Constant<1> [ID=-3]
+
+      0x32b7de0: i32 = add 0x32b7ae0, 0x32b9a20 [ORD=22] [ID=-3]
+
+      0x32b78e0: <multiple use>
+      0x32b9520: <multiple use>
+    0x32b7ce0: ch = store 0x32b7ae0:1, 0x32b7de0, 0x32b78e0, 0x32b9520<ST4[%i]> [ORD=23] [ID=-3]
+
+    0x32b73e0: ch = BasicBlock<for.cond 0x32b1000> [ID=-3]
+
+  0x32b9920: ch = br 0x32b7ce0, 0x32b73e0 [ORD=24] [ID=-3]
+
+
+Legalized selection DAG: BB#3 'main:for.inc'
+SelectionDAG has 9 nodes:
+  0x32b78e0: i64 = FrameIndex<4> [ID=1]
+
+  0x32b9520: i64 = undef [ID=2]
+
+    0x3293a68: ch = EntryToken [ID=0]
+
+    0x32b78e0: <multiple use>
+    0x32b9520: <multiple use>
+  0x32b7ae0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b9520<LD4[%i]> [ORD=21] [ID=5]
+
+      0x32b7ae0: <multiple use>
+        0x32b7ae0: <multiple use>
+        0x32b9a20: i32 = Constant<1> [ID=3]
+
+      0x32b7de0: i32 = add 0x32b7ae0, 0x32b9a20 [ORD=22] [ID=6]
+
+      0x32b78e0: <multiple use>
+      0x32b9520: <multiple use>
+    0x32b7ce0: ch = store 0x32b7ae0:1, 0x32b7de0, 0x32b78e0, 0x32b9520<ST4[%i]> [ORD=23] [ID=7]
+
+    0x32b73e0: ch = BasicBlock<for.cond 0x32b1000> [ID=4]
+
+  0x32b9920: ch = br 0x32b7ce0, 0x32b73e0 [ORD=24] [ID=8]
+
+
+Optimized legalized selection DAG: BB#3 'main:for.inc'
+SelectionDAG has 9 nodes:
+  0x32b78e0: i64 = FrameIndex<4> [ID=1]
+
+  0x32b9520: i64 = undef [ID=2]
+
+    0x3293a68: ch = EntryToken [ID=0]
+
+    0x32b78e0: <multiple use>
+    0x32b9520: <multiple use>
+  0x32b7ae0: i32,ch = load 0x3293a68, 0x32b78e0, 0x32b9520<LD4[%i]> [ORD=21] [ID=5]
+
+      0x32b7ae0: <multiple use>
+        0x32b7ae0: <multiple use>
+        0x32b9a20: i32 = Constant<1> [ID=3]
+
+      0x32b7de0: i32 = add 0x32b7ae0, 0x32b9a20 [ORD=22] [ID=6]
+
+      0x32b78e0: <multiple use>
+      0x32b9520: <multiple use>
+    0x32b7ce0: ch = store 0x32b7ae0:1, 0x32b7de0, 0x32b78e0, 0x32b9520<ST4[%i]> [ORD=23] [ID=7]
+
+    0x32b73e0: ch = BasicBlock<for.cond 0x32b1000> [ID=4]
+
+  0x32b9920: ch = br 0x32b7ce0, 0x32b73e0 [ORD=24] [ID=8]
+
+
+===== Instruction selection begins: BB#3 'for.inc'
+Selecting: 0x32b9920: ch = br 0x32b7ce0, 0x32b73e0 [ORD=24] [ID=8]
+
+ISEL: Starting pattern match on root node: 0x32b9920: ch = br 0x32b7ce0, 0x32b73e0 [ORD=24] [ID=8]
+
+  Initial Opcode index to 95705
+  Morphed node: 0x32b9920: ch = JMP_4 0x32b73e0, 0x32b7ce0 [ORD=24]
+
+ISEL: Match complete!
+=> 0x32b9920: ch = JMP_4 0x32b73e0, 0x32b7ce0 [ORD=24]
+
+Selecting: 0x32b7ce0: ch = store 0x32b7ae0:1, 0x32b7de0, 0x32b78e0, 0x32b9520<ST4[%i]> [ORD=23] [ID=7]
+
+ISEL: Starting pattern match on root node: 0x32b7ce0: ch = store 0x32b7ae0:1, 0x32b7de0, 0x32b78e0, 0x32b9520<ST4[%i]> [ORD=23] [ID=7]
+
+  Initial Opcode index to 5
+  Skipped scope entry (due to false predicate) at index 13, continuing at 58
+  Skipped scope entry (due to false predicate) at index 59, continuing at 104
+  Skipped scope entry (due to false predicate) at index 105, continuing at 188
+  Skipped scope entry (due to false predicate) at index 189, continuing at 212
+  Skipped scope entry (due to false predicate) at index 213, continuing at 236
+  Skipped scope entry (due to false predicate) at index 237, continuing at 260
+  Match failed at index 264
+  Continuing at 284
+  Match failed at index 285
+  Continuing at 308
+  Continuing at 309
+  OpcodeSwitch from 313 to 3657
+  Match failed at index 3681
+  Continuing at 3709
+  Match failed at index 3718
+  Continuing at 3748
+  Match failed at index 3766
+  Continuing at 3787
+  Match failed at index 3796
+  Continuing at 3824
+  Match failed at index 3833
+  Continuing at 3863
+MatchAddress: X86ISelAddressMode 0x7fffbcf62bf0
+Base_Reg nul Base.FrameIndex 0
+ Scale1
+IndexReg nul Disp 0
+GV nul CP nul
+ES nul JT-1 Align0
+  Morphed node: 0x32b7ce0: i32,ch = INC64_32m 0x32b80e0, 0x32b75e0, 0x32b7ee0, 0x32b9720, 0x32b9820, 0x3293a68<Mem:ST4[%i] LD4[%i]> [ORD=23]
+
+ISEL: Match complete!
+=> 0x32b7ce0: i32,ch = INC64_32m 0x32b80e0, 0x32b75e0, 0x32b7ee0, 0x32b9720, 0x32b9820, 0x3293a68<Mem:ST4[%i] LD4[%i]> [ORD=23]
+
+Selecting: 0x32b73e0: ch = BasicBlock<for.cond 0x32b1000> [ID=4]
+
+=> 0x32b73e0: ch = BasicBlock<for.cond 0x32b1000>
+
+Selecting: 0x3293a68: ch = EntryToken [ID=0]
+
+=> 0x3293a68: ch = EntryToken
+
+===== Instruction selection ends:
+Selected selection DAG: BB#3 'main:for.inc'
+SelectionDAG has 9 nodes:
+    0x32b73e0: ch = BasicBlock<for.cond 0x32b1000>
+
+      0x32b80e0: i64 = TargetFrameIndex<4>
+
+      0x32b75e0: i8 = TargetConstant<1>
+
+      0x32b7ee0: i64 = Register %noreg
+
+      0x32b9720: i32 = TargetConstant<0>
+
+      0x32b9820: i32 = Register %noreg
+
+      0x3293a68: ch = EntryToken
+
+    0x32b7ce0: i32,ch = INC64_32m 0x32b80e0, 0x32b75e0, 0x32b7ee0, 0x32b9720, 0x32b9820, 0x3293a68<Mem:ST4[%i] LD4[%i]> [ORD=23]
+
+  0x32b9920: ch = JMP_4 0x32b73e0, 0x32b7ce0:1 [ORD=24]
+
+
+********** List Scheduling BB#3 'for.inc' **********
+SU(0): 0x32b9920: ch = JMP_4 0x32b73e0, 0x32b7ce0:1 [ORD=24] [ID=0]
+
+  # preds left       : 1
+  # succs left       : 0
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 1
+  Height             : 0
+  Predecessors:
+   ch  SU(1): Latency=1
+
+SU(1): 0x32b7ce0: i32,ch = INC64_32m 0x32b80e0, 0x32b75e0, 0x32b7ee0, 0x32b9720, 0x32b9820, 0x3293a68<Mem:ST4[%i] LD4[%i]> [ORD=23] [ID=1]
+
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 0
+  Height             : 1
+  Successors:
+   ch  SU(0): Latency=1
+
+
+Examining Available:
+Height 0: SU(0): 0x32b9920: ch = JMP_4 0x32b73e0, 0x32b7ce0:1 [ORD=24] [ID=0]
+
+
+*** Scheduling [0]: SU(0): 0x32b9920: ch = JMP_4 0x32b73e0, 0x32b7ce0:1 [ORD=24] [ID=0]
+
+
+Examining Available:
+Height 1: SU(1): 0x32b7ce0: i32,ch = INC64_32m 0x32b80e0, 0x32b75e0, 0x32b7ee0, 0x32b9720, 0x32b9820, 0x3293a68<Mem:ST4[%i] LD4[%i]> [ORD=23] [ID=1]
+
+
+*** Scheduling [1]: SU(1): 0x32b7ce0: i32,ch = INC64_32m 0x32b80e0, 0x32b75e0, 0x32b7ee0, 0x32b9720, 0x32b9820, 0x3293a68<Mem:ST4[%i] LD4[%i]> [ORD=23] [ID=1]
+
+*** Final schedule ***
+SU(1): 0x32b7ce0: i32,ch = INC64_32m 0x32b80e0, 0x32b75e0, 0x32b7ee0, 0x32b9720, 0x32b9820, 0x3293a68<Mem:ST4[%i] LD4[%i]> [ORD=23] [ID=1]
+
+SU(0): 0x32b9920: ch = JMP_4 0x32b73e0, 0x32b7ce0:1 [ORD=24] [ID=0]
+
+
+Total amount of phi nodes to update: 0
+
+*** Tail-duplicating BB#3
+
+Merging into block: BB#2: derived from LLVM BB %for.body
+    Predecessors according to CFG: BB#1
+	%vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+	ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5<kill>, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+    Successors according to CFG: BB#3
+From MBB: BB#3: derived from LLVM BB %for.inc
+    Predecessors according to CFG: BB#2
+	INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+	JMP_4 <BB#1>
+    Successors according to CFG: BB#1
+
+Removing MBB: BB#3: derived from LLVM BB %for.inc
+# Machine code for function main: SSA
+Frame Objects:
+  fi#0: size=4, align=4, at location [SP+8]
+  fi#1: size=4, align=4, at location [SP+8]
+  fi#2: size=8, align=8, at location [SP+8]
+  fi#3: size=4, align=4, at location [SP+8]
+  fi#4: size=4, align=4, at location [SP+8]
+Function Live Ins: %EDI in %vreg0, %RSI in %vreg1
+
+0B	BB#0: derived from LLVM BB %entry
+	    Live Ins: %EDI %RSI
+16B		%vreg1<def> = COPY %RSI; GR64:%vreg1
+32B		%vreg0<def> = COPY %EDI; GR32:%vreg0
+48B		MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+64B		MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0; mem:ST4[%argc.addr] GR32:%vreg0
+80B		MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1; mem:ST8[%argv.addr] GR64:%vreg1
+96B		MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+112B		MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+	    Successors according to CFG: BB#1
+
+128B	BB#1: derived from LLVM BB %for.cond
+	    Predecessors according to CFG: BB#0 BB#2
+144B		%vreg2<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg2
+160B		%vreg3<def,tied1> = SUB32ri8 %vreg2<tied0>, 9, %EFLAGS<imp-def>; GR32:%vreg3,%vreg2
+176B		JG_4 <BB#4>, %EFLAGS<imp-use>
+192B		JMP_4 <BB#2>
+	    Successors according to CFG: BB#2(124) BB#4(4)
+
+208B	BB#2: derived from LLVM BB %for.body
+	    Predecessors according to CFG: BB#1
+224B		%vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+240B		ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5<kill>, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+256B		INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+272B		JMP_4 <BB#1>
+	    Successors according to CFG: BB#1
+
+288B	BB#4: derived from LLVM BB %for.end
+	    Predecessors according to CFG: BB#1
+304B		%vreg4<def> = MOV32r0 %EFLAGS<imp-def,dead>; GR32:%vreg4
+320B		%EAX<def> = COPY %vreg4; GR32:%vreg4
+336B		RET %EAX
+
+# End machine code for function main.
+
+********** Stack Coloring **********
+********** Function: main
+Found 0 markers and 5 slots
+Slot structure:
+Slot #0 - 4 bytes.
+Slot #1 - 4 bytes.
+Slot #2 - 8 bytes.
+Slot #3 - 4 bytes.
+Slot #4 - 4 bytes.
+Total Stack size: 24 bytes
+
+Will not try to merge slots.
+Removed 0 markers.
+******** Pre-regalloc Machine LICM: main ********
+Entering: for.cond
+Entering: for.body
+Exiting: for.body
+Entering: entry
+Entering: for.cond
+Entering: for.end
+Exiting: for.end
+Entering: for.body
+Exiting: for.body
+Exiting: for.cond
+Exiting: entry
+******** Machine Sinking ********
+********** PEEPHOLE OPTIMIZER **********
+********** Function: main
+Replacing: CMP32ri8 %vreg2, 9, %EFLAGS<imp-def>; GR32:%vreg2
+     With: CMP32mi8 <fi#4>, 1, %noreg, 0, %noreg, 9, %EFLAGS<imp-def>; mem:LD4[%i]
+********** PROCESS IMPLICIT DEFS **********
+********** Function: main
+********** REWRITING TWO-ADDR INSTRS **********
+********** Function: main
+# Machine code for function main: Post SSA
+Frame Objects:
+  fi#0: size=4, align=4, at location [SP+8]
+  fi#1: size=4, align=4, at location [SP+8]
+  fi#2: size=8, align=8, at location [SP+8]
+  fi#3: size=4, align=4, at location [SP+8]
+  fi#4: size=4, align=4, at location [SP+8]
+Function Live Ins: %EDI in %vreg0, %RSI in %vreg1
+
+0B	BB#0: derived from LLVM BB %entry
+	    Live Ins: %EDI %RSI
+16B		%vreg1<def> = COPY %RSI<kill>; GR64:%vreg1
+32B		%vreg0<def> = COPY %EDI<kill>; GR32:%vreg0
+48B		MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+64B		MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0<kill>; mem:ST4[%argc.addr] GR32:%vreg0
+80B		MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1<kill>; mem:ST8[%argv.addr] GR64:%vreg1
+96B		MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+112B		MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+	    Successors according to CFG: BB#1
+
+128B	BB#1: derived from LLVM BB %for.cond
+	    Predecessors according to CFG: BB#0 BB#2
+144B		CMP32mi8 <fi#4>, 1, %noreg, 0, %noreg, 9, %EFLAGS<imp-def>; mem:LD4[%i]
+160B		JG_4 <BB#3>, %EFLAGS<imp-use,kill>
+176B		JMP_4 <BB#2>
+	    Successors according to CFG: BB#2(124) BB#3(4)
+
+192B	BB#2: derived from LLVM BB %for.body
+	    Predecessors according to CFG: BB#1
+208B		%vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+224B		ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5<kill>, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+240B		INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+256B		JMP_4 <BB#1>
+	    Successors according to CFG: BB#1
+
+272B	BB#3: derived from LLVM BB %for.end
+	    Predecessors according to CFG: BB#1
+288B		%vreg4<def> = MOV32r0 %EFLAGS<imp-def,dead>; GR32:%vreg4
+304B		%EAX<def> = COPY %vreg4<kill>; GR32:%vreg4
+320B		RET %EAX<kill>
+
+# End machine code for function main.
+
+Computing live-in reg-units in ABI blocks.
+0B	BB#0 DIL#0 SIL#0
+Created 2 new intervals.
+********** INTERVALS **********
+DIL [0B,32r:0)  0@0B-phi
+SIL [0B,16r:0)  0@0B-phi
+%vreg0 [32r,64r:0)  0@32r
+%vreg1 [16r,80r:0)  0@16r
+%vreg4 [288r,304r:0)  0@288r
+%vreg5 [208r,224r:0)  0@208r
+RegMasks:
+********** MACHINEINSTRS **********
+# Machine code for function main: Post SSA
+Frame Objects:
+  fi#0: size=4, align=4, at location [SP+8]
+  fi#1: size=4, align=4, at location [SP+8]
+  fi#2: size=8, align=8, at location [SP+8]
+  fi#3: size=4, align=4, at location [SP+8]
+  fi#4: size=4, align=4, at location [SP+8]
+Function Live Ins: %EDI in %vreg0, %RSI in %vreg1
+
+0B	BB#0: derived from LLVM BB %entry
+	    Live Ins: %EDI %RSI
+16B		%vreg1<def> = COPY %RSI; GR64:%vreg1
+32B		%vreg0<def> = COPY %EDI; GR32:%vreg0
+48B		MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+64B		MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0; mem:ST4[%argc.addr] GR32:%vreg0
+80B		MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1; mem:ST8[%argv.addr] GR64:%vreg1
+96B		MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+112B		MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+	    Successors according to CFG: BB#1
+
+128B	BB#1: derived from LLVM BB %for.cond
+	    Predecessors according to CFG: BB#0 BB#2
+144B		CMP32mi8 <fi#4>, 1, %noreg, 0, %noreg, 9, %EFLAGS<imp-def>; mem:LD4[%i]
+160B		JG_4 <BB#3>, %EFLAGS<imp-use,kill>
+176B		JMP_4 <BB#2>
+	    Successors according to CFG: BB#2(124) BB#3(4)
+
+192B	BB#2: derived from LLVM BB %for.body
+	    Predecessors according to CFG: BB#1
+208B		%vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+224B		ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+240B		INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+256B		JMP_4 <BB#1>
+	    Successors according to CFG: BB#1
+
+272B	BB#3: derived from LLVM BB %for.end
+	    Predecessors according to CFG: BB#1
+288B		%vreg4<def> = MOV32r0 %EFLAGS<imp-def,dead>; GR32:%vreg4
+304B		%EAX<def> = COPY %vreg4; GR32:%vreg4
+320B		RET %EAX<kill>
+
+# End machine code for function main.
+
+********** SIMPLE REGISTER COALESCING **********
+********** Function: main
+********** JOINING INTERVALS ***********
+for.cond:
+for.body:
+entry:
+16B	%vreg1<def> = COPY %RSI; GR64:%vreg1
+	Considering merging %vreg1 with %RSI
+	Can only merge into reserved registers.
+32B	%vreg0<def> = COPY %EDI; GR32:%vreg0
+	Considering merging %vreg0 with %EDI
+	Can only merge into reserved registers.
+for.end:
+304B	%EAX<def> = COPY %vreg4; GR32:%vreg4
+	Considering merging %vreg4 with %EAX
+	Can only merge into reserved registers.
+Remat: %EAX<def> = MOV32r0 %EFLAGS<imp-def,dead>
+Shrink: %vreg4 [288r,304r:0)  0@288r
+All defs dead: 288r	%vreg4<def,dead> = MOV32r0 %EFLAGS<imp-def,dead>; GR32:%vreg4
+Shrunk: %vreg4 [288r,288d:0)  0@288r
+Deleting dead def 288r	%vreg4<def,dead> = MOV32r0 %EFLAGS<imp-def,dead>; GR32:%vreg4
+Trying to inflate 0 regs.
+********** INTERVALS **********
+DIL [0B,32r:0)  0@0B-phi
+SIL [0B,16r:0)  0@0B-phi
+%vreg0 [32r,64r:0)  0@32r
+%vreg1 [16r,80r:0)  0@16r
+%vreg5 [208r,224r:0)  0@208r
+RegMasks:
+********** MACHINEINSTRS **********
+# Machine code for function main: Post SSA
+Frame Objects:
+  fi#0: size=4, align=4, at location [SP+8]
+  fi#1: size=4, align=4, at location [SP+8]
+  fi#2: size=8, align=8, at location [SP+8]
+  fi#3: size=4, align=4, at location [SP+8]
+  fi#4: size=4, align=4, at location [SP+8]
+Function Live Ins: %EDI in %vreg0, %RSI in %vreg1
+
+0B	BB#0: derived from LLVM BB %entry
+	    Live Ins: %EDI %RSI
+16B		%vreg1<def> = COPY %RSI; GR64:%vreg1
+32B		%vreg0<def> = COPY %EDI; GR32:%vreg0
+48B		MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+64B		MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0; mem:ST4[%argc.addr] GR32:%vreg0
+80B		MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1; mem:ST8[%argv.addr] GR64:%vreg1
+96B		MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+112B		MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+	    Successors according to CFG: BB#1
+
+128B	BB#1: derived from LLVM BB %for.cond
+	    Predecessors according to CFG: BB#0 BB#2
+144B		CMP32mi8 <fi#4>, 1, %noreg, 0, %noreg, 9, %EFLAGS<imp-def>; mem:LD4[%i]
+160B		JG_4 <BB#3>, %EFLAGS<imp-use,kill>
+176B		JMP_4 <BB#2>
+	    Successors according to CFG: BB#2(124) BB#3(4)
+
+192B	BB#2: derived from LLVM BB %for.body
+	    Predecessors according to CFG: BB#1
+208B		%vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+224B		ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+240B		INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+256B		JMP_4 <BB#1>
+	    Successors according to CFG: BB#1
+
+272B	BB#3: derived from LLVM BB %for.end
+	    Predecessors according to CFG: BB#1
+304B		%EAX<def> = MOV32r0 %EFLAGS<imp-def,dead>
+320B		RET %EAX<kill>
+
+# End machine code for function main.
+
+Before MISsched:
+# Machine code for function main: Post SSA
+Frame Objects:
+  fi#0: size=4, align=4, at location [SP+8]
+  fi#1: size=4, align=4, at location [SP+8]
+  fi#2: size=8, align=8, at location [SP+8]
+  fi#3: size=4, align=4, at location [SP+8]
+  fi#4: size=4, align=4, at location [SP+8]
+Function Live Ins: %EDI in %vreg0, %RSI in %vreg1
+
+BB#0: derived from LLVM BB %entry
+    Live Ins: %EDI %RSI
+	%vreg1<def> = COPY %RSI; GR64:%vreg1
+	%vreg0<def> = COPY %EDI; GR32:%vreg0
+	MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+	MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0; mem:ST4[%argc.addr] GR32:%vreg0
+	MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1; mem:ST8[%argv.addr] GR64:%vreg1
+	MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+	MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+    Successors according to CFG: BB#1
+
+BB#1: derived from LLVM BB %for.cond
+    Predecessors according to CFG: BB#0 BB#2
+	CMP32mi8 <fi#4>, 1, %noreg, 0, %noreg, 9, %EFLAGS<imp-def>; mem:LD4[%i]
+	JG_4 <BB#3>, %EFLAGS<imp-use,kill>
+	JMP_4 <BB#2>
+    Successors according to CFG: BB#2(124) BB#3(4)
+
+BB#2: derived from LLVM BB %for.body
+    Predecessors according to CFG: BB#1
+	%vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+	ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+	INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+	JMP_4 <BB#1>
+    Successors according to CFG: BB#1
+
+BB#3: derived from LLVM BB %for.end
+    Predecessors according to CFG: BB#1
+	%EAX<def> = MOV32r0 %EFLAGS<imp-def,dead>
+	RET %EAX<kill>
+
+# End machine code for function main.
+
+AllocationOrder(GR32) = [ %EAX %ECX %EDX %ESI %EDI %R8D %R9D %R10D %R11D %EBX %R14D %R15D %R12D %R13D ]
+********** MI Scheduling **********
+main:BB#0 entry
+  From: %vreg1<def> = COPY %RSI; GR64:%vreg1
+    To: End RegionInstrs: 7 Remaining: 0
+Disabled scoreboard hazard recognizer
+Disabled scoreboard hazard recognizer
+SU(0):   %vreg1<def> = COPY %RSI; GR64:%vreg1
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 0
+  Depth              : 0
+  Height             : 0
+  Successors:
+   val SU(4): Latency=0 Reg=%vreg1
+
+SU(1):   %vreg0<def> = COPY %EDI; GR32:%vreg0
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 0
+  Depth              : 0
+  Height             : 0
+  Successors:
+   val SU(3): Latency=0 Reg=%vreg0
+
+SU(2):   MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 0
+  Height             : 0
+  Successors:
+   ch  SU(4294967295) *: Latency=0
+
+SU(3):   MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0; mem:ST4[%argc.addr] GR32:%vreg0
+  # preds left       : 1
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 0
+  Height             : 0
+  Predecessors:
+   val SU(1): Latency=0 Reg=%vreg0
+  Successors:
+   ch  SU(4294967295) *: Latency=0
+
+SU(4):   MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1; mem:ST8[%argv.addr] GR64:%vreg1
+  # preds left       : 1
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 0
+  Height             : 0
+  Predecessors:
+   val SU(0): Latency=0 Reg=%vreg1
+  Successors:
+   ch  SU(4294967295) *: Latency=0
+
+SU(5):   MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 0
+  Height             : 0
+  Successors:
+   ch  SU(4294967295) *: Latency=0
+
+SU(6):   MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+  # preds left       : 0
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 1
+  Depth              : 0
+  Height             : 0
+  Successors:
+   ch  SU(4294967295) *: Latency=0
+
+Critical Path: 0
+BotQ.A: 6 5 4 3 2 
+  SU(6) ORDER                              
+Pick Bot ORDER     
+Scheduling SU(6) MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+  Ready @0c
+  SBPort4 +1x12u
+  *** Critical resource SBPort4: 1c
+  SBPort23 +1x6u
+  SBPortAny +2x2u
+BotQ.A @0c
+  Retired: 1
+  Executed: 1c
+  Critical: 1c, 1 SBPort4
+  ExpectedLatency: 0c
+  - Latency limited.
+BotQ.A: 2 5 4 3 
+  SU(2) ORDER                              
+  SU(5) ORDER                              
+Pick Bot ORDER     
+Scheduling SU(5) MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+  Ready @0c
+  SBPort4 +1x12u
+  SBPort23 +1x6u
+  SBPortAny +2x2u
+BotQ.A @0c
+  Retired: 2
+  Executed: 2c
+  Critical: 2c, 2 SBPort4
+  ExpectedLatency: 0c
+  - Resource limited.
+BotQ.A: 2 3 4 
+  SU(2) ORDER                              
+  SU(3) ORDER                              
+  SU(4) ORDER                              
+Pick Bot ORDER     
+Scheduling SU(4) MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1; mem:ST8[%argv.addr] GR64:%vreg1
+  Ready @0c
+  SBPort4 +1x12u
+  SBPort23 +1x6u
+  SBPortAny +2x2u
+BotQ.A @0c
+  Retired: 3
+  Executed: 3c
+  Critical: 3c, 3 SBPort4
+  ExpectedLatency: 0c
+  - Resource limited.
+BotQ.A: 2 3 0 
+  SU(2) ORDER                              
+  SU(3) ORDER                              
+Pick Bot PREG-COPY
+Scheduling SU(3) MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0; mem:ST4[%argc.addr] GR32:%vreg0
+  *** Max MOps 4 at cycle 0
+  Ready @0c
+  SBPort4 +1x12u
+  SBPort23 +1x6u
+  SBPortAny +2x2u
+Cycle: 1 BotQ.A
+BotQ.A @1c
+  Retired: 4
+  Executed: 4c
+  Critical: 4c, 4 SBPort4
+  ExpectedLatency: 0c
+  - Resource limited.
+BotQ.A: 2 0 1 
+  SU(2) ORDER                              
+Pick Bot PREG-COPY
+Scheduling SU(2) MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+  Ready @1c
+  SBPort4 +1x12u
+  SBPort23 +1x6u
+  SBPortAny +2x2u
+BotQ.A @1c
+  Retired: 5
+  Executed: 5c
+  Critical: 5c, 5 SBPort4
+  ExpectedLatency: 0c
+  - Resource limited.
+BotQ.A: 1 0 
+  SU(1) ORDER                              
+Pick Bot ORDER     
+Scheduling SU(1) %vreg0<def> = COPY %EDI; GR32:%vreg0
+  Ready @1c
+BotQ.A @1c
+  Retired: 5
+  Executed: 5c
+  Critical: 5c, 5 SBPort4
+  ExpectedLatency: 0c
+  - Resource limited.
+Scheduling SU(0) %vreg1<def> = COPY %RSI; GR64:%vreg1
+  Ready @1c
+BotQ.A @1c
+  Retired: 5
+  Executed: 5c
+  Critical: 5c, 5 SBPort4
+  ExpectedLatency: 0c
+  - Resource limited.
+*** Final schedule for BB#0 ***
+SU(0):   %vreg1<def> = COPY %RSI; GR64:%vreg1
+SU(1):   %vreg0<def> = COPY %EDI; GR32:%vreg0
+SU(2):   MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+SU(3):   MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0; mem:ST4[%argc.addr] GR32:%vreg0
+SU(4):   MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1; mem:ST8[%argv.addr] GR64:%vreg1
+SU(5):   MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+SU(6):   MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+
+********** MI Scheduling **********
+main:BB#2 for.body
+  From: %vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+    To: JMP_4 <BB#1>
+ RegionInstrs: 3 Remaining: 0
+SU(0):   %vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+  # preds left       : 0
+  # succs left       : 2
+  # rdefs left       : 0
+  Latency            : 4
+  Depth              : 0
+  Height             : 9
+  Successors:
+   val SU(1): Latency=4 Reg=%vreg5
+   ch  SU(1): Latency=0
+
+SU(1):   ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+  # preds left       : 2
+  # succs left       : 2
+  # rdefs left       : 0
+  Latency            : 5
+  Depth              : 4
+  Height             : 5
+  Predecessors:
+   val SU(0): Latency=4 Reg=%vreg5
+   ch  SU(0): Latency=0
+  Successors:
+   ch  SU(4294967295) *: Latency=4
+   ch  SU(2): Latency=1
+
+SU(2):   INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+  # preds left       : 1
+  # succs left       : 1
+  # rdefs left       : 0
+  Latency            : 5
+  Depth              : 5
+  Height             : 4
+  Predecessors:
+   ch  SU(1): Latency=1
+  Successors:
+   ch  SU(4294967295) *: Latency=4
+
+Critical Path: 9
+Scheduling SU(2) INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+  Ready @4c
+  SBPort4 +1x12u
+  *** Critical resource SBPort4: 1c
+  SBPort23 +1x6u
+  SBPort015 +1x4u
+  SBPortAny +3x2u
+  BotQ.A TopLatency SU(2) 5c
+  BotQ.A BotLatency SU(2) 4c
+BotQ.A @0c
+  Retired: 2
+  Executed: 1c
+  Critical: 1c, 1 SBPort4
+  ExpectedLatency: 4c
+  - Latency limited.
+Scheduling SU(1) ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+  *** Max MOps 4 at cycle 0
+  Ready @5c
+  SBPort4 +1x12u
+  SBPort23 +1x6u
+  SBPort015 +1x4u
+  SBPortAny +3x2u
+  BotQ.A BotLatency SU(1) 5c
+Cycle: 1 BotQ.A
+BotQ.A @1c
+  Retired: 4
+  Executed: 2c
+  Critical: 2c, 2 SBPort4
+  ExpectedLatency: 5c
+  - Latency limited.
+Scheduling SU(0) %vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+  Ready @9c
+  SBPort23 +1x6u
+  SBPortAny +1x2u
+  BotQ.A BotLatency SU(0) 9c
+BotQ.A @1c
+  Retired: 5
+  Executed: 2c
+  Critical: 2c, 2 SBPort4
+  ExpectedLatency: 9c
+  - Latency limited.
+*** Final schedule for BB#2 ***
+SU(0):   %vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+SU(1):   ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+SU(2):   INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+
+********** INTERVALS **********
+DIL [0B,32r:0)  0@0B-phi
+SIL [0B,16r:0)  0@0B-phi
+%vreg0 [32r,64r:0)  0@32r
+%vreg1 [16r,80r:0)  0@16r
+%vreg5 [208r,224r:0)  0@208r
+RegMasks:
+********** MACHINEINSTRS **********
+# Machine code for function main: Post SSA
+Frame Objects:
+  fi#0: size=4, align=4, at location [SP+8]
+  fi#1: size=4, align=4, at location [SP+8]
+  fi#2: size=8, align=8, at location [SP+8]
+  fi#3: size=4, align=4, at location [SP+8]
+  fi#4: size=4, align=4, at location [SP+8]
+Function Live Ins: %EDI in %vreg0, %RSI in %vreg1
+
+0B	BB#0: derived from LLVM BB %entry
+	    Live Ins: %EDI %RSI
+16B		%vreg1<def> = COPY %RSI; GR64:%vreg1
+32B		%vreg0<def> = COPY %EDI; GR32:%vreg0
+48B		MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+64B		MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0; mem:ST4[%argc.addr] GR32:%vreg0
+80B		MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1; mem:ST8[%argv.addr] GR64:%vreg1
+96B		MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+112B		MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+	    Successors according to CFG: BB#1
+
+128B	BB#1: derived from LLVM BB %for.cond
+	    Predecessors according to CFG: BB#0 BB#2
+144B		CMP32mi8 <fi#4>, 1, %noreg, 0, %noreg, 9, %EFLAGS<imp-def>; mem:LD4[%i]
+160B		JG_4 <BB#3>, %EFLAGS<imp-use,kill>
+176B		JMP_4 <BB#2>
+	    Successors according to CFG: BB#2(124) BB#3(4)
+
+192B	BB#2: derived from LLVM BB %for.body
+	    Predecessors according to CFG: BB#1
+208B		%vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+224B		ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+240B		INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+256B		JMP_4 <BB#1>
+	    Successors according to CFG: BB#1
+
+272B	BB#3: derived from LLVM BB %for.end
+	    Predecessors according to CFG: BB#1
+304B		%EAX<def> = MOV32r0 %EFLAGS<imp-def,dead>
+320B		RET %EAX<kill>
+
+# End machine code for function main.
+
+RPO[BB#0 derived from LLVM BB entry] = 1
+RPO[BB#1 derived from LLVM BB for.cond] = 2
+RPO[BB#3 derived from LLVM BB for.end] = 3
+RPO[BB#2 derived from LLVM BB for.body] = 4
+POT: BB#2 derived from LLVM BB for.body
+POT: BB#3 derived from LLVM BB for.end
+POT: BB#1 derived from LLVM BB for.cond
+doLoop(BB#1 derived from LLVM BB for.cond, BB#2 derived from LLVM BB for.body)
+doBlock(BB#1 derived from LLVM BB for.cond)
+Frequency(BB#1 derived from LLVM BB for.cond) = 0.0
+Frequency(BB#1 derived from LLVM BB for.cond) = 1.0
+doBlock(BB#3 derived from LLVM BB for.end)
+Frequency(BB#3 derived from LLVM BB for.end) = 0.0
+Frequency(BB#3 derived from LLVM BB for.end) = 0.03125
+doBlock(BB#2 derived from LLVM BB for.body)
+Frequency(BB#2 derived from LLVM BB for.body) = 0.0
+Frequency(BB#2 derived from LLVM BB for.body) = 0.96875
+LoopExitProb[BB#1 derived from LLVM BB for.cond] = 512 / 16384 = 3.125% from 1 - 0.96875 / 1.0.
+POT: BB#0 derived from LLVM BB entry
+doLoop(BB#0 derived from LLVM BB entry, BB#2 derived from LLVM BB for.body)
+doBlock(BB#0 derived from LLVM BB entry)
+Frequency(BB#0 derived from LLVM BB entry) = 0.0
+Frequency(BB#0 derived from LLVM BB entry) = 1.0
+doBlock(BB#1 derived from LLVM BB for.cond)
+Frequency(BB#1 derived from LLVM BB for.cond) = 0.0
+Frequency(BB#1 derived from LLVM BB for.cond) += 1.0 --> 1.0
+Loop header scaled to 32.0.
+doBlock(BB#3 derived from LLVM BB for.end)
+Frequency(BB#3 derived from LLVM BB for.end) = 0.0
+Frequency(BB#3 derived from LLVM BB for.end) = 1.0
+doBlock(BB#2 derived from LLVM BB for.body)
+Frequency(BB#2 derived from LLVM BB for.body) = 0.0
+Frequency(BB#2 derived from LLVM BB for.body) = 31.0
+LoopExitProb[BB#0 derived from LLVM BB entry] = 16383 / 16384 = 99.9939% from 1 - 0.0 / 1.0.
+********** COMPUTING LIVE DEBUG VARIABLES: main **********
+********** DEBUG VARIABLES **********
+********** GREEDY REGISTER ALLOCATION **********
+********** Function: main
+********** Compute Spill Weights **********
+********** Function: main
+********** INTERVALS **********
+DIL [0B,32r:0)  0@0B-phi
+SIL [0B,16r:0)  0@0B-phi
+%vreg0 [32r,64r:0)  0@32r
+%vreg1 [16r,80r:0)  0@16r
+%vreg5 [208r,224r:0)  0@208r
+RegMasks:
+********** MACHINEINSTRS **********
+# Machine code for function main: Post SSA
+Frame Objects:
+  fi#0: size=4, align=4, at location [SP+8]
+  fi#1: size=4, align=4, at location [SP+8]
+  fi#2: size=8, align=8, at location [SP+8]
+  fi#3: size=4, align=4, at location [SP+8]
+  fi#4: size=4, align=4, at location [SP+8]
+Function Live Ins: %EDI in %vreg0, %RSI in %vreg1
+
+0B	BB#0: derived from LLVM BB %entry
+	    Live Ins: %EDI %RSI
+16B		%vreg1<def> = COPY %RSI; GR64:%vreg1
+32B		%vreg0<def> = COPY %EDI; GR32:%vreg0
+48B		MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+64B		MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0; mem:ST4[%argc.addr] GR32:%vreg0
+80B		MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1; mem:ST8[%argv.addr] GR64:%vreg1
+96B		MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+112B		MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+	    Successors according to CFG: BB#1
+
+128B	BB#1: derived from LLVM BB %for.cond
+	    Predecessors according to CFG: BB#0 BB#2
+144B		CMP32mi8 <fi#4>, 1, %noreg, 0, %noreg, 9, %EFLAGS<imp-def>; mem:LD4[%i]
+160B		JG_4 <BB#3>, %EFLAGS<imp-use,kill>
+176B		JMP_4 <BB#2>
+	    Successors according to CFG: BB#2(124) BB#3(4)
+
+192B	BB#2: derived from LLVM BB %for.body
+	    Predecessors according to CFG: BB#1
+208B		%vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+224B		ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+240B		INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+256B		JMP_4 <BB#1>
+	    Successors according to CFG: BB#1
+
+272B	BB#3: derived from LLVM BB %for.end
+	    Predecessors according to CFG: BB#1
+304B		%EAX<def> = MOV32r0 %EFLAGS<imp-def,dead>
+320B		RET %EAX<kill>
+
+# End machine code for function main.
+
+
+selectOrSplit GR64:%vreg1 [16r,80r:0)  0@16r
+AllocationOrder(GR64) = [ %RAX %RCX %RDX %RSI %RDI %R8 %R9 %R10 %R11 %RBX %R14 %R15 %R12 %R13 ]
+hints: %RSI
+assigning %vreg1 to %RSI: SIL
+
+selectOrSplit GR32:%vreg0 [32r,64r:0)  0@32r
+AllocationOrder(GR32) = [ %EAX %ECX %EDX %ESI %EDI %R8D %R9D %R10D %R11D %EBX %R14D %R15D %R12D %R13D ]
+hints: %EDI
+assigning %vreg0 to %EDI: DIL
+
+selectOrSplit GR32:%vreg5 [208r,224r:0)  0@208r
+assigning %vreg5 to %EAX: AH AL
+********** REWRITE VIRTUAL REGISTERS **********
+********** Function: main
+********** REGISTER MAP **********
+[%vreg0 -> %EDI] GR32
+[%vreg1 -> %RSI] GR64
+[%vreg5 -> %EAX] GR32
+
+0B	BB#0: derived from LLVM BB %entry
+	    Live Ins: %EDI %RSI
+16B		%vreg1<def> = COPY %RSI; GR64:%vreg1
+32B		%vreg0<def> = COPY %EDI; GR32:%vreg0
+48B		MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+64B		MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %vreg0<kill>; mem:ST4[%argc.addr] GR32:%vreg0
+80B		MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %vreg1<kill>; mem:ST8[%argv.addr] GR64:%vreg1
+96B		MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+112B		MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+	    Successors according to CFG: BB#1
+> %RSI<def> = COPY %RSI
+Deleting identity copy.
+> %EDI<def> = COPY %EDI
+Deleting identity copy.
+> MOV32mi <fi#0>, 1, %noreg, 0, %noreg, 0; mem:ST4[%retval]
+> MOV32mr <fi#1>, 1, %noreg, 0, %noreg, %EDI<kill>; mem:ST4[%argc.addr]
+> MOV64mr <fi#2>, 1, %noreg, 0, %noreg, %RSI<kill>; mem:ST8[%argv.addr]
+> MOV32mi <fi#3>, 1, %noreg, 0, %noreg, 0; mem:ST4[%x]
+> MOV32mi <fi#4>, 1, %noreg, 0, %noreg, 0; mem:ST4[%i]
+128B	BB#1: derived from LLVM BB %for.cond
+	    Predecessors according to CFG: BB#0 BB#2
+144B		CMP32mi8 <fi#4>, 1, %noreg, 0, %noreg, 9, %EFLAGS<imp-def>; mem:LD4[%i]
+160B		JG_4 <BB#3>, %EFLAGS<imp-use,kill>
+176B		JMP_4 <BB#2>
+	    Successors according to CFG: BB#2(124) BB#3(4)
+> CMP32mi8 <fi#4>, 1, %noreg, 0, %noreg, 9, %EFLAGS<imp-def>; mem:LD4[%i]
+> JG_4 <BB#3>, %EFLAGS<imp-use,kill>
+> JMP_4 <BB#2>
+192B	BB#2: derived from LLVM BB %for.body
+	    Predecessors according to CFG: BB#1
+208B		%vreg5<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i] GR32:%vreg5
+224B		ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %vreg5<kill>, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x] GR32:%vreg5
+240B		INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+256B		JMP_4 <BB#1>
+	    Successors according to CFG: BB#1
+> %EAX<def> = MOV32rm <fi#4>, 1, %noreg, 0, %noreg; mem:LD4[%i]
+> ADD32mr <fi#3>, 1, %noreg, 0, %noreg, %EAX<kill>, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x]
+> INC64_32m <fi#4>, 1, %noreg, 0, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+> JMP_4 <BB#1>
+272B	BB#3: derived from LLVM BB %for.end
+	    Predecessors according to CFG: BB#1
+304B		%EAX<def> = MOV32r0 %EFLAGS<imp-def,dead>
+320B		RET %EAX
+> %EAX<def> = MOV32r0 %EFLAGS<imp-def,dead>
+> RET %EAX
+********** EMITTING LIVE DEBUG VARIABLES **********
+********** Stack Slot Coloring **********
+********** Function: main
+******** Post-regalloc Machine LICM: main ********
+alloc FI(0) at SP[-20]
+alloc FI(1) at SP[-24]
+alloc FI(2) at SP[-32]
+alloc FI(3) at SP[-36]
+alloc FI(4) at SP[-40]
+
+TryTailMergeBlocks: BB#0, BB#2
+  with successor BB#1
+  which has fall-through from BB#0
+Looking for common tails of at least 3 instructions
+Machine Function
+********** EXPANDING POST-RA PSEUDO INSTRS **********
+********** Function: main
+RPO[BB#0 derived from LLVM BB entry] = 1
+RPO[BB#1 derived from LLVM BB for.cond] = 2
+RPO[BB#3 derived from LLVM BB for.end] = 3
+RPO[BB#2 derived from LLVM BB for.body] = 4
+POT: BB#2 derived from LLVM BB for.body
+POT: BB#3 derived from LLVM BB for.end
+POT: BB#1 derived from LLVM BB for.cond
+doLoop(BB#1 derived from LLVM BB for.cond, BB#2 derived from LLVM BB for.body)
+doBlock(BB#1 derived from LLVM BB for.cond)
+Frequency(BB#1 derived from LLVM BB for.cond) = 0.0
+Frequency(BB#1 derived from LLVM BB for.cond) = 1.0
+doBlock(BB#3 derived from LLVM BB for.end)
+Frequency(BB#3 derived from LLVM BB for.end) = 0.0
+Frequency(BB#3 derived from LLVM BB for.end) = 0.03125
+doBlock(BB#2 derived from LLVM BB for.body)
+Frequency(BB#2 derived from LLVM BB for.body) = 0.0
+Frequency(BB#2 derived from LLVM BB for.body) = 0.96875
+LoopExitProb[BB#1 derived from LLVM BB for.cond] = 512 / 16384 = 3.125% from 1 - 0.96875 / 1.0.
+POT: BB#0 derived from LLVM BB entry
+doLoop(BB#0 derived from LLVM BB entry, BB#2 derived from LLVM BB for.body)
+doBlock(BB#0 derived from LLVM BB entry)
+Frequency(BB#0 derived from LLVM BB entry) = 0.0
+Frequency(BB#0 derived from LLVM BB entry) = 1.0
+doBlock(BB#1 derived from LLVM BB for.cond)
+Frequency(BB#1 derived from LLVM BB for.cond) = 0.0
+Frequency(BB#1 derived from LLVM BB for.cond) += 1.0 --> 1.0
+Loop header scaled to 32.0.
+doBlock(BB#3 derived from LLVM BB for.end)
+Frequency(BB#3 derived from LLVM BB for.end) = 0.0
+Frequency(BB#3 derived from LLVM BB for.end) = 1.0
+doBlock(BB#2 derived from LLVM BB for.body)
+Frequency(BB#2 derived from LLVM BB for.body) = 0.0
+Frequency(BB#2 derived from LLVM BB for.body) = 31.0
+LoopExitProb[BB#0 derived from LLVM BB entry] = 16383 / 16384 = 99.9939% from 1 - 0.0 / 1.0.
+Finding best loop top for: BB#1 (derived from LLVM BB 'for.cond')
+    header pred: BB#2 (derived from LLVM BB 'for.body'), 1 successors, 31.0 freq
+    final top: BB#2 (derived from LLVM BB 'for.body')
+Attempting merge from: BB#2 (derived from LLVM BB 'for.body')
+    BB#1 (derived from LLVM BB 'for.cond') -> 16 / 16 = 100% (prob)
+Merging from BB#2 to BB#1
+Attempting merge from: BB#1 (derived from LLVM BB 'for.cond')
+    BB#2 (derived from LLVM BB 'for.body') -> Already merged!
+Finished forming chain for header block BB#2
+          ... BB#2 (derived from LLVM BB 'for.body')
+          ... BB#1 (derived from LLVM BB 'for.cond')
+Attempting merge from: BB#0 (derived from LLVM BB 'entry')
+    BB#1 (derived from LLVM BB 'for.cond') -> Mid chain!
+    BB#2 (derived from LLVM BB 'for.body') -> 31.0 (freq)
+Merging from BB#0 to BB#2
+Attempting merge from: BB#1 (derived from LLVM BB 'for.cond')
+    BB#2 (derived from LLVM BB 'for.body') -> Already merged!
+    BB#3 (derived from LLVM BB 'for.end') -> 4 / 128 = 3.125% (prob)
+Merging from BB#1 to BB#3
+Attempting merge from: BB#3 (derived from LLVM BB 'for.end')
+Finished forming chain for header block BB#0
+Placing chain BB#0 (derived from LLVM BB 'entry')
+          ... BB#2 (derived from LLVM BB 'for.body')
+          ... BB#1 (derived from LLVM BB 'for.cond')
+          ... BB#3 (derived from LLVM BB 'for.end')
+********** FIX EXECUTION DEPENDENCIES: VR128 **********
+JITTing function 'main'
+JIT: Starting CodeGen of Function main
+JIT: Emitting BB0 at [0x7f055252e010]
+PUSH64r %RBP<kill>, %RSP<imp-def>, %RSP<imp-use>; flags: FrameSetup
+PROLOG_LABEL <MCSym=.Ltmp0>
+%RBP<def> = MOV64rr %RSP; flags: FrameSetup
+PROLOG_LABEL <MCSym=.Ltmp1>
+MOV32mi %RBP, 1, %noreg, -4, %noreg, 0; mem:ST4[%retval]
+MOV32mr %RBP, 1, %noreg, -8, %noreg, %EDI<kill>; mem:ST4[%argc.addr]
+MOV64mr %RBP, 1, %noreg, -16, %noreg, %RSI<kill>; mem:ST8[%argv.addr]
+MOV32mi %RBP, 1, %noreg, -20, %noreg, 0; mem:ST4[%x]
+MOV32mi %RBP, 1, %noreg, -24, %noreg, 0; mem:ST4[%i]
+JMP_4 <BB#1>
+RawFrm CurOp 1
+isMBB 1
+isGlobal 0
+isSymbol 0
+isImm 0
+JIT: Emitting BB2 at [0x7f055252e035]
+%EAX<def> = MOV32rm %RBP, 1, %noreg, -24, %noreg; mem:LD4[%i]
+ADD32mr %RBP, 1, %noreg, -20, %noreg, %EAX<kill>, %EFLAGS<imp-def,dead>; mem:ST4[%x] LD4[%x]
+INC64_32m %RBP, 1, %noreg, -24, %noreg, %EFLAGS<imp-def,dead>; mem:ST4[%i] LD4[%i]
+JIT: Emitting BB1 at [0x7f055252e03e]
+CMP32mi8 %RBP, 1, %noreg, -24, %noreg, 9, %EFLAGS<imp-def>; mem:LD4[%i]
+JLE_4 <BB#2>, %EFLAGS<imp-use>
+RawFrm CurOp 1
+isMBB 1
+isGlobal 0
+isSymbol 0
+isImm 0
+JIT: Emitting BB3 at [0x7f055252e048]
+%EAX<def> = MOV32r0 %EFLAGS<imp-def,dead>
+%RBP<def> = POP64r %RSP<imp-def>, %RSP<imp-use>
+RET %EAX
+JIT: Finished CodeGen of [0x7f055252e010] Function: main: 60 bytes of text, 2 relocations
+JIT: Binary code:
+JIT: 0: 2291377285 025269199 137000 13772248125 
+JIT: 16: 69199240117 000236 232691990 0000 
+JIT: 32: 009233 232691390 255236691 12513123269 
+JIT: 48: 142159232 255255255237 1959319249 
+JIT: ARGV = 0x32b07f0
+JIT: ARGV[0] = 0x32ba6e0
+ runFunction main
+ runFunction exit
+JIT: Map 'exit' to [0x8830a0]
