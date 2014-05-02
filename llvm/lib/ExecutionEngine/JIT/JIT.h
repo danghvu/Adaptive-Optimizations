@@ -15,7 +15,6 @@
 #define JIT_H
 
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "../JITProfiling/JITProfiling.h"
 #include "llvm/PassManager.h"
 #include "llvm/Support/ValueHandle.h"
 
@@ -89,7 +88,7 @@ public:
     JITCtor = createJIT;
   }
 
-  void initProfiling(Function* F) { JPI->initialzeProfiling(F); }
+  void initProfiling(Function* F) { JPI->initializeProfiling(F); }
 
   /// getJITInfo - Return the target JIT information structure.
   ///

@@ -23,7 +23,6 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/ExecutionEngine/Interpreter.h"
 #include "llvm/ExecutionEngine/JIT.h"
-#include "../../lib/ExecutionEngine/JITProfiling/JITProfiling.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/JITMemoryManager.h"
 #include "llvm/ExecutionEngine/MCJIT.h"
@@ -433,7 +432,7 @@ int main(int argc, char **argv, char * const *envp) {
                 JITEventListener::createIntelJITEventListener());
 
   if (OnlineProfile) {
-    ProfileData = new JITProfileData(OnlineProfileConstT1, OnlineProfileConstT2);
+    ProfileData = new JITProfileData(OnlineProfileConstT1, OnlineProfileConstT2, EE);
     EE->setProfileData(ProfileData);
   }
 
@@ -467,11 +466,6 @@ int main(int argc, char **argv, char * const *envp) {
     errs() << '\'' << EntryFunc << "\' function not found in module.\n";
     return -1;
   }
-
-  // Required in order to properly link JITProfiling with lli
-  // TODO: Add something like -Wl,-static -lLLVMJITProfiling to Makefile to
-  //       force linking?
-  JITProfiling* JITP = new JITProfiling(EntryFn, EE);
 
   // Reset errno to zero on entry to main.
   errno = 0;

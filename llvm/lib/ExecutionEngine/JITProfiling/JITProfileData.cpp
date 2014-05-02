@@ -42,14 +42,29 @@
 
 namespace llvm {
 
+  FunctionPass *createJITFunctionProfilingPass(JITProfileData *);
+  FunctionPass *createJITBBProfilingPass(JITProfileData *);
+
+JITProfileData::JITProfileData(int t1, int t2, ExecutionEngine* J) {
+  // Set the thresholds
+  TH_ENABLE_BB_PROFILE = t1;
+  TH_ENABLE_APPLY_OPT  = t2;
+
+  ProfileEdges    = new EdgeMapSet();
+  NonProfileEdges = new EdgeMapSet();
+
+  TheJIT = J;
+}
+
+
 // Called only once per function
 void JITProfileData::initializeProfiling(Function* F) {
   // Create a function pass manager specific to function F
   FunctionPassManager* FPM = new FunctionPassManager(F->getParent());
   FPMs[F] = FPM;
 
-  ProfileEdges[F]    = new EdgeSet();
-  NonProfileEdges[F] = new EdgeSet();
+  (*ProfileEdges)[F]    = new EdgeSet();
+  (*NonProfileEdges)[F] = new EdgeSet();
 
   // Add function profiling to F
   FPM->add(createJITFunctionProfilingPass(this));
@@ -94,7 +109,7 @@ void* JITProfileData::BasicBlockCallback(BasicBlock* B) {
   if (stat == getThresholdT2()) {
     // Update the count information for edges and blocks in the function F
     // TODO: Add back hotblocks
-    updateCounts();
+    updateCounts(B->getParent());
 
     // Delete the profiling instructions
     // TODO: only delete profiling on ones that == T2
@@ -103,7 +118,7 @@ void* JITProfileData::BasicBlockCallback(BasicBlock* B) {
     // TODO: Run optimizations based on the frequency of the blocks in the function
 
     // Re-emit the function so the profiling is removed and optimizations are seen!
-    TheJIT->recompileAndRelinkFunction(F);
+    TheJIT->recompileAndRelinkFunction(B->getParent());
   }
 
   return 0;
@@ -134,10 +149,10 @@ void* JITProfileData::FunctionCallback(Function* F) {
     FPM->doFinalization();
 
     // At this point, the edges with and without profiling instructions for F will
-    // be populated in ProfilingEdges and NonProfilingEdges
+    // be populated in ProfileEdges and NonProfileEdges
     initializeEdgeCounts(F);
 
-    if ((*ProfileEdges)[F].size() != 0) {
+    if ((*ProfileEdges)[F]->size() != 0) {
       // Actually removes function profiling instructions
       delete FPMs[F];
 
@@ -153,7 +168,7 @@ void* JITProfileData::FunctionCallback(Function* F) {
   }
 
   // If there are no profiling instructions for basic blocks
-  if (((*ProfileEdges)[F].size() == 0)) && stat == getThresholdT1() + getThresholdT2()) {
+  if (((*ProfileEdges)[F]->size() == 0) && stat == getThresholdT1() + getThresholdT2()) {
     // Remove function profiling (doesn't do us any good anymore)
     delete FPMs[F];
 
@@ -163,24 +178,24 @@ void* JITProfileData::FunctionCallback(Function* F) {
 }
 
 void JITProfileData::initializeEdgeCounts(Function* F) {
-  for (EdgeSet::iterator I = (*NonProfilingEdges)[F]->begin(), E = (*NonProfilingEdges)[F]->end(); I != E; ++I) {
+  for (EdgeSet::iterator I = (*NonProfileEdges)[F]->begin(), E = (*NonProfileEdges)[F]->end(); I != E; ++I) {
     EdgeFreq[*I] = 0;
   }
 
-  for (EdgeSet::iterator I = (*ProfilingEdges)[F]->begin(), E = (*ProfilingEdges)[F]->end(); I != E; ++I) {
+  for (EdgeSet::iterator I = (*ProfileEdges)[F]->begin(), E = (*ProfileEdges)[F]->end(); I != E; ++I) {
     EdgeFreq[*I] = 0;
   }
 }
 
 void JITProfileData::setupUpdatingCounts(Function* F) {
   // Clear counts for edges in F that do not have profiling
-  for (EdgeSet::iterator I = NonProfileEdges[F]->begin(), E = NonProfileEdges[F]->end(); I != E; ++I) {
+  for (EdgeSet::iterator I = (*NonProfileEdges)[F]->begin(), E = (*NonProfileEdges)[F]->end(); I != E; ++I) {
     EdgeFreq[*I] = 0;
   }
 
   // Clear counts for blocks in function F
   for (Function::iterator I = F->begin(), E = F->end(); I != E; ++I) {
-    BlockFreq[*I] = 0;
+    BlockFreq[&*I] = 0;
   }
 }
 
@@ -198,7 +213,7 @@ void JITProfileData::updateCounts(Function* F) {
 
 void JITProfileData::updateEdgeCounts(Function* F, BasicBlock* B, Edge E) {
   Edge E1;
-  EdgeSet* ES = (*NonProfilingEdges)[F]
+  EdgeSet* ES = (*NonProfileEdges)[F];
 
   // Calculate the in dependencies
   unsigned in = 0;
@@ -240,7 +255,7 @@ void JITProfileData::updateEdgeCounts(Function* F, BasicBlock* B, Edge E) {
   }
 }
 
-void JITProfiling::updateBlockCounts(Function* F) {
+void JITProfileData::updateBlockCounts(Function* F) {
   for (df_iterator<BasicBlock*> I = df_begin(&F->getEntryBlock()), E = df_end(&F->getEntryBlock()); I != E; ++I) {
     BasicBlock* B = *I;
     if (B == &F->getEntryBlock())

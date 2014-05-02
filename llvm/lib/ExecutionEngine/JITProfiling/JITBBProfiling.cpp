@@ -17,7 +17,7 @@
 // this name is used for -stats argument
 #define DEBUG_TYPE "bbprofiling"
 
-#include "llvm/ExecutionEngine/JITProfilingData.h"
+#include "llvm/ExecutionEngine/JITProfileData.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Transforms/IPO.h"
@@ -45,7 +45,7 @@
 using namespace llvm;
 
 STATISTIC(numInsertedBB, "Number of profiling basic blocks inserted");
-STATISTIC(numInsertedInst, "Number of profiling instructions inserted");
+STATISTIC(numInsertedInsts, "Number of profiling instructions inserted");
 
 namespace llvm {
   typedef std::pair<const BasicBlock*, const BasicBlock*> ConstEdge;
@@ -57,7 +57,7 @@ namespace llvm {
   typedef DenseMap<BasicBlock*, float>        BlockWeightMap;
   typedef DenseMap<BasicBlock*, BlockSet>     BlockMap;
 
-  void* JITBasicBlockCallback(JITProfilingData* JPD, BasicBlock* B) {
+  void* JITBasicBlockCallback(JITProfileData* JPD, BasicBlock* B) {
     return JPD->BasicBlockCallback(B);
   }
 
@@ -65,11 +65,15 @@ namespace llvm {
   private:
 
   public:
-    JITBBProfiling(JITProfilingData* _JPD) : JPD(_JPD) {
-      initializeJITBBProfilingPass(*PassRegistry::getPassRegistry());
+    static char ID;
+    JITBBProfiling() : FunctionPass(ID) {};
+    JITBBProfiling(JITProfileData* _JPD) : FunctionPass(ID) {
+      JPD = _JPD;
+      // initializeJITBBProfilingPass(*PassRegistry::getPassRegistry());
     }
+    virtual bool runOnFunction(Function& F);
 
-    virtual ~JITBBProfiling() { 
+    virtual ~JITBBProfiling() {
       removeInstructions();
     }
 
@@ -80,7 +84,7 @@ namespace llvm {
 
     // The JITBBProfilingInfo object which contains the callback function we
     // are inserting instructions for
-    JITBBProfilingInfo* JPD;
+    JITProfileData* JPD;
 
     // Function of the pass
     Function* F;
@@ -95,7 +99,7 @@ namespace llvm {
 
     // Weights for all of the edges in the function
     EdgeWeightMap EdgeWeights;
-    
+
     // Weights for all of the basic blocks in the function
     BlockWeightMap BlockWeights;
 
@@ -165,17 +169,18 @@ namespace llvm {
   };
 
   char JITBBProfiling::ID = 0;
-  INITIALIZE_PASS(JITBBProfiling, "jitbprofilingpass", 
+  static RegisterPass<JITBBProfiling> YYY("jitbprofilingpass",
                   "Pass for inserting basic block profiling instructions", false, false);
 
-  FunctionPass *createJITBBProfilingPass(JITProfilingData *JPD) {
+  FunctionPass *createJITBBProfilingPass(JITProfileData *JPD) {
     return new JITBBProfiling(JPD);
   }
 
   bool JITBBProfiling::runOnFunction(Function& F) {
     this->F         = &F;
     this->LI        = &getAnalysis<LoopInfo>();
-    this->ExitBlock = getAnalysis<UnifyFunctionExitNodes>().getReturnBlock();
+    this->ExitBB = getAnalysis<UnifyFunctionExitNodes>().getReturnBlock();
+    JPD->ExitBB = this->ExitBB;
 
     // This value is somewhat arbitrary
     this->LoopMultiplier = 10;
@@ -194,18 +199,18 @@ namespace llvm {
 
   void JITBBProfiling::getWeights() {
     // Initialize the Exit->Entry edge to have a weight of 1.0
-    Edge ExitEntryEdge = std::make_pair(ExitBlock, &F.getEntryBlock());
+    Edge ExitEntryEdge = std::make_pair(ExitBB, &F->getEntryBlock());
     Edge tempEdge;
-    JP->EdgeWeights[ExitEntryEdge] = 1.0;
+    EdgeWeights[ExitEntryEdge] = 1.0;
     int   num_succ_nle = 0;   // Number of successors that aren't loop-exit edges
     float weight;
 
     SmallVector<BasicBlock*, 128> Worklist;
     SmallPtrSet<BasicBlock*, 128> VisitedBlocks;
 
-    VisitedBlocks.insert(JP->ExitBB);
-    BlockWeights[ExitBlock] = 1.0;
-    Worklist.push_back(&F.getEntryBlock());
+    VisitedBlocks.insert(ExitBB);
+    BlockWeights[ExitBB] = 1.0;
+    Worklist.push_back(&F->getEntryBlock());
 
     // Cannot save Worklist.size() and do a static comparison because the size changes!
     for (unsigned i = 0; i < Worklist.size(); ++i) {
@@ -226,7 +231,7 @@ namespace llvm {
       }
       // Since Exit->Entry does not actually exist as an edge in the CFG, we need to check if
       // this block is the entry block and set it's current weight to 1
-      if (&F.getEntryBlock() == CurrentBlock)
+      if (&F->getEntryBlock() == CurrentBlock)
         weight = 1.0;
 
       // Set the weight of the current basic block in the data structure
@@ -250,7 +255,7 @@ namespace llvm {
           }
 
           // Let W be the weight of b times LoopMultiplier (if b is loop header)
-          weight = weight * JP->LoopMultiplier;
+          weight = weight * LoopMultiplier;
           BlockWeights[CurrentBlock] = weight;
         }
       }
@@ -358,6 +363,8 @@ namespace llvm {
   }
 
   void JITBBProfiling::removeInstructions() {
+    if (ProfileEdges.size() == 0) return;
+
     DEBUG( dbgs() << "\n*** Removing profiling ***\n" );
     for (BlockSet::iterator BSI = ProfileBlocks.begin(), BSE = ProfileBlocks.end(); BSI != BSE; ++BSI) {
       DEBUG( dbgs() << "Removing profiling from BB : " << (*BSI)->getName() << "\n" );
@@ -391,17 +398,18 @@ namespace llvm {
     intptr_t JPDAddr = reinterpret_cast<intptr_t>(JPD);
 
     Value* FuncVal = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FP));
-    Value* JPDVal  = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, JPIAddr));
+    Value* JPDVal  = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, JPDAddr));
 
     IntToPtrInst* FuncInst = new IntToPtrInst(FuncVal, FunctionPtrTy);
     IntToPtrInst* JPDInst  = new IntToPtrInst(JPDVal, VoidPointerTy);
 
-    F->getEntryBlock().getInstList().push_front(BPAddrToPtrInst);
-    F->getEntryBlock().getInstList().push_front(FuncAddrToPtrInst);
-
-    numInsertedInst += 2;
+    F->getEntryBlock().getInstList().push_front(FuncInst);
+    F->getEntryBlock().getInstList().push_front(JPDInst);
+    numInsertedInsts += 2;
 
     int i = 0;
+    bool insertedInsts = false;
+
     for (EdgeSet::iterator I = ProfileEdges.begin(), E = ProfileEdges.end(); I != E; ++I) {
       insertedInsts = true;
       // Create a new BasicBlock
@@ -468,17 +476,17 @@ namespace llvm {
         // (the old and new branch are exactly the same, btw)
         B->getInstList().pop_back();
         B->getInstList().push_back(BBInst);
-        B->getInstList().push_back(FuncInst);
+        B->getInstList().push_back(FuncCall);
         B->getInstList().push_back(BranchInst::Create(E2));
 
-        numInsertedInst += 3;
+        numInsertedInsts += 3;
       }
       else if (B == E2) {
         // Push everything to the front of E2 (everything has to be pushed in reverse)
-        B->getInstList().push_front(FuncInst);
+        B->getInstList().push_front(FuncCall);
         B->getInstList().push_front(BBInst);
 
-        numInsertedInst += 2;
+        numInsertedInsts += 2;
       }
       else {
         // Otherwise the instructions go into the new basic block and we need to move E1 and

@@ -40,7 +40,7 @@ using namespace llvm;
 STATISTIC(numInsertedCallbackFunc, "Number of inserted function profiling callback");
 
 namespace {
-  void* JITFunctionCallback(JITProfilingData* JPD, Function* Func) {
+  void* JITFunctionCallback(JITProfileData* JPD, Function* Func) {
     return JPD->FunctionCallback(Func);
   }
 
@@ -48,13 +48,15 @@ namespace {
 
     public:
       static char ID;
-      JITFunctionProfiling(JITProfilingData* _JPD) : FunctionPass(ID) {
+      JITFunctionProfiling() : FunctionPass(ID) {};
+      JITFunctionProfiling(JITProfileData* _JPD) : FunctionPass(ID) {
         JPD = _JPD;
       }
 
       ~JITFunctionProfiling() {
         for (SmallVector<Instruction*, 8>::iterator II = callBackInst.begin();
             II != callBackInst.end(); ++II) {
+          DEBUG( dbgs() << "[Function Profiling] Deleting.. " << *II << "\n" );
           (*II)->eraseFromParent();
         }
         callBackInst.clear();
@@ -83,7 +85,7 @@ namespace {
         // (both never change)
         intptr_t FP     = reinterpret_cast<intptr_t>(JITFunctionCallback);
         intptr_t JPDObj = reinterpret_cast<intptr_t>(JPD);
-        intptr_t Func   = reinterpret_cast<intptr_t>(*F);
+        intptr_t Func   = reinterpret_cast<intptr_t>(&F);
 
         Value* CallbackVal = ConstantInt::get(IntegerType::get(F.getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FP));
         Value* JPDVal      = ConstantInt::get(IntegerType::get(F.getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, JPDObj));
@@ -114,14 +116,14 @@ namespace {
       }
 
     private:
-      JITProfilingData* JPD;
+      JITProfileData* JPD;
       SmallVector<Instruction*, 8>  callBackInst;
   };
 }
 
 char JITFunctionProfiling::ID = 0;
-static RegisterPass<JITFunctionProfiling> X("jitfprofilingpass", "Add/remove instruction for JIT online profiling of function", false, false);
+static RegisterPass<JITFunctionProfiling> XXX("jitfprofilingpass", "Add/remove instruction for JIT online profiling of function", false, false);
 
 namespace llvm {
-  FunctionPass *createJITFunctionProfilingPass(JITProfilingData* JPD) { return new JITFunctionProfiling(JPD); }
+  FunctionPass *createJITFunctionProfilingPass(JITProfileData* JPD) { return new JITFunctionProfiling(JPD); }
 }

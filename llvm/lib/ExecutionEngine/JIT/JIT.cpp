@@ -20,7 +20,6 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/JITMemoryManager.h"
-#include "../JITProfiling/JITProfiling.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -168,24 +167,13 @@ JIT::JIT(Module *M, TargetMachine &tm, TargetJITInfo &tji,
     report_fatal_error("Target does not support machine code emission!");
   }
 
-  // Add profiling classes for each function
-  for (Module::iterator MI = M->begin(), ME = M->end(); MI != ME; ++MI) {
-    ProfileInfo[MI] = new JITProfiling(MI, this);
-  }
-
-  JOPI = NULL;
+  JPI = NULL;
 
   // Initialize passes.
   PM.doInitialization();
 }
 
 JIT::~JIT() {
-  // Cleanup ProfileInfo
-  Module *M = jitstate->getModule();
-  for (Module::iterator MI = M->begin(), ME = M->end(); MI != ME; ++MI) {
-    delete ProfileInfo[MI];
-  }
-
   // Cleanup.
   AllJits->Remove(this);
   delete jitstate;
