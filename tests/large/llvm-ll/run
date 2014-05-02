@@ -1,0 +1,17 @@
+#!/bin/bash
+
+for FILE in $(ls testfiles)
+do
+  echo "***** $FILE (no profiling) *****"
+	time lli bzip2.ll -k testfiles/$FILE
+	rm -f testfiles/$FILE.bz2
+  echo "***** $FILE (t1 = 1 | t2 = 1) *****"
+	time lli -enable-online-profile -t1   1 -t2   1 bzip2.ll -k testfiles/$FILE
+	rm -f testfiles/$FILE.bz2
+  echo "***** $FILE (t1 = 10 | t2 = 10) *****"
+	time lli -enable-online-profile -t1  10 -t2  10 bzip2.ll -k testfiles/$FILE
+	rm -f testfiles/$FILE.bz2
+  echo "***** $FILE (t1 = 100 | t2 = 100) *****"
+	time lli -enable-online-profile -t1 100 -t2 100 bzip2.ll -k testfiles/$FILE
+	rm -f testfiles/$FILE.bz2
+done

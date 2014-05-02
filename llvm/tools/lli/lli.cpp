@@ -50,6 +50,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Instrumentation.h"
 #include <cerrno>
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef __CYGWIN__
 #include <cygwin/version.h>
@@ -509,6 +511,7 @@ int main(int argc, char **argv, char * const *envp) {
 
     if (OnlineProfile) {
       ProfileData->DumpFuncFreq();
+      delete ProfileData;
     }
 
     // If the program didn't call exit explicitly, we should call it now.
@@ -586,8 +589,5 @@ int main(int argc, char **argv, char * const *envp) {
     // Stop the remote target
     Target->stop();
   }
-  if (OnlineProfile)
-    delete ProfileData;
-
   return Result;
 }

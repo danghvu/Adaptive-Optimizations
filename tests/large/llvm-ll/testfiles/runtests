@@ -1,0 +1,7 @@
+#!/bin/bash
+
+FOLDERS = 
+time lli bzip2.ll
+time lli -enable-online-profile t1   1 t2   1 bzip2.ll
+time lli -enable-online-profile t1  10 t2  10 bzip2.ll
+time lli -enable-online-profile t1 100 t2 100 bzip2.ll

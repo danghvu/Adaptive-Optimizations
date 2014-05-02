@@ -7,6 +7,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/PassManager.h"
+#include <stdio.h>
 
 using namespace llvm;
 
@@ -34,10 +35,12 @@ namespace llvm {
     public:
       JITProfileData(int t1, int t2, ExecutionEngine* J);
       ~JITProfileData() {
+        fprintf(stderr, "\n\n***** Function Callback time: %f\n***** Basicblock Callback time: %f\n", fc_time, bb_time);
         for (FuncDataMap::iterator I = FuncData.begin(), E = FuncData.end(); I != E; ++I) {
-          delete I->second->FPM;
+          if (I->second->FPM != NULL)
+            delete I->second->FPM;
           for (EdgePtrSet::iterator II = I->second->ProfileEdges.begin(), EE = I->second->ProfileEdges.end(); II != EE; ++II) {
-            delete (*II);
+              delete (*II);
           }
         }
       }
@@ -62,9 +65,9 @@ namespace llvm {
       void updateBlockCounts(Function* F);
 
       void DumpFuncFreq() {
-        for (FuncCountMap::iterator I = FuncFreq.begin(), E=FuncFreq.end(); I != E; ++I) {
+        /*for (FuncCountMap::iterator I = FuncFreq.begin(), E=FuncFreq.end(); I != E; ++I) {
           dbgs() << I->first->getName() << " " << I->second << "\n";
-        }
+        }*/
       }
 
       BasicBlock *ExitBB;
@@ -74,6 +77,8 @@ namespace llvm {
       // Thresholds
       int TH_ENABLE_BB_PROFILE;
       int TH_ENABLE_APPLY_OPT;
+
+      double fc_time, bb_time;
 
       // Function data
       FuncDataMap FuncData;

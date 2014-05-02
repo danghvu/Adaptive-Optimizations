@@ -55,9 +55,9 @@ namespace llvm {
   typedef SetVector<Edge*>                    EdgePtrSet;
   typedef SetVector<BasicBlock*>              BlockSet;
   typedef std::vector<Instruction*>             InstructionSet;
-  typedef DenseMap<Edge, float>               EdgeWeightMap;
-  typedef DenseMap<BasicBlock*, float>        BlockWeightMap;
-  typedef DenseMap<BasicBlock*, BlockSet>     BlockMap;
+  typedef std::map<Edge, float>               EdgeWeightMap;
+  typedef std::map<BasicBlock*, float>        BlockWeightMap;
+  typedef std::map<BasicBlock*, BlockSet>     BlockMap;
 
   void* JITBasicBlockCallback(JITProfileData* JPD, Edge* E) {
     return JPD->BasicBlockCallback(E);
@@ -320,7 +320,7 @@ namespace llvm {
   void JITBBProfiling::replaceBranches(BasicBlock* B) {
     // If the block was inserted for specifically profiling (A -> B -> C), change
     // such that A -> C and remove B from function
-    if (B->getName().str().find("ProfileBB") != std::string::npos) {
+/*    if (B->getName().str().find("ProfileBB") != std::string::npos) {
       DEBUG( dbgs() << "BasicBlock [" << B->getName() << "] was added by us\n" );
       BasicBlock* Succ = *succ_begin(B);
       TerminatorInst* TermA = (*pred_begin(B))->getTerminator();
@@ -329,7 +329,7 @@ namespace llvm {
         if (TermA->getSuccessor(i) == B)
           TermA->setSuccessor(i, Succ);
       }
-    }
+    }*/
   }
 
   void JITBBProfiling::removeInstructions() {
@@ -342,7 +342,7 @@ namespace llvm {
     }
 
     for (InstructionSet::iterator I = ProfileInsts.begin(), E = ProfileInsts.end(); I != E; ++I) {
-      DEBUG( dbgs() << "Removing Instruction: " << *I << "\n" );
+      DEBUG( dbgs() << "Removing Instruction: "; (*I)->dump());
       (*I)->eraseFromParent();
     }
 
@@ -471,10 +471,11 @@ namespace llvm {
       else {
         // Otherwise the instructions go into the new basic block and we need to move E1 and
         // E2 into the correct locations
+        Instruction* temp = BranchInst::Create(E2);
         B->moveAfter(E1);
         B->getInstList().push_back(BBInst);
         B->getInstList().push_back(FuncCall);
-        B->getInstList().push_back(BranchInst::Create(E2));
+        B->getInstList().push_back(temp);
         E2->moveAfter(B);
 
         ProfileInsts.push_back(FuncCall);

@@ -39,6 +39,7 @@
 #include <queue>
 #include <string>
 #include <functional>
+#include <sys/time.h>
 
 namespace llvm {
 
@@ -50,10 +51,9 @@ JITProfileData::JITProfileData(int t1, int t2, ExecutionEngine* J) {
   TH_ENABLE_BB_PROFILE = t1;
   TH_ENABLE_APPLY_OPT  = t2;
 
-  //ProfileEdges    = new EdgeMapSet();
-  //NonProfileEdges = new EdgeMapSet();
-
   TheJIT = J;
+  fc_time = 0.0;
+  bb_time = 0.0;
 }
 
 
@@ -76,12 +76,16 @@ void JITProfileData::initializeProfiling(Function* F) {
 }
 
 void* JITProfileData::BasicBlockCallback(Edge* B) {
-
+  struct timeval t1, t2;
+  gettimeofday(&t1, NULL);
+  JITFunctionData* JFD = FuncData[B->first->getParent()];
   // Don't do anything if we removed the profiling instructions
   // but the function is still being executed! (B is NULL if it was
   // a basic block we inserted in the profiling pass)
 
-  if (FuncData[B->first->getParent()]->removedProfiling) {
+  if (JFD->removedProfiling) {
+    gettimeofday(&t2, NULL);
+    bb_time += (double)(t2.tv_usec - t1.tv_usec) / 1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
     return 0;
   }
 
@@ -89,29 +93,6 @@ void* JITProfileData::BasicBlockCallback(Edge* B) {
 
   // Get the edge that the profiling exists on
   Edge E = *B;
-/*  if (B->getName().str().find("ProfileBB") != std::string::npos) {
-    // A profiling block we have added is guaranteed to only have one predecessor and one successor
-    E = std::make_pair(*pred_begin(B), *succ_begin(B));
-  }
-  else {
-    // If the basic block name does not contain ProfileBB, it is either at the end of
-    // a basic block with a single successor or at the beginning of a block (with a single
-    // predecessor)
-    IntToPtrInst* I = dyn_cast<IntToPtrInst>(&B->getInstList().front());
-    if (I != NULL) {
-      ConstantInt* CI = dyn_cast<ConstantInt>(I->getOperand(0));
-      if (CI != NULL && CI->getValue() == (intptr_t)B) {
-        E = std::make_pair(*pred_begin(B), B);
-      }
-      else {
-        E = std::make_pair(B, *succ_begin(B));
-      }
-    }
-    else {
-      E = std::make_pair(B, *succ_begin(B));
-    }
-  }
-*/
   EdgeFreq[E] += 1;
   int stat = EdgeFreq[E];
   DEBUG( dbgs() << "New edge count: " << stat << "\n" );
@@ -125,8 +106,9 @@ void* JITProfileData::BasicBlockCallback(Edge* B) {
 
     // Delete the profiling instructions
     // TODO: only delete profiling on ones that == T2
-    delete FuncData[Func]->FPM;
-    FuncData[Func]->removedProfiling = true;
+    delete JFD->FPM;
+    JFD->FPM = NULL;
+    JFD->removedProfiling = true;
 
     // TODO: Run optimizations based on the frequency of the blocks in the function
 
@@ -134,10 +116,14 @@ void* JITProfileData::BasicBlockCallback(Edge* B) {
     TheJIT->recompileAndRelinkFunction(Func);
   }
 
+  gettimeofday(&t2, NULL);
+  bb_time += (double)(t2.tv_usec - t1.tv_usec) / 1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
   return 0;
 }
 
 void* JITProfileData::FunctionCallback(Function* F) {
+  struct timeval t1, t2;
+  gettimeofday(&t1, NULL);
   DEBUG( dbgs() << "Inside Func callback " << F->getName() << "\n" );
 
   // Update the function frequency
@@ -145,8 +131,13 @@ void* JITProfileData::FunctionCallback(Function* F) {
 
   // If the updated frequency doesn't reach the T1 threshold, continue execution
   int stat = FuncFreq[F];
-  if (stat < getThresholdT1()) return 0;
+  if (stat < getThresholdT1()) {
+    gettimeofday(&t2, NULL);
+    fc_time += (double)(t2.tv_usec - t1.tv_usec) / 1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
+    return 0;
+  }
 
+  JITFunctionData* JFD = FuncData[F];
   // If the updated frequency reaches the T2 threshold, then we need to add basic
   // block profiling
   if (stat == getThresholdT1()) {
@@ -165,48 +156,55 @@ void* JITProfileData::FunctionCallback(Function* F) {
     // be populated in ProfileEdges and NonProfileEdges
     initializeEdgeCounts(F);
 
-    if (FuncData[F]->ProfileEdges.size() != 0) {
+    if (JFD->ProfileEdges.size() != 0) {
       // Actually removes function profiling instructions
-      delete FuncData[F]->FPM;
+      delete JFD->FPM;
 
       // Save this for later (so we can delete when it's done)
-      FuncData[F]->FPM = FPM;
+      JFD->FPM = FPM;
     }
     else {
       delete FPM;
+      gettimeofday(&t2, NULL);
+      fc_time += (double)(t2.tv_usec - t1.tv_usec) / 1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
       return 0;
     }
   }
 
   // If there are no profiling instructions for basic blocks
-  if ((FuncData[F]->ProfileEdges.size() == 0) && stat == getThresholdT1() + getThresholdT2()) {
+  if ((JFD->ProfileEdges.size() == 0) && stat == getThresholdT1() + getThresholdT2()) {
     // Remove function profiling (doesn't do us any good anymore)
     DEBUG( dbgs() << "Removing fprofiling... " << F->getName() << "\n" );
-    delete FuncData[F]->FPM;
-
+    delete JFD->FPM;
+    JFD->FPM = NULL;
     // TODO: Optimizations here!
   }
 
   // If we get here, there is something that was changed
   // Re-emit the function so the profiling is actually executed!
+  //dbgs() << "stat == T2 for function: " << F->getName() << "\n";
   TheJIT->recompileAndRelinkFunction(F);
 
+  gettimeofday(&t2, NULL);
+  fc_time += (double)(t2.tv_usec - t1.tv_usec) / 1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
   return 0;
 }
 
 void JITProfileData::initializeEdgeCounts(Function* F) {
-  for (EdgeSet::iterator I = FuncData[F]->NonProfileEdges.begin(), E = FuncData[F]->NonProfileEdges.end(); I != E; ++I) {
+  JITFunctionData* JFD = FuncData[F];
+  for (EdgeSet::iterator I = JFD->NonProfileEdges.begin(), E = JFD->NonProfileEdges.end(); I != E; ++I) {
     EdgeFreq[*I] = 0;
   }
 
-  for (EdgePtrSet::iterator I = FuncData[F]->ProfileEdges.begin(), E = FuncData[F]->ProfileEdges.end(); I != E; ++I) {
+  for (EdgePtrSet::iterator I = JFD->ProfileEdges.begin(), E = JFD->ProfileEdges.end(); I != E; ++I) {
     EdgeFreq[*(*I)] = 0;
   }
 }
 
 void JITProfileData::setupUpdatingCounts(Function* F) {
+  JITFunctionData* JFD = FuncData[F];
   // Clear counts for edges in F that do not have profiling
-  for (EdgeSet::iterator I = FuncData[F]->NonProfileEdges.begin(), E = FuncData[F]->NonProfileEdges.end(); I != E; ++I) {
+  for (EdgeSet::iterator I = JFD->NonProfileEdges.begin(), E = JFD->NonProfileEdges.end(); I != E; ++I) {
     EdgeFreq[*I] = 0;
   }
 
@@ -229,14 +227,15 @@ void JITProfileData::updateCounts(Function* F) {
 }
 
 void JITProfileData::updateEdgeCounts(Function* F, BasicBlock* B, Edge E) {
+  JITFunctionData* JFD = FuncData[F];
   Edge E1;
-  EdgeSet ES = FuncData[F]->NonProfileEdges;
+  EdgeSet ES = JFD->NonProfileEdges;
 
   // Calculate the in dependencies
   unsigned in = 0;
   // If B is the entry block, we have to do the exit->entry edge as well
   if (B == &F->getEntryBlock()) {
-    E1 = std::make_pair(FuncData[F]->ExitBlock, B);
+    E1 = std::make_pair(JFD->ExitBlock, B);
     if ((E1.first != E.first || E1.second != E.second) && ES.count(E1) != 0) {
       updateEdgeCounts(F, E1.first, E1);
     }
