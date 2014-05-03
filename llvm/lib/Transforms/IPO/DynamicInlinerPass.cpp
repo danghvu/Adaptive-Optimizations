@@ -35,13 +35,17 @@ namespace {
   class DynamicInliner : public FunctionPass {
   public:
     static char ID;
-    DynamicInliner() : FunctionPass(ID) {
+    DynamicInliner() : FunctionPass(ID), hotBlocks(new DenseMap<BasicBlock*, unsigned>()) {
       initializeDynamicInlinerPass(*PassRegistry::getPassRegistry());
     }
 
-    // TODO: Constructor that takes function map
+    DynamicInliner(DenseMap<BasicBlock*, unsigned>* hot) : FunctionPass(ID), hotBlocks(hot) {
+      initializeDynamicInlinerPass(*PassRegistry::getPassRegistry());
+    }
 
   private:
+    DenseMap<BasicBlock*, unsigned>* hotBlocks;
+
     virtual bool runOnFunction(Function& F);
     virtual bool runOnBasicBlock(BasicBlock& B);
 
@@ -57,10 +61,12 @@ char DynamicInliner::ID = 0;
 // TODO: Make sure the last two params are correct
 INITIALIZE_PASS(DynamicInliner, "dynamicinliner", "Mikida2-Profiling", false, false)
 FunctionPass *llvm::createDynamicInlinerPass() { return new DynamicInliner(); }
+FunctionPass *llvm::createDynamicInlinerPass(DenseMap<BasicBlock*, unsigned>* hot) { return new DynamicInliner(hot); }
 
 bool DynamicInliner::runOnFunction(Function& F) {
   bool changed = false;
   for (Function::iterator I = F.begin(); I != F.end(); I++) {
+    // TODO: Check if the BasicBlock is in hotBlocks
     changed = changed | runOnBasicBlock(*I);
   }
   return changed;
@@ -73,7 +79,6 @@ bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
 
   std::vector<CallSite> worklist;
 
-  /* TODO: Change this logic */
   for (BasicBlock::iterator I = B.begin(); I != B.end(); I++) {
     CallSite CS(cast<Value>(I));
     if (!CS || isa<IntrinsicInst>(I)) continue;
