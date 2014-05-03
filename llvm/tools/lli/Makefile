@@ -28,6 +28,4 @@ ifeq ($(USE_OPROFILE), 1)
   LINK_COMPONENTS += oprofilejit
 endif
 
-LINK_COMPONENTS += onlineprofilejit
-
 include $(LLVM_SRC_ROOT)/Makefile.rules

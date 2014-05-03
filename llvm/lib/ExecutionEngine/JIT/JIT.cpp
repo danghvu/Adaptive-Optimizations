@@ -20,7 +20,6 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/JITMemoryManager.h"
-#include "../JITProfiling/JITProfiling.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
@@ -168,10 +167,7 @@ JIT::JIT(Module *M, TargetMachine &tm, TargetJITInfo &tji,
     report_fatal_error("Target does not support machine code emission!");
   }
 
-  // Add profiling classes for each function
-  for (Module::iterator MI = M->begin(), ME = M->end(); MI != ME; ++MI) {
-    ProfileInfo[MI] = new JITProfiling(MI, this);
-  }
+  JPI = NULL;
 
   // Initialize passes.
   PM.doInitialization();
@@ -247,6 +243,7 @@ bool JIT::removeModule(Module *M) {
 GenericValue JIT::runFunction(Function *F,
                               const std::vector<GenericValue> &ArgValues) {
   assert(F && "Function *F was null at entry to run()");
+  DEBUG (dbgs() << " runFunction " << F->getName() << "\n" );
   NotifyFunctionExecute(*F);
 
   void *FPtr = getPointerToFunction(F);
@@ -665,53 +662,6 @@ void *JIT::recompileAndRelinkFunction(Function *F) {
   TJI.replaceMachineCodeForFunction(OldAddr, Addr);
   return Addr;
 }
-
-void *JIT::reoptimizeAndRelinkFunction(Function *F) {
-  void *OldAddr = getPointerToGlobalIfAvailable(F);
-
-  // If it's not already compiled there is no reason to patch it up.
-  if (OldAddr == 0) { return getPointerToFunction(F); }
-
-  int stat = 0;
-  for (unsigned I = 0, S = EventListeners.size(); I < S; ++I) {
-    stat += EventListeners[I]->getStat(F);
-  }
-
-  DEBUG( dbgs() << "[reoptimization & relink] Stat: " << stat << "\n"; );
-
-  int t1 = getProfileSetting()->TH_ENABLE_BB_PROFILE;
-  int t2 = getProfileSetting()->TH_ENABLE_APPLY_OPT;
-
-  // return early if stat is still low
-  if (stat < t1) return OldAddr;
-
-  bool changed = false;
-  if (stat == t1) {
-    changed = ProfileInfo[F]->run();
-  }
-  // When stat == t1+t2 and only 1 basic block, we should inline it
-  else if (F->size() == 1 && stat == t1 + t2) {
-    ProfileInfo[F]->doOptimization();
-    DEBUG( dbgs() << F->getName() << "[reoptimization & relink] results:\n" );
-    DEBUG( F->dump() );
-    changed = true;
-  }
-
-  if (!changed) return OldAddr;
-
-  // Delete the old function mapping.
-  addGlobalMapping(F, 0);
-
-  // Recodegen the function
-  runJITOnFunction(F);
-
-  // Update state, forward the old function to the new function.
-  void *Addr = getPointerToGlobalIfAvailable(F);
-  assert(Addr && "Code generation didn't add function to GlobalAddress table!");
-  TJI.replaceMachineCodeForFunction(OldAddr, Addr);
-  return Addr;
-}
-
 
 /// getMemoryForGV - This method abstracts memory allocation of global
 /// variable so that the JIT can allocate thread local variables depending

@@ -30,7 +30,7 @@
 #include <string>
 #include <vector>
 
-#include "llvm/ExecutionEngine/OnlineProfileSetting.h"
+#include "llvm/ExecutionEngine/JITProfileData.h"
 #include "llvm/PassManager.h"
 
 namespace llvm {
@@ -406,9 +406,8 @@ public:
   /// VM::getPointerToFunction().
   virtual void *recompileAndRelinkFunction(Function *F) = 0;
 
-  virtual void *reoptimizeAndRelinkFunction(Function *F) { return recompileAndRelinkFunction(F); }
-  virtual JITOnlineProfileSetting *getProfileSetting() { return NULL; }
-  virtual void setProfileSetting(JITOnlineProfileSetting *setting) { }
+  virtual JITProfileData *getProfileData() { return NULL; }
+  virtual void setProfileData(JITProfileData *setting) { }
 
   virtual FunctionPassManager* getFPM() {return NULL;};
 

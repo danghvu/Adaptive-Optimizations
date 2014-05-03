@@ -281,6 +281,7 @@ namespace {
   /// JITEmitter - The JIT implementation of the MachineCodeEmitter, which is
   /// used to output functions to memory for execution.
   class JITEmitter : public JITCodeEmitter {
+    friend class JIT;
     JITMemoryManager *MemMgr;
 
     // When outputting a function stub in the context of some other function, we
@@ -635,8 +636,11 @@ void *JITResolver::JITCompilerFn(void *Stub) {
     std::pair<void*, Function*> I =
       JR->state.LookupFunctionFromCallSite(locked, Stub);
     F = I.second;
-    JR->TheJIT->NotifyFunctionExecute(*F);
     ActualPtr = I.first;
+  }
+
+  if (JR->TheJIT->getProfileData() != NULL) {
+    JR->TheJIT->initProfiling(F);
   }
 
   // If we have already code generated the function, just return the address.
@@ -658,8 +662,6 @@ void *JITResolver::JITCompilerFn(void *Stub) {
     (void)ActualPtr;
 
     Result = JR->TheJIT->getPointerToFunction(F);
-  } else {
-    JR->TheJIT->reoptimizeAndRelinkFunction(F);
   }
 
   // Reacquire the lock to update the GOT map.

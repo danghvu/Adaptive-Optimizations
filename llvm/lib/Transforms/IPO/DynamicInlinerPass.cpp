@@ -65,10 +65,19 @@ FunctionPass *llvm::createDynamicInlinerPass(DenseMap<BasicBlock*, unsigned>* ho
 
 bool DynamicInliner::runOnFunction(Function& F) {
   bool changed = false;
+  DEBUG( dbgs() << "Inlining ... " << F.getName() << "\n" );
+
+  std::vector<BasicBlock*> wl;
+
   for (Function::iterator I = F.begin(); I != F.end(); I++) {
-    // TODO: Check if the BasicBlock is in hotBlocks
-    changed = changed | runOnBasicBlock(*I);
+    wl.push_back(&*I);
   }
+
+  for (std::vector<BasicBlock*>::iterator II = wl.begin(), IE = wl.end(); IE != II; ++II) {
+    changed = changed | runOnBasicBlock(*(*II));
+  }
+
+  DEBUG( dbgs() << "Finished .. \n" );
   return changed;
 }
 

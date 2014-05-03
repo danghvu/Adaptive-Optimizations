@@ -15,7 +15,6 @@
 #define JIT_H
 
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "../JITProfiling/JITProfiling.h"
 #include "llvm/PassManager.h"
 #include "llvm/Support/ValueHandle.h"
 
@@ -27,7 +26,7 @@ class MachineCodeEmitter;
 class MachineCodeInfo;
 class TargetJITInfo;
 class TargetMachine;
-class JITOnlineProfilerSetting;
+class JITOnlineProfilerData;
 
 class JITState {
 private:
@@ -62,7 +61,7 @@ class JIT : public ExecutionEngine {
   JITCodeEmitter *JCE;     // JCE object
   JITMemoryManager *JMM;
   std::vector<JITEventListener*> EventListeners;
-  JITOnlineProfileSetting *JOPI;
+  JITProfileData *JPI;
 
   /// AllocateGVsWithCode - Some applications require that global variables and
   /// code be allocated into the same region of memory, in which case this flag
@@ -80,9 +79,6 @@ class JIT : public ExecutionEngine {
   /// taken.
   BasicBlockAddressMapTy BasicBlockAddressMap;
 
-  // Profiling information for each function
-  DenseMap<Function*, JITProfiling*> ProfileInfo;
-
   JIT(Module *M, TargetMachine &tm, TargetJITInfo &tji,
       JITMemoryManager *JMM, bool AllocateGVsWithCode);
 public:
@@ -91,6 +87,8 @@ public:
   static void Register() {
     JITCtor = createJIT;
   }
+
+  void initProfiling(Function* F) { JPI->initializeProfiling(F); }
 
   /// getJITInfo - Return the target JIT information structure.
   ///
@@ -215,9 +213,8 @@ public:
   virtual FunctionPassManager *getFPM();
 
   // those are specific to our Online Profiler -- TODO: how to make it more generic?
-  virtual void *reoptimizeAndRelinkFunction(Function *F);
-  virtual JITOnlineProfileSetting* getProfileSetting() { return JOPI; }
-  virtual void setProfileSetting(JITOnlineProfileSetting *info) { JOPI = info; }
+  virtual JITProfileData* getProfileData() { return JPI; }
+  virtual void setProfileData(JITProfileData *info) { JPI = info; }
 
 private:
   static JITCodeEmitter *createEmitter(JIT &J, JITMemoryManager *JMM,

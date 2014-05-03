@@ -21,6 +21,4 @@ ifeq ($(USE_OPROFILE), 1)
 PARALLEL_DIRS += OProfileJIT
 endif
 
-PARALLEL_DIRS += OnlineProfileJIT
-
 include $(LLVM_SRC_ROOT)/Makefile.rules

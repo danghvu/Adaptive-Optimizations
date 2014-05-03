@@ -23,7 +23,6 @@
 #include "llvm/ExecutionEngine/GenericValue.h"
 #include "llvm/ExecutionEngine/Interpreter.h"
 #include "llvm/ExecutionEngine/JIT.h"
-#include "../../lib/ExecutionEngine/JITProfiling/JITProfiling.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
 #include "llvm/ExecutionEngine/JITMemoryManager.h"
 #include "llvm/ExecutionEngine/MCJIT.h"
@@ -51,6 +50,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Instrumentation.h"
 #include <cerrno>
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef __CYGWIN__
 #include <cygwin/version.h>
@@ -62,10 +63,18 @@
 using namespace llvm;
 
 namespace {
-  JITEventListener *oprofile;
+  JITProfileData *ProfileData;
   cl::opt<bool> OnlineProfile("enable-online-profile",
                               cl::desc("Online profile: enable online profiling and profile-based optimization"),
                               cl::init(false));
+  cl::opt<int> OnlineProfileConstT1("t1",
+                              cl::desc("Online profile: threshold for basic block profile"),
+                              cl::init(4));
+
+  cl::opt<int> OnlineProfileConstT2("t2",
+                              cl::desc("Online profile: threshold for applying optimization"),
+                              cl::init(8));
+
 
   cl::opt<std::string>
   InputFile(cl::desc("<input bitcode>"), cl::Positional, cl::init("-"));
@@ -425,9 +434,8 @@ int main(int argc, char **argv, char * const *envp) {
                 JITEventListener::createIntelJITEventListener());
 
   if (OnlineProfile) {
-    oprofile = JITEventListener::createOnlineProfileJITEventListener();
-    EE->RegisterJITEventListener(oprofile);
-    EE->setProfileSetting(oprofile->getProfileSetting());
+    ProfileData = new JITProfileData(OnlineProfileConstT1, OnlineProfileConstT2, EE);
+    EE->setProfileData(ProfileData);
   }
 
   if (!NoLazyCompilation && RemoteMCJIT) {
@@ -460,11 +468,6 @@ int main(int argc, char **argv, char * const *envp) {
     errs() << '\'' << EntryFunc << "\' function not found in module.\n";
     return -1;
   }
-
-  // Required in order to properly link JITProfiling with lli
-  // TODO: Add something like -Wl,-static -lLLVMJITProfiling to Makefile to
-  //       force linking?
-  JITProfiling* JITP = new JITProfiling(EntryFn, EE);
 
   // Reset errno to zero on entry to main.
   errno = 0;
@@ -506,8 +509,10 @@ int main(int argc, char **argv, char * const *envp) {
     // Run static destructors.
     EE->runStaticConstructorsDestructors(true);
 
-    if (OnlineProfile)
-      oprofile->dump();
+    if (OnlineProfile) {
+      ProfileData->DumpFuncFreq();
+      delete ProfileData;
+    }
 
     // If the program didn't call exit explicitly, we should call it now.
     // This ensures that any atexit handlers get called correctly.
@@ -584,8 +589,5 @@ int main(int argc, char **argv, char * const *envp) {
     // Stop the remote target
     Target->stop();
   }
-  if (OnlineProfile)
-    delete oprofile;
-
   return Result;
 }
