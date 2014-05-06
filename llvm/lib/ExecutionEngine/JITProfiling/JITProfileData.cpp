@@ -21,6 +21,7 @@
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/Scalar.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/ADT/DepthFirstIterator.h"
@@ -36,7 +37,6 @@
 #include "llvm/Support/CFG.h"
 #include "llvm/Support/InstIterator.h"
 #include "llvm/Support/Debug.h"
-#include "llvm/Transforms/Scalar.h"
 #include <stdio.h>
 #include <queue>
 #include <string>
@@ -50,6 +50,7 @@ namespace llvm {
 
 FunctionPass *createJITFunctionProfilingPass(JITProfileData *);
 FunctionPass *createJITBBProfilingPass(JITProfileData *);
+FunctionPass *createJITOptimizationsPass(JITProfileData *);
 
 JITProfileData::JITProfileData(int t1, int t2, ExecutionEngine* J) {
   // Set the thresholds
@@ -82,9 +83,7 @@ void JITProfileData::initializeProfiling(Function* F) {
 
 void JITProfileData::doOptimization(Function *F) {
   FunctionPassManager* FPM = new FunctionPassManager(F->getParent());
-  FPM->add(createDynamicInlinerPass());
-  FPM->add(createSCCPPass());
-  FPM->add(createAggressiveDCEPass());
+  FPM->add(createJITOptimizationsPass(this));
   FPM->doInitialization();
   FPM->run(*F);
   FPM->doFinalization();
@@ -204,7 +203,7 @@ void* JITProfileData::FunctionCallback(Function* F) {
   // If we get here, there is something that was changed
   // Re-emit the function so the profiling is actually executed!
   if (changed ) {
-    dbgs() << "stat == T2 for function: " << F->getName() << "\n";
+    DEBUG(dbgs() << "stat == T2 for function: " << F->getName() << "\n");
     TheJIT->recompileAndRelinkFunction(F);
   }
 
