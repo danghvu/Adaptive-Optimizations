@@ -45,13 +45,11 @@ namespace llvm {
   public:
     static char ID;
     JITOptimizations() : FunctionPass(ID) {};
-    JITOptimizations(JITProfileData* _JPD) : FunctionPass(ID) {
-      JPD = _JPD;
-    }
+    JITOptimizations(JITProfileData* _JPD) : FunctionPass(ID), JPD(_JPD) {}
 
     virtual bool runOnFunction(Function& F);
 
-    virtual ~JITOptimizations() {}
+    virtual ~JITOptimizations() { }
 
   private:
     // -------------------------------------------------------------------------------- //
@@ -62,12 +60,12 @@ namespace llvm {
     // are inserting instructions for
     JITProfileData* JPD;
 
-    // Function of the pass
-    Function* F;
-
     // Loop information for the pass (needed for getting the weights of
     // edges and basic blocks)
     LoopInfo* LI;
+
+    // The function pass manager which runs all of the optimizations
+    FunctionPassManager* FPM;
 
     // -------------------------------------------------------------------------------- //
     //   Methods
@@ -79,26 +77,51 @@ namespace llvm {
 
   char JITOptimizations::ID = 0;
   static RegisterPass<JITOptimizations> YYY("jitoptimizationspass",
-                  "Pass for inserting basic block profiling instructions", false, false);
+                  "Pass for running optimizations with jit", false, false);
 
   FunctionPass *createJITOptimizationsPass(JITProfileData *JPD) {
     return new JITOptimizations(JPD);
   }
 
   bool JITOptimizations::runOnFunction(Function& F) {
-    this->F         = &F;
     this->LI        = &getAnalysis<LoopInfo>();
-
     bool changed = false;
-    FunctionPassManager* FPM = new FunctionPassManager(F.getParent());
 
+//    fprintf(stderr, "BEFORE: \n");
+//    F.dump();
+
+    FPM = new FunctionPassManager(F.getParent());
+
+    // Optimization ordering:
+    //  - ADCE
+    //  - inline
+    //  - DSE
+    //  - Instruction Combining
+    //  ---- IF LOOPS ----
+    //  - LICM
+    //  - Loop Simplify
+    //  - Loop Strength Reduction
+    //  ------------------
+    //  - SCCP
+    //  - Simplify CFG
+    //  - SROA
     FPM->add(createDynamicInlinerPass(JPD));
-    FPM->add(createSCCPPass());
     FPM->add(createAggressiveDCEPass());
+    FPM->add(createDeadStoreEliminationPass());
+    FPM->add(createInstructionCombiningPass());
+// Loop stuff:
+
+
+    FPM->add(createSCCPPass());
+    FPM->add(createCFGSimplificationPass());
+    FPM->add(createSROAPass(false));
+
     changed = changed | FPM->doInitialization();
     changed = changed | FPM->run(F);
     changed = changed | FPM->doFinalization();
 
+//    fprintf(stderr, "After: \n");
+//    F.dump();
     return changed;
   }
 } // llvm namespace

@@ -90,10 +90,11 @@ void JITProfileData::doOptimization(Function *F) {
   delete FPM;
 }
 
-void* JITProfileData::BasicBlockCallback(Edge* B) {
+void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
   struct timeval t1, t2;
   gettimeofday(&t1, NULL);
-  JITFunctionData* JFD = FuncData[B->first->getParent()];
+  JITFunctionData* JFD = FuncData[F];
+
   // Don't do anything if we removed the profiling instructions
   // but the function is still being executed! (B is NULL if it was
   // a basic block we inserted in the profiling pass)
@@ -103,13 +104,14 @@ void* JITProfileData::BasicBlockCallback(Edge* B) {
     bb_time += (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
     return 0;
   }
+  fprintf(stderr, "3\n");
 
   DEBUG( dbgs() << "Inside BB callback " << B->first->getName() << " -> " << B->second->getName() << "\n" );
 
   // Get the edge that the profiling exists on
   Edge E = *B;
   EdgeFreq[E] += 1;
-  unsigned stat = EdgeFreq[E];
+  unsigned int stat = EdgeFreq[E];
   DEBUG( dbgs() << "New edge count: " << stat << "\n" );
 
   // If we meet the threshold or are past the threshold

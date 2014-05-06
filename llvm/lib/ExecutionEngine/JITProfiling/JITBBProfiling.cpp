@@ -59,8 +59,8 @@ namespace llvm {
   typedef std::map<BasicBlock*, float>        BlockWeightMap;
   typedef std::map<BasicBlock*, BlockSet>     BlockMap;
 
-  void* JITBasicBlockCallback(JITProfileData* JPD, Edge* E) {
-    return JPD->BasicBlockCallback(E);
+  void* JITBasicBlockCallback(JITProfileData* JPD, Edge* E, Function* F) {
+    return JPD->BasicBlockCallback(E, F);
   }
 
   class JITBBProfiling : public FunctionPass {
@@ -358,8 +358,12 @@ namespace llvm {
     std::vector<Type*> FunctionArgsTy;
     FunctionArgsTy.push_back(VoidPointerTy);
     FunctionArgsTy.push_back(VoidPointerTy);
+    FunctionArgsTy.push_back(VoidPointerTy);
 
-    // Create the function type: PointerTy func(PointerTy)
+    // Create the function type: PointerTy func(PointerTy, PointerTy, PointerTy)
+    // Arg 1 : JPD object
+    // Arg 2 : Edge of profiling
+    // Arg 3 : Function
     FunctionType* FunctionTy = FunctionType::get(VoidPointerTy, FunctionArgsTy, false);
 
     // Create the function-pointer type
@@ -368,16 +372,20 @@ namespace llvm {
     // Insert the inttoptr instructions for the function callback and the JITBBProfilingInfo class
     intptr_t FP      = reinterpret_cast<intptr_t>(JITBasicBlockCallback);
     intptr_t JPDAddr = reinterpret_cast<intptr_t>(JPD);
+    intptr_t LLVMF   = reinterpret_cast<intptr_t>(F);
 
-    Value* FuncVal = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FP));
-    Value* JPDVal  = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, JPDAddr));
+    Value* FuncVal  = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, FP));
+    Value* JPDVal   = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, JPDAddr));
+    Value* LLVMFVal = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, LLVMF));
 
-    IntToPtrInst* FuncInst = new IntToPtrInst(FuncVal, FunctionPtrTy);
-    IntToPtrInst* JPDInst  = new IntToPtrInst(JPDVal, VoidPointerTy);
+    IntToPtrInst* FuncInst  = new IntToPtrInst(FuncVal, FunctionPtrTy);
+    IntToPtrInst* JPDInst   = new IntToPtrInst(JPDVal, VoidPointerTy);
+    IntToPtrInst* LLVMFInst = new IntToPtrInst(LLVMFVal, VoidPointerTy);
 
     F->getEntryBlock().getInstList().push_front(FuncInst);
     F->getEntryBlock().getInstList().push_front(JPDInst);
-    numInsertedInsts += 2;
+    F->getEntryBlock().getInstList().push_front(LLVMFInst);
+    numInsertedInsts += 3;
 
     int i = 0;
     bool insertedInsts = false;
@@ -430,17 +438,18 @@ namespace llvm {
         assert(0 && "Not well-formed basic block!\n");
       }
 
-      // Get the address of basic block B
-      intptr_t BBAddr = reinterpret_cast<intptr_t>(*I);
-      Value* BBVal = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, BBAddr));
+      // Get the address of the edge for profiling
+      intptr_t EdgeAddr = reinterpret_cast<intptr_t>(*I);
+      Value* EdgeVal = ConstantInt::get(IntegerType::get(F->getContext(), sizeof(intptr_t)*CHAR_BIT), APInt(sizeof(intptr_t)*CHAR_BIT, EdgeAddr));
 
       // Perform inttoptr on the basic block
-      IntToPtrInst* BBInst = new IntToPtrInst(BBVal, VoidPointerTy);
+      IntToPtrInst* EdgeInst = new IntToPtrInst(EdgeVal, VoidPointerTy);
 
       // Make the function call
       std::vector<Value*> ArrayRefVec;
       ArrayRefVec.push_back(JPDInst);
-      ArrayRefVec.push_back(BBInst);
+      ArrayRefVec.push_back(EdgeInst);
+      ArrayRefVec.push_back(LLVMFInst);
       CallInst* FuncCall = CallInst::Create(FuncInst, ArrayRef<Value*>(ArrayRefVec));
 
       // Insert the instructions
@@ -448,22 +457,22 @@ namespace llvm {
         // Remove the old branch and push all of the instructions just created onto E1
         // (the old and new branch are exactly the same, btw)
         B->getInstList().pop_back();
-        B->getInstList().push_back(BBInst);
+        B->getInstList().push_back(EdgeInst);
         B->getInstList().push_back(FuncCall);
         B->getInstList().push_back(BranchInst::Create(E2));
 
         ProfileInsts.push_back(FuncCall);
-        ProfileInsts.push_back(BBInst);
+        ProfileInsts.push_back(EdgeInst);
 
         numInsertedInsts += 3;
       }
       else if (B == E2) {
         // Push everything to the front of E2 (everything has to be pushed in reverse)
         B->getInstList().push_front(FuncCall);
-        B->getInstList().push_front(BBInst);
+        B->getInstList().push_front(EdgeInst);
 
         ProfileInsts.push_back(FuncCall);
-        ProfileInsts.push_back(BBInst);
+        ProfileInsts.push_back(EdgeInst);
 
         numInsertedInsts += 2;
       }
@@ -472,13 +481,13 @@ namespace llvm {
         // E2 into the correct locations
         Instruction* temp = BranchInst::Create(E2);
         B->moveAfter(E1);
-        B->getInstList().push_back(BBInst);
+        B->getInstList().push_back(EdgeInst);
         B->getInstList().push_back(FuncCall);
         B->getInstList().push_back(temp);
         E2->moveAfter(B);
 
         ProfileInsts.push_back(FuncCall);
-        ProfileInsts.push_back(BBInst);
+        ProfileInsts.push_back(EdgeInst);
 
         numInsertedInsts += 3;
       }
@@ -489,11 +498,13 @@ namespace llvm {
     if (!insertedInsts) {
       F->getEntryBlock().getInstList().pop_front();
       F->getEntryBlock().getInstList().pop_front();
-      numInsertedInsts -= 2;
+      F->getEntryBlock().getInstList().pop_front();
+      numInsertedInsts -= 3;
     }
     else {
       ProfileInsts.push_back(FuncInst);
       ProfileInsts.push_back(JPDInst);
+      ProfileInsts.push_back(LLVMFInst);
     }
 
     return insertedInsts;

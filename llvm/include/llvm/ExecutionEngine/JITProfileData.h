@@ -50,7 +50,7 @@ namespace llvm {
       const BlockCountMap& getBlockMap() const { return BlockFreq; }
 
       void* FunctionCallback(Function *F);
-      void* BasicBlockCallback(Edge* B);
+      void* BasicBlockCallback(Edge* B, Function* F);
 
       void initializeEdgeCounts(Function *F);
       void initializeProfiling(Function* F);

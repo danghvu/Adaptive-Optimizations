@@ -71,16 +71,20 @@ bool DynamicInliner::runOnFunction(Function& F) {
   DEBUG( dbgs() << "Inlining ... " << F.getName() << "\n" );
 
   std::vector<BasicBlock*> wl;
-
+  fprintf(stderr, "1\n");
   for (Function::iterator I = F.begin(); I != F.end(); I++) {
-    if (data == NULL || data->getBlockMap().find(&*I)->second >= data->getThresholdT2()) {
+    fprintf(stderr, "Block: ");
+    I->dump();
+    if (data == NULL || (data->getBlockMap().count(I) && data->getBlockMap().find(I)->second >= data->getThresholdT2())) {
       wl.push_back(&*I);
     }
   }
+  fprintf(stderr, "2\n");
 
   for (std::vector<BasicBlock*>::iterator II = wl.begin(), IE = wl.end(); IE != II; ++II) {
     changed = changed | runOnBasicBlock(*(*II));
   }
+  fprintf(stderr, "3\n");
 
   DEBUG( dbgs() << "Finished .. \n" );
   return changed;
