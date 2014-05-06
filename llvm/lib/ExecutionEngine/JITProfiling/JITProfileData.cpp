@@ -104,7 +104,7 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
     bb_time += (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
     return 0;
   }
-  fprintf(stderr, "3\n");
+  //fprintf(stderr, "3\n");
 
   DEBUG( dbgs() << "Inside BB callback " << B->first->getName() << " -> " << B->second->getName() << "\n" );
 
