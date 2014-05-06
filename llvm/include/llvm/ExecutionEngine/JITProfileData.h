@@ -44,8 +44,10 @@ namespace llvm {
         }
       }
 
-      int getThresholdT1() { return TH_ENABLE_BB_PROFILE; };
-      int getThresholdT2() { return TH_ENABLE_APPLY_OPT; }
+      unsigned int getThresholdT1() { return TH_ENABLE_BB_PROFILE; };
+      unsigned int getThresholdT2() { return TH_ENABLE_APPLY_OPT; }
+
+      const BlockCountMap& getBlockMap() const { return BlockFreq; }
 
       void* FunctionCallback(Function *F);
       void* BasicBlockCallback(Edge* B);
@@ -73,8 +75,8 @@ namespace llvm {
 
     private:
       // Thresholds
-      int TH_ENABLE_BB_PROFILE;
-      int TH_ENABLE_APPLY_OPT;
+      unsigned int TH_ENABLE_BB_PROFILE;
+      unsigned int TH_ENABLE_APPLY_OPT;
 
       // Function data
       FuncDataMap FuncData;

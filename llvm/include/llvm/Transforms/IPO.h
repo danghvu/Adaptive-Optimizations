@@ -16,7 +16,6 @@
 #define LLVM_TRANSFORMS_IPO_H
 
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/ADT/DenseMap.h"
 
 namespace llvm {
 
@@ -26,6 +25,7 @@ class Pass;
 class Function;
 class BasicBlock;
 class GlobalValue;
+class JITProfileData;
 
 //===----------------------------------------------------------------------===//
 //
@@ -205,7 +205,7 @@ ModulePass *createBarrierNoopPass();
 /// determined by the BasicBlock profiler.
 /// 
 FunctionPass *createDynamicInlinerPass();
-FunctionPass *createDynamicInlinerPass(DenseMap<BasicBlock*, unsigned>*);
+FunctionPass *createDynamicInlinerPass(JITProfileData*);
 
 } // End llvm namespace
 

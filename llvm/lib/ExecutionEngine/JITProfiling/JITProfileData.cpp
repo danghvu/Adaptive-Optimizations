@@ -82,7 +82,7 @@ void JITProfileData::initializeProfiling(Function* F) {
 
 void JITProfileData::doOptimization(Function *F) {
   FunctionPassManager* FPM = new FunctionPassManager(F->getParent());
-  FPM->add(createDynamicInlinerPass());
+  FPM->add(createDynamicInlinerPass(this));
   FPM->add(createSCCPPass());
   FPM->add(createAggressiveDCEPass());
   FPM->doInitialization();

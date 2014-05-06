@@ -17,6 +17,7 @@
 #define DEBUG_TYPE "mikida2"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/InlineCost.h"
+#include "llvm/ExecutionEngine/JITProfileData.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
@@ -31,20 +32,22 @@
 
 using namespace llvm;
 
+STATISTIC(numInlinedCallSites, "Number of CallSites inlined");
+
 namespace {
   class DynamicInliner : public FunctionPass {
   public:
     static char ID;
-    DynamicInliner() : FunctionPass(ID), hotBlocks(new DenseMap<BasicBlock*, unsigned>()) {
+    DynamicInliner() : FunctionPass(ID), data(NULL) {
       initializeDynamicInlinerPass(*PassRegistry::getPassRegistry());
     }
 
-    DynamicInliner(DenseMap<BasicBlock*, unsigned>* hot) : FunctionPass(ID), hotBlocks(hot) {
+    DynamicInliner(JITProfileData* data) : FunctionPass(ID), data(data) {
       initializeDynamicInlinerPass(*PassRegistry::getPassRegistry());
     }
 
   private:
-    DenseMap<BasicBlock*, unsigned>* hotBlocks;
+    JITProfileData* data;
 
     virtual bool runOnFunction(Function& F);
     virtual bool runOnBasicBlock(BasicBlock& B);
@@ -61,7 +64,7 @@ char DynamicInliner::ID = 0;
 // TODO: Make sure the last two params are correct
 INITIALIZE_PASS(DynamicInliner, "dynamicinliner", "Mikida2-Profiling", false, false)
 FunctionPass *llvm::createDynamicInlinerPass() { return new DynamicInliner(); }
-FunctionPass *llvm::createDynamicInlinerPass(DenseMap<BasicBlock*, unsigned>* hot) { return new DynamicInliner(hot); }
+FunctionPass *llvm::createDynamicInlinerPass(JITProfileData* data) { return new DynamicInliner(data); }
 
 bool DynamicInliner::runOnFunction(Function& F) {
   bool changed = false;
@@ -70,7 +73,9 @@ bool DynamicInliner::runOnFunction(Function& F) {
   std::vector<BasicBlock*> wl;
 
   for (Function::iterator I = F.begin(); I != F.end(); I++) {
-    wl.push_back(&*I);
+    if (data == NULL || data->getBlockMap().find(&*I)->second >= data->getThresholdT2()) {
+      wl.push_back(&*I);
+    }
   }
 
   for (std::vector<BasicBlock*>::iterator II = wl.begin(), IE = wl.end(); IE != II; ++II) {
@@ -99,6 +104,7 @@ bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
   for (std::vector<CallSite>::iterator I = worklist.begin(); I!=worklist.end(); I++) {
     if (!shouldInline(*I)) continue;
     if (!attemptToInline(*I)) continue;
+    numInlinedCallSites++;
     changed = true;
   }
 
