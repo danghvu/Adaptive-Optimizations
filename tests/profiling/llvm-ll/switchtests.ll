@@ -7,10 +7,9 @@ target triple = "x86_64-unknown-linux-gnu"
 @.str2 = private unnamed_addr constant [13 x i8] c"%d %% 5 = 1\0A\00", align 1
 @.str3 = private unnamed_addr constant [13 x i8] c"%d %% 5 = 2\0A\00", align 1
 @.str4 = private unnamed_addr constant [13 x i8] c"%d %% 5 = 3\0A\00", align 1
-@.str5 = private unnamed_addr constant [13 x i8] c"%d %% 5 = 4\0A\00", align 1
-@.str6 = private unnamed_addr constant [23 x i8] c"%d is divisible by 5!\0A\00", align 1
-@.str7 = private unnamed_addr constant [22 x i8] c"Something went wrong\0A\00", align 1
-@.str8 = private unnamed_addr constant [14 x i8] c"(%d, %d, %d)\0A\00", align 1
+@.str5 = private unnamed_addr constant [23 x i8] c"%d is divisible by 4!\0A\00", align 1
+@.str6 = private unnamed_addr constant [22 x i8] c"Something went wrong\0A\00", align 1
+@.str7 = private unnamed_addr constant [14 x i8] c"(%d, %d, %d)\0A\00", align 1
 
 ; Function Attrs: nounwind uwtable
 define void @switch1() #0 {
@@ -50,15 +49,14 @@ entry:
   %y = alloca i32, align 4
   store i32 6, i32* %x, align 4
   %0 = load i32* %x, align 4
-  %rem = srem i32 %0, 5
+  %rem = srem i32 %0, 4
   store i32 %rem, i32* %y, align 4
   %1 = load i32* %y, align 4
   switch i32 %1, label %sw.default [
     i32 1, label %sw.bb
     i32 2, label %sw.bb1
     i32 3, label %sw.bb3
-    i32 4, label %sw.bb5
-    i32 0, label %sw.bb7
+    i32 0, label %sw.bb5
   ]
 
 sw.bb:                                            ; preds = %entry
@@ -78,19 +76,14 @@ sw.bb3:                                           ; preds = %entry
 
 sw.bb5:                                           ; preds = %entry
   %5 = load i32* %x, align 4
-  %call6 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([13 x i8]* @.str5, i32 0, i32 0), i32 %5)
-  br label %sw.epilog
-
-sw.bb7:                                           ; preds = %entry
-  %6 = load i32* %x, align 4
-  %call8 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([23 x i8]* @.str6, i32 0, i32 0), i32 %6)
+  %call6 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([23 x i8]* @.str5, i32 0, i32 0), i32 %5)
   br label %sw.epilog
 
 sw.default:                                       ; preds = %entry
-  %call9 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([22 x i8]* @.str7, i32 0, i32 0))
+  %call7 = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([22 x i8]* @.str6, i32 0, i32 0))
   br label %sw.epilog
 
-sw.epilog:                                        ; preds = %sw.default, %sw.bb7, %sw.bb5, %sw.bb3, %sw.bb1, %sw.bb
+sw.epilog:                                        ; preds = %sw.default, %sw.bb5, %sw.bb3, %sw.bb1, %sw.bb
   ret void
 }
 
@@ -118,17 +111,17 @@ sw.bb:                                            ; preds = %entry
 
 sw.bb1:                                           ; preds = %sw.bb
   store i32 5, i32* %x, align 4
-  br label %sw.bb2
+  br label %sw.epilog
 
-sw.bb2:                                           ; preds = %sw.bb, %sw.bb1
+sw.bb2:                                           ; preds = %sw.bb
   store i32 2, i32* %x, align 4
-  br label %sw.default
+  br label %sw.epilog
 
-sw.default:                                       ; preds = %sw.bb, %sw.bb2
+sw.default:                                       ; preds = %sw.bb
   store i32 0, i32* %x, align 4
   br label %sw.epilog
 
-sw.epilog:                                        ; preds = %sw.default
+sw.epilog:                                        ; preds = %sw.default, %sw.bb2, %sw.bb1
   br label %sw.epilog11
 
 sw.bb3:                                           ; preds = %entry
@@ -140,9 +133,9 @@ sw.bb3:                                           ; preds = %entry
 
 sw.bb4:                                           ; preds = %sw.bb3
   store i32 4, i32* %y, align 4
-  br label %sw.bb5
+  br label %sw.epilog9
 
-sw.bb5:                                           ; preds = %sw.bb3, %sw.bb4
+sw.bb5:                                           ; preds = %sw.bb3
   %3 = load i32* %y, align 4
   switch i32 %3, label %sw.default7 [
     i32 1, label %sw.bb6
@@ -150,16 +143,16 @@ sw.bb5:                                           ; preds = %sw.bb3, %sw.bb4
 
 sw.bb6:                                           ; preds = %sw.bb5
   store i32 10, i32* %z, align 4
-  br label %sw.default7
+  br label %sw.epilog8
 
-sw.default7:                                      ; preds = %sw.bb5, %sw.bb6
+sw.default7:                                      ; preds = %sw.bb5
   store i32 -4, i32* %z, align 4
   br label %sw.epilog8
 
-sw.epilog8:                                       ; preds = %sw.default7
+sw.epilog8:                                       ; preds = %sw.default7, %sw.bb6
   br label %sw.epilog9
 
-sw.epilog9:                                       ; preds = %sw.epilog8, %sw.bb3
+sw.epilog9:                                       ; preds = %sw.bb3, %sw.epilog8, %sw.bb4
   br label %sw.default10
 
 sw.default10:                                     ; preds = %entry, %sw.epilog9
@@ -170,7 +163,7 @@ sw.epilog11:                                      ; preds = %sw.default10, %sw.e
   %4 = load i32* %x, align 4
   %5 = load i32* %y, align 4
   %6 = load i32* %z, align 4
-  %call = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([14 x i8]* @.str8, i32 0, i32 0), i32 %4, i32 %5, i32 %6)
+  %call = call i32 (i8*, ...)* @printf(i8* getelementptr inbounds ([14 x i8]* @.str7, i32 0, i32 0), i32 %4, i32 %5, i32 %6)
   ret void
 }
 

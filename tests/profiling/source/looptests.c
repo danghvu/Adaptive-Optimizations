@@ -12,11 +12,11 @@
 // -- For.inc -> For.cond  : LM - 1.0
 // -- For.cond -> Exit     : 1.0
 //
-// -- Entry:    1.0
-// -- For.cond: LM
-// -- For.inc:  LM - 1.0
-// -- For.body: LM - 1.0
-// -- Exit:     1.0
+// -- Entry    : 1.0
+// -- For.cond : LM
+// -- For.inc  : LM - 1.0
+// -- For.body : LM - 1.0
+// -- Exit     : 1.0
 void loop1() {
 // Entry:
   int x = 0;
