@@ -108,8 +108,7 @@ namespace llvm {
     // F.dump();
     FPM->add(createDynamicInlinerPass(JPD));
     FPM->add(createAggressiveDCEPass());
-    FPM->add(createCFGSimplificationPass());
-    FPM->add(createDeadStoreEliminationPass());
+    // FPM->add(createDeadStoreEliminationPass());
     FPM->add(createInstructionCombiningPass());
 // Loop stuff:
 
