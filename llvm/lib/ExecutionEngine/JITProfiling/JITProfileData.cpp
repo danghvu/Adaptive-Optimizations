@@ -104,7 +104,7 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
     bb_time += (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
     return 0;
   }
-  //fprintf(stderr, "3\n");
+
 
   DEBUG( dbgs() << "Inside BB callback " << B->first->getName() << " -> " << B->second->getName() << "\n" );
 
@@ -116,10 +116,17 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
 
   // If we meet the threshold or are past the threshold
   if (stat == getThresholdT2()) {
-    Function* Func = E.first->getParent();
+    // when someone has already perform optimization with the edge, remove profiling and return
+    if (E.first->getParent() != F || E.second->getParent() != F) {
+      delete JFD->FPM;
+      JFD->removedProfiling = true;
+      TheJIT->recompileAndRelinkFunction(F);
+      return 0;
+    }
+
     // Update the count information for edges and blocks in the function F
     // TODO: Add back hotblocks
-    updateCounts(Func);
+    updateCounts(F);
 
     // Delete the profiling instructions
     // TODO: only delete profiling on ones that == T2
@@ -127,10 +134,10 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
     JFD->FPM = NULL;
     JFD->removedProfiling = true;
 
-    doOptimization(Func);
+    doOptimization(F);
 
     // Re-emit the function so the profiling is removed and optimizations are seen!
-    TheJIT->recompileAndRelinkFunction(Func);
+    TheJIT->recompileAndRelinkFunction(F);
   }
 
   gettimeofday(&t2, NULL);
