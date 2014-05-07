@@ -511,7 +511,6 @@ int main(int argc, char **argv, char * const *envp) {
 
     if (OnlineProfile) {
       ProfileData->DumpFuncFreq();
-      delete ProfileData;
     }
 
     // If the program didn't call exit explicitly, we should call it now.
@@ -523,8 +522,12 @@ int main(int argc, char **argv, char * const *envp) {
       Args.push_back(ResultGV);
       EE->runFunction(ExitF, Args);
       errs() << "ERROR: exit(" << Result << ") returned!\n";
+      if (OnlineProfile)
+        delete ProfileData;
       abort();
     } else {
+      if (OnlineProfile)
+        delete ProfileData;
       errs() << "ERROR: exit defined with wrong prototype!\n";
       abort();
     }
