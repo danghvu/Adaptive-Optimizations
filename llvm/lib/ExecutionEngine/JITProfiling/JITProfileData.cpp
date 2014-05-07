@@ -124,11 +124,12 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
     }
 
     // Update the count information for edges and blocks in the function F
-    // TODO: Add back hotblocks
     updateCounts(F);
 
     // Delete the profiling instructions
-    // TODO: only delete profiling on ones that == T2
+    // TODO: would it be possible to only delete profiling on ones that == T2?
+    //       otherwise when inlining we need to inline within all blocks that are
+    //       within a % of T2
     delete JFD->FPM;
     JFD->FPM = NULL;
     JFD->removedProfiling = true;
@@ -170,9 +171,6 @@ void* JITProfileData::FunctionCallback(Function* F) {
     FunctionPassManager* FPM = new FunctionPassManager(F->getParent());
 
     // Add JITBBProfilingPass and its dependencies
-//    FPM->add(new LoopInfo());
-//    fprintf(stderr, "BEFORE ADDING PROFILING:\n");
-//    F->dump();
     FPM->add(createUnifyFunctionExitNodesPass());
     FPM->add(createBreakCriticalEdgesPass());
     FPM->add(createJITBBProfilingPass(this));
@@ -180,10 +178,9 @@ void* JITProfileData::FunctionCallback(Function* F) {
     FPM->run(*F);
     FPM->doFinalization();
 
-//    fprintf(stderr, "AFTER ADDING PROFILING:\n");
-//    F->dump();
     // At this point, the edges with and without profiling instructions for F will
-    // be populated in ProfileEdges and NonProfileEdges
+    // be populated in ProfileEdges and NonProfileEdges.  Now set the counts of
+    // every edge to 0
     initializeEdgeCounts(F);
 
     if (JFD->ProfileEdges.size() != 0) {
@@ -215,11 +212,9 @@ void* JITProfileData::FunctionCallback(Function* F) {
 
   // If we get here, there is something that was changed
   // Re-emit the function so the profiling is actually executed!
-  if (changed ) {
+  if (changed) {
     DEBUG(dbgs() << "stat == T2 for function: " << F->getName() << "\n");
     TheJIT->recompileAndRelinkFunction(F);
-//    fprintf(stderr, "AFTER RECOMPILING:\n");
-//    F->dump();
   }
 
   gettimeofday(&t2, NULL);
@@ -326,4 +321,5 @@ void JITProfileData::updateBlockCounts(Function* F) {
     }
   }
 }
+
 } // namespace llvm

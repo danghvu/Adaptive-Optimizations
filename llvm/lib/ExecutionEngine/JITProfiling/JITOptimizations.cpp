@@ -23,6 +23,7 @@
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/LoopPass.h"
+#include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/IR/Function.h"
@@ -71,7 +72,7 @@ namespace llvm {
     //   Methods
     // -------------------------------------------------------------------------------- //
     virtual void getAnalysisUsage(AnalysisUsage& AU) const {
-      // AU.addRequired<LoopInfo>();
+      AU.addRequired<LoopInfo>();
     }
   };
 
@@ -84,18 +85,16 @@ namespace llvm {
   }
 
   bool JITOptimizations::runOnFunction(Function& F) {
-    // this->LI        = &getAnalysis<LoopInfo>();
+    this->LI        = &getAnalysis<LoopInfo>();
     bool changed = false;
-
-    //fprintf(stderr, "BEFORE: \n");
-    //F.dump();
 
     FPM = new FunctionPassManager(F.getParent());
 
     // Optimization ordering:
     //  - ADCE
     //  - inline
-    //  - DSE
+    //  - DSE <---- THIS causes seg faults when running on sqlite3
+    //              test in llvm test-suite
     //  - Instruction Combining
     //  ---- IF LOOPS ----
     //  - LICM
@@ -105,13 +104,17 @@ namespace llvm {
     //  - SCCP
     //  - Simplify CFG
     //  - SROA
-    // F.dump();
-    FPM->add(createDynamicInlinerPass(JPD));
     FPM->add(createAggressiveDCEPass());
-    // FPM->add(createDeadStoreEliminationPass());
+    FPM->add(createDynamicInlinerPass(JPD));
     FPM->add(createInstructionCombiningPass());
-// Loop stuff:
 
+    // --- Loop optimizations --- //
+    if (LI->begin() != LI->end()) {
+      FPM->add(createLICMPass());
+      FPM->add(createLoopSimplifyPass());
+      FPM->add(createLoopStrengthReducePass());
+    }
+    // -------------------------- //
 
     FPM->add(createSCCPPass());
     FPM->add(createCFGSimplificationPass());
@@ -121,8 +124,7 @@ namespace llvm {
     changed = changed | FPM->run(F);
     changed = changed | FPM->doFinalization();
 
-    //fprintf(stderr, "After: \n");
-    //F.dump();
+    delete FPM;
     return changed;
   }
 } // llvm namespace

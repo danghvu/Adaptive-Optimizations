@@ -56,7 +56,7 @@ namespace llvm {
   typedef SetVector<Edge>                     EdgeSet;
   typedef SetVector<Edge*>                    EdgePtrSet;
   typedef SetVector<BasicBlock*>              BlockSet;
-  typedef std::vector<Instruction*>             InstructionSet;
+  typedef std::vector<Instruction*>           InstructionSet;
   typedef std::map<Edge, float>               EdgeWeightMap;
   typedef std::map<BasicBlock*, float>        BlockWeightMap;
   typedef std::map<BasicBlock*, BlockSet>     BlockMap;
@@ -123,9 +123,6 @@ namespace llvm {
     // set of insertion edges (based on edge weight)
     EdgeSet        MaxSpanningTree;
 
-    // The basic blocks added as a result of inserting profiling instructions
-    SmallPtrSet<BasicBlock*, 8> NewBlocks;
-
     // The comparator structure used for the priority queue during generating
     // the max spanning tree
     struct EdgeWeightCompare {
@@ -142,6 +139,10 @@ namespace llvm {
     //   Methods
     // -------------------------------------------------------------------------------- //
     virtual void getAnalysisUsage(AnalysisUsage& AU) const {
+      // This needs to be here so we don't have to add any new basic blocks
+      // During testing, we found many problems with having our own basic blocks (i.e.
+      // instructions were moved to our blocks before removing profiling, causing
+      // optimizations like simplifycfg and dse to segfault
       AU.addRequiredID(BreakCriticalEdgesID);
       AU.addRequired<UnifyFunctionExitNodes>();
       AU.addRequired<LoopInfo>();
@@ -156,13 +157,11 @@ namespace llvm {
     void constructMaxSpanTree();
 
     // Method for inserting the instructions based on the max spanning tree
+    // Note that unreachable edges won't be 
     bool insertInstructions();
 
     // Methods for removing profiling instructions
     void removeInstructions();
-
-    // Auxillary method used in removeInstructions()
-    void replaceBranches(BasicBlock* B);
 
     // Auxillary method used in getWeights()
     bool ExitEdgesContains(SmallVector<ConstEdge, 16> vec, ConstEdge elem);
@@ -192,7 +191,7 @@ namespace llvm {
     // This value is somewhat arbitrary
     this->LoopMultiplier = 10;
 
-    // Make sure the function has more than one basic block
+    // If the function only has one basic block, we don't need profiling
     if (F.size() == 1) {
       DEBUG( dbgs() << "Function " << F.getName() << " does not need BB profiling [has single BB]!\n" );
       return false;
@@ -317,21 +316,6 @@ namespace llvm {
 
       VisitedBlocks.insert(CurrentBlock);
     }
-  }
-
-  void JITBBProfiling::replaceBranches(BasicBlock* B) {
-    // If the block was inserted for specifically profiling (A -> B -> C), change
-    // such that A -> C and remove B from function
-/*    if (B->getName().str().find("ProfileBB") != std::string::npos) {
-      DEBUG( dbgs() << "BasicBlock [" << B->getName() << "] was added by us\n" );
-      BasicBlock* Succ = *succ_begin(B);
-      TerminatorInst* TermA = (*pred_begin(B))->getTerminator();
-      unsigned numSuccA = TermA->getNumSuccessors();
-      for (unsigned i = 0; i < numSuccA; ++i) {
-        if (TermA->getSuccessor(i) == B)
-          TermA->setSuccessor(i, Succ);
-      }
-    }*/
   }
 
   void JITBBProfiling::removeInstructions() {
@@ -495,6 +479,7 @@ namespace llvm {
 
     // We need to make sure no invoke()/landingpad edges contain profiling, so
     // add the non-exception edges FIRST to prevent infinite loops
+    // TODO: Make sure the invoke()/normaldest edge is reachable!
     for (Function::iterator FI = F->begin(), FE = F->end(); FI != FE; ++FI) {
       if (InvokeInst* InvInst = dyn_cast<InvokeInst>(FI->getTerminator())) {
         E = std::make_pair(FI, InvInst->getUnwindDest());
@@ -516,18 +501,12 @@ namespace llvm {
         unsigned c2 = TreeNodes.count(E.second);
         // c1 == 1, c2 == 0
         if (c1 > c2) {
-          // We don't want to have to deal with profiling on edges from invokes
-          // that lead to landing pads.  Since invokes always have two successors,
-          // make sure the edge we use is the non-exception edge
           TreeNodes.insert(E.second);
           MaxSpanningTree.insert(E);
           break;
         }
         // c1 == 0, c2 == 1
         else if (c1 < c2) {
-          // We don't want to have to deal with profiling on edges from invokes
-          // that lead to landing pads.  Since invokes always have two successors,
-          // make sure the edge we use is the non-exception edge
           TreeNodes.insert(E.first);
           MaxSpanningTree.insert(E);
           break;
