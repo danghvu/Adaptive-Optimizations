@@ -170,13 +170,17 @@ void* JITProfileData::FunctionCallback(Function* F) {
     FunctionPassManager* FPM = new FunctionPassManager(F->getParent());
 
     // Add JITBBProfilingPass and its dependencies
-    FPM->add(new LoopInfo());
+//    FPM->add(new LoopInfo());
+//    fprintf(stderr, "BEFORE ADDING PROFILING:\n");
+//    F->dump();
     FPM->add(createUnifyFunctionExitNodesPass());
     FPM->add(createJITBBProfilingPass(this));
     FPM->doInitialization();
     FPM->run(*F);
     FPM->doFinalization();
 
+//    fprintf(stderr, "AFTER ADDING PROFILING:\n");
+//    F->dump();
     // At this point, the edges with and without profiling instructions for F will
     // be populated in ProfileEdges and NonProfileEdges
     initializeEdgeCounts(F);
@@ -213,6 +217,8 @@ void* JITProfileData::FunctionCallback(Function* F) {
   if (changed ) {
     DEBUG(dbgs() << "stat == T2 for function: " << F->getName() << "\n");
     TheJIT->recompileAndRelinkFunction(F);
+//    fprintf(stderr, "AFTER RECOMPILING:\n");
+//    F->dump();
   }
 
   gettimeofday(&t2, NULL);

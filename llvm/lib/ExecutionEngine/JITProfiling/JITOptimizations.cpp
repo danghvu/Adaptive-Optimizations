@@ -87,8 +87,8 @@ namespace llvm {
     this->LI        = &getAnalysis<LoopInfo>();
     bool changed = false;
 
-//    fprintf(stderr, "BEFORE: \n");
-//    F.dump();
+    //fprintf(stderr, "BEFORE: \n");
+    //F.dump();
 
     FPM = new FunctionPassManager(F.getParent());
 
@@ -107,6 +107,7 @@ namespace llvm {
     //  - SROA
     FPM->add(createDynamicInlinerPass(JPD));
     FPM->add(createAggressiveDCEPass());
+    FPM->add(createCFGSimplificationPass());
     FPM->add(createDeadStoreEliminationPass());
     FPM->add(createInstructionCombiningPass());
 // Loop stuff:
@@ -120,8 +121,8 @@ namespace llvm {
     changed = changed | FPM->run(F);
     changed = changed | FPM->doFinalization();
 
-//    fprintf(stderr, "After: \n");
-//    F.dump();
+    //fprintf(stderr, "After: \n");
+    //F.dump();
     return changed;
   }
 } // llvm namespace

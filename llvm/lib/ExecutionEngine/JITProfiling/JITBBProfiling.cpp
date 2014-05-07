@@ -19,6 +19,7 @@
 
 #include "llvm/ExecutionEngine/JITProfileData.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
+#include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Analysis/LoopInfo.h"
@@ -340,32 +341,20 @@ namespace llvm {
       DEBUG( dbgs() << "Removing Instruction: "; (*I)->dump());
       (*I)->eraseFromParent();
     }
-/*
-    // Go through any basic blocks we added, replace any phi functions, and remove the block
+
+    std::vector<BasicBlock*> worklist;
+
+    // Go through any basic blocks we added
     for (BlockSet::iterator I = ProfileBlocks.begin(), E = ProfileBlocks.end(); I != E; ++I) {
       if ((*I)->getName().str().find("ProfileBB") != std::string::npos) {
-        BasicBlock* pred = *pred_begin(*I);
-        BasicBlock* succ = *succ_begin(*I);
-
-        fprintf(stderr, "HERE\n");
-        for (BasicBlock::iterator II = succ->begin(), IE = succ->end(); II != IE; ++II) {
-          PHINode* PN = dyn_cast<PHINode>(II);
-          if (!PN)
-            break;
-          int i;
-          while ((i = PN->getBasicBlockIndex(*I)) >= 0)
-            PN->setIncomingBlock(i, pred);
-        }
-
-        TerminatorInst* PredTerm = pred->getTerminator();
-        for (int i = 0; i < PredTerm->getNumSuccessors(); ++i) {
-          if (PredTerm->getSuccessor(i) == (*I)) {
-            PredTerm->setSuccessor(i, succ);
-          }
-        }
+        worklist.push_back(*I);
+        // Merge the block into it's predecessor
+//        MergeBlockIntoPredecessor(*I);
       }
     }
-*/
+
+    for (std::vector<BasicBlock*>::iterator I = worklist.begin(), E = worklist.end(); I != E; ++I)
+      MergeBlockIntoPredecessor(*I);
     DEBUG( dbgs() << "\n*** Done removing profiling ***\n\n" );
   }
 
