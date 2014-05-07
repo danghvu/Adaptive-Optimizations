@@ -71,7 +71,7 @@ namespace llvm {
     //   Methods
     // -------------------------------------------------------------------------------- //
     virtual void getAnalysisUsage(AnalysisUsage& AU) const {
-      AU.addRequired<LoopInfo>();
+      // AU.addRequired<LoopInfo>();
     }
   };
 
@@ -84,7 +84,7 @@ namespace llvm {
   }
 
   bool JITOptimizations::runOnFunction(Function& F) {
-    this->LI        = &getAnalysis<LoopInfo>();
+    // this->LI        = &getAnalysis<LoopInfo>();
     bool changed = false;
 
     //fprintf(stderr, "BEFORE: \n");
@@ -105,6 +105,7 @@ namespace llvm {
     //  - SCCP
     //  - Simplify CFG
     //  - SROA
+    // F.dump();
     FPM->add(createDynamicInlinerPass(JPD));
     FPM->add(createAggressiveDCEPass());
     FPM->add(createCFGSimplificationPass());

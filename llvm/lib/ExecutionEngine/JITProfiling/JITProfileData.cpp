@@ -174,6 +174,7 @@ void* JITProfileData::FunctionCallback(Function* F) {
 //    fprintf(stderr, "BEFORE ADDING PROFILING:\n");
 //    F->dump();
     FPM->add(createUnifyFunctionExitNodesPass());
+    FPM->add(createBreakCriticalEdgesPass());
     FPM->add(createJITBBProfilingPass(this));
     FPM->doInitialization();
     FPM->run(*F);

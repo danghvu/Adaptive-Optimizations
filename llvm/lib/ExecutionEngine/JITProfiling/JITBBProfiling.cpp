@@ -22,6 +22,7 @@
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 #include "llvm/Transforms/IPO.h"
+#include "llvm/Transforms/Scalar.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/ADT/DepthFirstIterator.h"
@@ -141,6 +142,7 @@ namespace llvm {
     //   Methods
     // -------------------------------------------------------------------------------- //
     virtual void getAnalysisUsage(AnalysisUsage& AU) const {
+      AU.addRequiredID(BreakCriticalEdgesID);
       AU.addRequired<UnifyFunctionExitNodes>();
       AU.addRequired<LoopInfo>();
     }
@@ -342,6 +344,7 @@ namespace llvm {
       (*I)->eraseFromParent();
     }
 
+    /*
     std::vector<BasicBlock*> worklist;
 
     // Go through any basic blocks we added
@@ -355,6 +358,7 @@ namespace llvm {
 
     for (std::vector<BasicBlock*>::iterator I = worklist.begin(), E = worklist.end(); I != E; ++I)
       MergeBlockIntoPredecessor(*I);
+    */
     DEBUG( dbgs() << "\n*** Done removing profiling ***\n\n" );
   }
 
