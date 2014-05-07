@@ -335,14 +335,41 @@ namespace llvm {
     if (ProfileEdges.size() == 0) return;
 
     DEBUG( dbgs() << "\n*** Removing profiling ***\n" );
-    for (BlockSet::iterator BSI = ProfileBlocks.begin(), BSE = ProfileBlocks.end(); BSI != BSE; ++BSI) {
-      DEBUG( dbgs() << "Managing branches from BB : " << (*BSI)->getName() << "\n" );
-      replaceBranches(*BSI);
-    }
-
+    // Remove any instructions we inserted
     for (InstructionSet::iterator I = ProfileInsts.begin(), E = ProfileInsts.end(); I != E; ++I) {
       DEBUG( dbgs() << "Removing Instruction: "; (*I)->dump());
       (*I)->eraseFromParent();
+    }
+
+    // Go through any basic blocks we added, replace any phi functions, and remove the block
+    for (BlockSet::iterator I = ProfileBlocks.begin(), E = ProfileBlocks.end(); I != E; ++I) {
+      if ((*I)->getName().str().find("ProfileBB") != std::string::npos) {
+        BasicBlock* pred = *pred_begin(*I);
+        BasicBlock* succ = *succ_begin(*I);
+
+        for (BasicBlock::iterator II = succ->begin(), IE = succ->end(); II != IE; ++II) {
+          PHINode* PN = dyn_cast<PHINode>(II);
+          if (!PN)
+            break;
+          int i;
+          while ((i = PN->getBasicBlockIndex(*I)) >= 0)
+            PN->setIncomingBlock(i, pred);
+        }
+
+        TerminatorInst* PredTerm = pred->getTerminator();
+        for (int i = 0; i < PredTerm->getNumSuccessors(); ++i) {
+          if (PredTerm->getSuccessor(i) == (*I)) {
+            PredTerm->setSuccessor(i, succ);
+          }
+        }/*
+        if (InvokeInst* InvInst = dyn_cast<InvokeInst>(PredTerm)) {
+          if (InvInst->getNormalDest() == *I)
+            InvInst->setNormalDest(succ);
+          if (InvInst->getUnwindDest() == *I)
+            InvInst->setUnwindDest(succ);
+        }*/
+        (*I)->eraseFromParent();
+      }
     }
 
     DEBUG( dbgs() << "\n*** Done removing profiling ***\n\n" );
@@ -454,8 +481,6 @@ namespace llvm {
 
       // Insert the instructions
       if (B == E1) {
-        // Remove the old branch and push all of the instructions just created onto E1
-        // (the old and new branch are exactly the same, btw)
         B->getInstList().pop_back();
         B->getInstList().push_back(EdgeInst);
         B->getInstList().push_back(FuncCall);
@@ -468,6 +493,13 @@ namespace llvm {
       }
       else if (B == E2) {
         // Push everything to the front of E2 (everything has to be pushed in reverse)
+
+        // If the first instruction is a landing pad, we need to move the counter to AFTER the landing pad
+/*        if (LandingPadInst* LPI = dyn_cast<LandingPadInst>(B->getInstList().front())) {
+          B->getInstList().insertAfter(B->getInstList().begin(), EdgeInst);
+          B->getInstList().insertAfter(B->getInstList().begin(), FuncCall);
+        }
+*/
         B->getInstList().push_front(FuncCall);
         B->getInstList().push_front(EdgeInst);
 
@@ -479,11 +511,11 @@ namespace llvm {
       else {
         // Otherwise the instructions go into the new basic block and we need to move E1 and
         // E2 into the correct locations
-        Instruction* temp = BranchInst::Create(E2);
         B->moveAfter(E1);
         B->getInstList().push_back(EdgeInst);
         B->getInstList().push_back(FuncCall);
-        B->getInstList().push_back(temp);
+        B->getInstList().push_back(BranchInst::Create(E2));
+
         E2->moveAfter(B);
 
         ProfileInsts.push_back(FuncCall);
@@ -536,10 +568,22 @@ namespace llvm {
 
     SmallVector<EdgeWeight, 16> Backup;
 
+    // We need to make sure no invoke()/landingpad edges contain profiling, so
+    // add the non-exception edges FIRST to prevent infinite loops
+    for (Function::iterator FI = F->begin(), FE = F->end(); FI != FE; ++FI) {
+      if (InvokeInst* InvInst = dyn_cast<InvokeInst>(FI->getTerminator())) {
+        E = std::make_pair(FI, InvInst->getUnwindDest());
+        TreeNodes.insert(E.first);
+        TreeNodes.insert(E.second);
+        MaxSpanningTree.insert(E);
+      }
+    }
+
     // This does not include unreachable basic blocks
     unsigned numBB = BlockWeights.size();
     while (TreeNodes.size() != numBB) {
       while (true) {
+        //fprintf(stderr, "while\n");
         EW = EdgePQ.top();
         E  = EW.first;
         EdgePQ.pop();
@@ -547,12 +591,18 @@ namespace llvm {
         unsigned c2 = TreeNodes.count(E.second);
         // c1 == 1, c2 == 0
         if (c1 > c2) {
+          // We don't want to have to deal with profiling on edges from invokes
+          // that lead to landing pads.  Since invokes always have two successors,
+          // make sure the edge we use is the non-exception edge
           TreeNodes.insert(E.second);
           MaxSpanningTree.insert(E);
           break;
         }
         // c1 == 0, c2 == 1
         else if (c1 < c2) {
+          // We don't want to have to deal with profiling on edges from invokes
+          // that lead to landing pads.  Since invokes always have two successors,
+          // make sure the edge we use is the non-exception edge
           TreeNodes.insert(E.first);
           MaxSpanningTree.insert(E);
           break;

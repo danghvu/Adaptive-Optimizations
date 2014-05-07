@@ -105,7 +105,6 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
     return 0;
   }
 
-
   DEBUG( dbgs() << "Inside BB callback " << B->first->getName() << " -> " << B->second->getName() << "\n" );
 
   // Get the edge that the profiling exists on
@@ -154,7 +153,7 @@ void* JITProfileData::FunctionCallback(Function* F) {
   FuncFreq[F] += 1;
 
   // If the updated frequency doesn't reach the T1 threshold, continue execution
-  int stat = FuncFreq[F];
+  unsigned int stat = FuncFreq[F];
   if (stat < getThresholdT1()) {
     gettimeofday(&t2, NULL);
     fc_time += (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
