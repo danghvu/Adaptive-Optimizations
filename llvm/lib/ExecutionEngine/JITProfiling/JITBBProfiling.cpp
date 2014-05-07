@@ -343,22 +343,6 @@ namespace llvm {
       DEBUG( dbgs() << "Removing Instruction: "; (*I)->dump());
       (*I)->eraseFromParent();
     }
-
-    /*
-    std::vector<BasicBlock*> worklist;
-
-    // Go through any basic blocks we added
-    for (BlockSet::iterator I = ProfileBlocks.begin(), E = ProfileBlocks.end(); I != E; ++I) {
-      if ((*I)->getName().str().find("ProfileBB") != std::string::npos) {
-        worklist.push_back(*I);
-        // Merge the block into it's predecessor
-//        MergeBlockIntoPredecessor(*I);
-      }
-    }
-
-    for (std::vector<BasicBlock*>::iterator I = worklist.begin(), E = worklist.end(); I != E; ++I)
-      MergeBlockIntoPredecessor(*I);
-    */
     DEBUG( dbgs() << "\n*** Done removing profiling ***\n\n" );
   }
 
@@ -401,7 +385,6 @@ namespace llvm {
     F->getEntryBlock().getInstList().push_front(LLVMFInst);
     numInsertedInsts += 3;
 
-    int i = 0;
     bool insertedInsts = false;
 
     for (EdgePtrSet::iterator I = ProfileEdges.begin(), E = ProfileEdges.end(); I != E; ++I) {
@@ -422,31 +405,8 @@ namespace llvm {
         // the profiling instructions at the beginning of E2
         else if (E2->getSinglePredecessor())
           B = E2;
-        // Otherwise we need to create a new basic block for the profiling instructions
-        else {
-          char str[20];
-          sprintf(str, "ProfileBB%d", i);
-          B = BasicBlock::Create(F->getContext(), Twine(str), F, E2);
-
-          // Replace any phi nodes that use E1 in E2 since B will be the new predecessor of E2
-          for (BasicBlock::iterator II = E2->begin(), IE = E2->end(); II != IE; ++II) {
-            PHINode* PN = dyn_cast<PHINode>(II);
-            if (!PN)
-              break;
-            int i;
-            while ((i = PN->getBasicBlockIndex(E1)) >= 0)
-              PN->setIncomingBlock(i, B);
-          }
-
-          // Change the successor E1->E2 to be E1->B
-          int numSuccessors = TI->getNumSuccessors();
-          for (int j = 0; j < numSuccessors; ++j) {
-            if (E2 == TI->getSuccessor(j))
-              TI->setSuccessor(j, B);
-          }
-          ++i;
-          ++numInsertedBB;
-        }
+        else
+          assert( 0 && "Critical Edge found, should have applied spliting first"  );
       }
       else {
         assert(0 && "Not well-formed basic block!\n");
@@ -480,13 +440,6 @@ namespace llvm {
       }
       else if (B == E2) {
         // Push everything to the front of E2 (everything has to be pushed in reverse)
-
-        // If the first instruction is a landing pad, we need to move the counter to AFTER the landing pad
-/*        if (LandingPadInst* LPI = dyn_cast<LandingPadInst>(B->getInstList().front())) {
-          B->getInstList().insertAfter(B->getInstList().begin(), EdgeInst);
-          B->getInstList().insertAfter(B->getInstList().begin(), FuncCall);
-        }
-*/
         B->getInstList().push_front(FuncCall);
         B->getInstList().push_front(EdgeInst);
 
@@ -494,21 +447,6 @@ namespace llvm {
         ProfileInsts.push_back(EdgeInst);
 
         numInsertedInsts += 2;
-      }
-      else {
-        // Otherwise the instructions go into the new basic block and we need to move E1 and
-        // E2 into the correct locations
-        B->moveAfter(E1);
-        B->getInstList().push_back(EdgeInst);
-        B->getInstList().push_back(FuncCall);
-        B->getInstList().push_back(BranchInst::Create(E2));
-
-        E2->moveAfter(B);
-
-        ProfileInsts.push_back(FuncCall);
-        ProfileInsts.push_back(EdgeInst);
-
-        numInsertedInsts += 3;
       }
       ProfileBlocks.insert(B);
     }
