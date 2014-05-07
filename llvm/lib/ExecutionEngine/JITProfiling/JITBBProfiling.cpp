@@ -340,13 +340,14 @@ namespace llvm {
       DEBUG( dbgs() << "Removing Instruction: "; (*I)->dump());
       (*I)->eraseFromParent();
     }
-
+/*
     // Go through any basic blocks we added, replace any phi functions, and remove the block
     for (BlockSet::iterator I = ProfileBlocks.begin(), E = ProfileBlocks.end(); I != E; ++I) {
       if ((*I)->getName().str().find("ProfileBB") != std::string::npos) {
         BasicBlock* pred = *pred_begin(*I);
         BasicBlock* succ = *succ_begin(*I);
 
+        fprintf(stderr, "HERE\n");
         for (BasicBlock::iterator II = succ->begin(), IE = succ->end(); II != IE; ++II) {
           PHINode* PN = dyn_cast<PHINode>(II);
           if (!PN)
@@ -361,17 +362,10 @@ namespace llvm {
           if (PredTerm->getSuccessor(i) == (*I)) {
             PredTerm->setSuccessor(i, succ);
           }
-        }/*
-        if (InvokeInst* InvInst = dyn_cast<InvokeInst>(PredTerm)) {
-          if (InvInst->getNormalDest() == *I)
-            InvInst->setNormalDest(succ);
-          if (InvInst->getUnwindDest() == *I)
-            InvInst->setUnwindDest(succ);
-        }*/
-        (*I)->eraseFromParent();
+        }
       }
     }
-
+*/
     DEBUG( dbgs() << "\n*** Done removing profiling ***\n\n" );
   }
 
