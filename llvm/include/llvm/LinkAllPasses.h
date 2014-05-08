@@ -154,7 +154,6 @@ namespace {
       (void) llvm::createSLPVectorizerPass();
       (void) llvm::createBBVectorizePass();
       (void) llvm::createPartiallyInlineLibCallsPass();
-      (void) llvm::createDynamicInlinerPass();
 
       (void)new llvm::IntervalPartition();
       (void)new llvm::FindUsedTypes();
