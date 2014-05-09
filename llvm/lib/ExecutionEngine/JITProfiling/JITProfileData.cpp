@@ -120,6 +120,9 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
       delete JFD->FPM;
       JFD->removedProfiling = true;
       TheJIT->recompileAndRelinkFunction(F);
+
+      gettimeofday(&t2, NULL);
+      bb_time += (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
       return 0;
     }
 
