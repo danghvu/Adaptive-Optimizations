@@ -16,7 +16,6 @@
 
 #define DEBUG_TYPE "dynamicinliner"
 
-// TODO: Figure out which headers are needed
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/InlineCost.h"
 #include "llvm/ExecutionEngine/JITOptimization.h"
@@ -28,20 +27,18 @@
 #include "llvm/Support/CallSite.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#include "llvm/Transforms/IPO.h"
-#include "llvm/Transforms/Utils/Local.h"
 
 #include <vector>
 
 using namespace llvm;
 
-STATISTIC(numInlinedCallSites, "Number of CallSites inlined");
+STATISTIC(numDynamicInlines, "Number of call sites dynamically inlined");
 
 namespace {
   class DynamicInliner : public FunctionPass {
   public:
     static char ID;
-    DynamicInliner() : FunctionPass(ID) {
+    DynamicInliner() : FunctionPass(ID), data(NULL) {
       initializeDynamicInlinerPass(*PassRegistry::getPassRegistry());
     }
 
@@ -64,37 +61,32 @@ namespace {
 }
 
 char DynamicInliner::ID = 0;
-// TODO: Make sure the last two params are correct
 INITIALIZE_PASS(DynamicInliner, "dynamicinliner", "Mikida2-Profiling", false, false)
 FunctionPass *llvm::createDynamicInlinerPass(JITProfileData* data) { return new DynamicInliner(data); }
 
 bool DynamicInliner::runOnFunction(Function& F) {
+  if (!data) return false;
+
+  DEBUG( dbgs() << "DynamicInliner: Attempting to inline calls in " << F.getName() << "\n" );
   bool changed = false;
-  DEBUG( dbgs() << "Inlining ... " << F.getName() << "\n" );
 
   std::vector<BasicBlock*> wl;
-  //fprintf(stderr, "1\n");
   for (Function::iterator I = F.begin(); I != F.end(); I++) {
-    //fprintf(stderr, "Block: ");
-    //I->dump();
-    if (data == NULL || (data->getBlockMap().count(I) && data->getBlockMap().find(I)->second >= data->getThresholdT2())) {
-      wl.push_back(&*I);
-    }
+    wl.push_back(&*I);
   }
-  //fprintf(stderr, "2\n");
 
   for (std::vector<BasicBlock*>::iterator II = wl.begin(), IE = wl.end(); IE != II; ++II) {
     changed = changed | runOnBasicBlock(*(*II));
   }
-  //fprintf(stderr, "3\n");
 
-  DEBUG( dbgs() << "Finished .. \n" );
+  DEBUG( dbgs() << "DynamicInliner: Finished with " << F.getName() << "\n" );
   return changed;
 }
 
 bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
-  DEBUG( dbgs() << "DynamicInliner: Attempting to inline calls in " << B.getName() << "\n" );
+  if (!data) return false;
 
+  DEBUG( dbgs() << "DynamicInliner: Attempting to inline calls in " << B.getName() << "\n" );
   bool changed = false;
 
   std::vector<CallSite> worklist;
@@ -110,15 +102,25 @@ bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
   for (std::vector<CallSite>::iterator I = worklist.begin(); I!=worklist.end(); I++) {
     if (!shouldInline(*I)) continue;
     if (!attemptToInline(*I)) continue;
-    numInlinedCallSites++;
+    numDynamicInlines++;
     changed = true;
   }
 
+  DEBUG( dbgs() << "DynamicInliner: Finished with " << B.getName() << "\n" );
   return changed;
 }
 
+// For now this function just checks to see if the BasicBlock containing the
+// call site has hit the threshold. If so, always inline, otherwise don't.
 InlineCost DynamicInliner::getInlineCost(CallSite CS) {
-  return InlineCost::getAlways();
+  unsigned freq = 0;
+  BasicBlock* B = CS.getInstruction()->getParent();
+  if (data->getBlockMap().count(B)) {
+    freq = data->getBlockMap().find(B)->second;
+  }
+
+  if (freq >= data->getThresholdT2()) return InlineCost::getAlways();
+  else return InlineCost::getNever();
 }
 
 bool DynamicInliner::shouldInline(CallSite CS) {
@@ -126,18 +128,11 @@ bool DynamicInliner::shouldInline(CallSite CS) {
   if (IC.isAlways()) {
     return true;
   }
-  if (IC.isNever()) {
-    return false;
-  }
-  if (!IC) {
-    return false;
-  }
 
-  return true;
+  return false;
 }
 
 bool DynamicInliner::attemptToInline(CallSite CS) {
-  // TODO: Make sure the params are corrent
   InlineFunctionInfo Info;
   if (!InlineFunction(CS, Info)) return false;
   return true;
