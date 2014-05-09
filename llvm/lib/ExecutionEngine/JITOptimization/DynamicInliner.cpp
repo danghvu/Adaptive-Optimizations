@@ -38,17 +38,16 @@ namespace {
   class DynamicInliner : public FunctionPass {
   public:
     static char ID;
-    DynamicInliner() : FunctionPass(ID), data(NULL), tolerance(1.0) {
+    DynamicInliner() : FunctionPass(ID), data(NULL) {
       initializeDynamicInlinerPass(*PassRegistry::getPassRegistry());
     }
 
-    DynamicInliner(JITProfileData* data) : FunctionPass(ID), data(data), tolerance(1.0) {
+    DynamicInliner(JITProfileData* data) : FunctionPass(ID), data(data) {
       initializeDynamicInlinerPass(*PassRegistry::getPassRegistry());
     }
 
   private:
     JITProfileData* data;
-    double tolerance;
 
     virtual bool runOnFunction(Function& F);
     virtual bool runOnBasicBlock(BasicBlock& B);
@@ -120,7 +119,7 @@ InlineCost DynamicInliner::getInlineCost(CallSite CS) {
     freq = data->getBlockMap().find(B)->second;
   }
 
-  if (freq >= data->getThresholdT2() * tolerance) return InlineCost::getAlways();
+  if (freq >= data->getThresholdT2()) return InlineCost::getAlways();
   else return InlineCost::getNever();
 }
 
