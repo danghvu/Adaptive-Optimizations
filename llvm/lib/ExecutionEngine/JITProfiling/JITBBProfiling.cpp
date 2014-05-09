@@ -1,4 +1,4 @@
-//===- DCE.cpp - Code to perform dead code elimination --------------------===//
+//===- JITBBProfiling.cpp - Code to insert and remove profiling -----------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,10 +7,13 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the Aggressive Dead Code Elimination pass.  This pass
-// optimistically assumes that all instructions are dead until proven otherwise,
-// allowing it to eliminate dead computations that other DCE passes do not
-// catch, particularly involving loop computations.
+// This file implements the optimal placement of profiling instructions for
+// profiling the function of a program as described in "Optimally Profiling and
+// Tracing Programs" [T Ball et al, 1994].  The pass requires LoopInfo,
+// UnifyFunctionExitNodes, and BreakCriticalEdges.  By requiring BreakCritical-
+// Edges, we guarantee that the original CFG is preserved.  The instructions
+// inserted are to perform JITProfileData->BasicBlockCallback() every time the
+// instructions are executed.
 //
 //===----------------------------------------------------------------------===//
 
@@ -43,10 +46,10 @@
 #include <queue>
 #include <vector>
 #include <string>
+#include <sys/time.h>
 
 using namespace llvm;
 
-// TODO: Is this needed?
 //STATISTIC(numInsertedBB, "Number of profiling basic blocks inserted");
 STATISTIC(numInsertedInsts, "Number of profiling instructions inserted");
 
@@ -55,12 +58,11 @@ namespace llvm {
   typedef std::pair<BasicBlock*, BasicBlock*> Edge;
   typedef std::pair<Edge, float>              EdgeWeight;
   typedef SetVector<Edge>                     EdgeSet;
-  typedef SetVector<Edge*>                    EdgePtrSet;
   typedef SetVector<BasicBlock*>              BlockSet;
+  typedef SetVector<Edge*>                    EdgePtrSet;
   typedef std::vector<Instruction*>           InstructionSet;
   typedef std::map<Edge, float>               EdgeWeightMap;
   typedef std::map<BasicBlock*, float>        BlockWeightMap;
-  typedef std::map<BasicBlock*, BlockSet>     BlockMap;
 
   void* JITBasicBlockCallback(JITProfileData* JPD, Edge* E, Function* F) {
     return JPD->BasicBlockCallback(E, F);
@@ -71,11 +73,13 @@ namespace llvm {
 
   public:
     static char ID;
-    JITBBProfiling() : FunctionPass(ID) {};
-    JITBBProfiling(JITProfileData* _JPD) : FunctionPass(ID) {
-      JPD = _JPD;
-      // initializeJITBBProfilingPass(*PassRegistry::getPassRegistry());
-    }
+    JITBBProfiling() : FunctionPass(ID) {
+      weight_time = 0.0;
+      tree_time = 0.0;
+      insert_time = 0.0;
+      total_time = 0.0;
+    };
+    JITBBProfiling(JITProfileData* _JPD) : FunctionPass(ID), JPD(_JPD) {}
     virtual bool runOnFunction(Function& F);
 
     virtual ~JITBBProfiling() {
@@ -124,6 +128,12 @@ namespace llvm {
     // set of insertion edges (based on edge weight)
     EdgeSet        MaxSpanningTree;
 
+    // Timing variables for each portion of the pass
+    double weight_time;
+    double tree_time;
+    double insert_time;
+    double total_time;
+
     // The comparator structure used for the priority queue during generating
     // the max spanning tree
     struct EdgeWeightCompare {
@@ -140,7 +150,7 @@ namespace llvm {
     //   Methods
     // -------------------------------------------------------------------------------- //
     virtual void getAnalysisUsage(AnalysisUsage& AU) const {
-      // This needs to be here so we don't have to add any new basic blocks
+      // BreakCriticalEdges is required so we don't have to add any new basic blocks.
       // During testing, we found many problems with having our own basic blocks (i.e.
       // instructions were moved to our blocks before removing profiling, causing
       // optimizations like simplifycfg and dse to segfault
@@ -158,7 +168,7 @@ namespace llvm {
     void constructMaxSpanTree();
 
     // Method for inserting the instructions based on the max spanning tree
-    // Note that unreachable edges won't be 
+    // Note that unreachable edges won't be added
     bool insertInstructions();
 
     // Methods for removing profiling instructions
@@ -174,6 +184,7 @@ namespace llvm {
     void printEdge(Edge E);
     void printEdge(Edge E, float F);
     void printEdge(Edge E, unsigned U);
+    void printTiming();
   };
 
   char JITBBProfiling::ID = 0;
@@ -185,6 +196,9 @@ namespace llvm {
   }
 
   bool JITBBProfiling::runOnFunction(Function& F) {
+    struct timeval t1, t2;
+    gettimeofday(&t1, NULL);
+
     this->F         = &F;
     this->LI        = &getAnalysis<LoopInfo>();
     this->ExitBB = getAnalysis<UnifyFunctionExitNodes>().getReturnBlock();
@@ -194,23 +208,31 @@ namespace llvm {
 
     // If the function only has one basic block, we don't need profiling
     if (F.size() == 1) {
-      DEBUG( dbgs() << "Function " << F.getName() << " does not need BB profiling [has single BB]!\n" );
+      DEBUG( dbgs() << "[JITBBProfilingPass] function <" << F.getName() << "> does not need profiling\n" );
       return false;
     }
 
     // TODO: Time-permitting: move getWeights() and constructMaxSpanTree() to a separate analysis pass
     getWeights();
     constructMaxSpanTree();
+    bool changed = insertInstructions();
 
-    DEBUG( dbgs() << "[JITBBProfilingPass] Results for function:" );
+    gettimeofday(&t2, NULL);
+    total_time = (double)(t2.tv_usec - t1.tv_usec)/1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
+
+    DEBUG( dbgs() << "[JITBBProfilingPass] Results for function <" << F.getName() << ">\n");
     printAllWeights();
     printMaxSpanTree();
     printInsertionEdges();
+    printTiming();
     DEBUG( dbgs() << "[JITBBProfilingPass]\n" );
-    return insertInstructions();
+    return changed;
   }
 
   void JITBBProfiling::getWeights() {
+    struct timeval t1, t2;
+    gettimeofday(&t1, NULL);
+
     // Initialize the Exit->Entry edge to have a weight of 1.0
     Edge ExitEntryEdge = std::make_pair(ExitBB, &F->getEntryBlock());
     Edge tempEdge;
@@ -273,11 +295,10 @@ namespace llvm {
         }
       }
 
-      // TODO: Find a quicker way to get the number of successors
-      int num_succ = 0;
-      for (succ_iterator SI = succ_begin(CurrentBlock), SE = succ_end(CurrentBlock); SI != SE; ++SI) {
-        num_succ += 1;
-      }
+      int num_succ = CurrentBlock->getTerminator()->getNumSuccessors();
+//      for (succ_iterator SI = succ_begin(CurrentBlock), SE = succ_end(CurrentBlock); SI != SE; ++SI) {
+//        num_succ += 1;
+//      }
 
       int   num_succ_lee = 0;   // Number of loop-edge exits
       float w_e          = 0.0; // loop-edge weights to successors of b
@@ -317,21 +338,24 @@ namespace llvm {
 
       VisitedBlocks.insert(CurrentBlock);
     }
+
+    gettimeofday(&t2, NULL);
+    weight_time = (double)(t2.tv_usec - t1.tv_usec)/1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
   }
 
   void JITBBProfiling::removeInstructions() {
     if (ProfileEdges.size() == 0) return;
 
-    DEBUG( dbgs() << "\n*** Removing profiling ***\n" );
     // Remove any instructions we inserted
     for (InstructionSet::iterator I = ProfileInsts.begin(), E = ProfileInsts.end(); I != E; ++I) {
-      DEBUG( dbgs() << "Removing Instruction: "; (*I)->dump());
       (*I)->eraseFromParent();
     }
-    DEBUG( dbgs() << "\n*** Done removing profiling ***\n\n" );
   }
 
   bool JITBBProfiling::insertInstructions() {
+    struct timeval t1, t2;
+    gettimeofday(&t1, NULL);
+
     ProfileBlocks.clear();
 
     // Create a pointer type of size sizeof(void*)
@@ -391,7 +415,7 @@ namespace llvm {
         else if (E2->getSinglePredecessor())
           B = E2;
         else
-          assert( 0 && "Critical Edge found, should have applied spliting first"  );
+          assert( 0 && "Critical Edge found, should have applied splitting first" );
       }
       else {
         assert(0 && "Not well-formed basic block!\n");
@@ -433,10 +457,15 @@ namespace llvm {
 
         numInsertedInsts += 2;
       }
+      else {
+        assert(0 && "Somehow B didn't get the correct value" );
+      }
       ProfileBlocks.insert(B);
     }
 
     // If we inserted no profiling code, remove the inttoptr instructions in the entry block
+    // This can happen if there are more than one basic blocks in a function, but only
+    // one block is reachable (the entry block)
     if (!insertedInsts) {
       F->getEntryBlock().getInstList().pop_front();
       F->getEntryBlock().getInstList().pop_front();
@@ -448,6 +477,9 @@ namespace llvm {
       ProfileInsts.push_back(JPDInst);
       ProfileInsts.push_back(LLVMFInst);
     }
+
+    gettimeofday(&t2, NULL);
+    insert_time = (double)(t2.tv_usec - t1.tv_usec)/1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
 
     return insertedInsts;
   }
@@ -461,6 +493,9 @@ namespace llvm {
   }
 
   void JITBBProfiling::constructMaxSpanTree() {
+    struct timeval t1, t2;
+    gettimeofday(&t1, NULL);
+
     Edge E;
     EdgeWeight EW;
 
@@ -479,7 +514,8 @@ namespace llvm {
     SmallVector<EdgeWeight, 16> Backup;
 
     // We need to make sure no invoke()/landingpad edges contain profiling, so
-    // add the non-exception edges FIRST to prevent infinite loops
+    // add the non-exception edges FIRST to prevent infinite loops in this
+    // construction
     // TODO: Make sure the invoke()/normaldest edge is reachable!
     for (Function::iterator FI = F->begin(), FE = F->end(); FI != FE; ++FI) {
       if (InvokeInst* InvInst = dyn_cast<InvokeInst>(FI->getTerminator())) {
@@ -494,7 +530,6 @@ namespace llvm {
     unsigned numBB = BlockWeights.size();
     while (TreeNodes.size() != numBB) {
       while (true) {
-        //fprintf(stderr, "while\n");
         EW = EdgePQ.top();
         E  = EW.first;
         EdgePQ.pop();
@@ -533,6 +568,9 @@ namespace llvm {
         JPDNonProfileEdges->insert(*temp);
       }
     }
+
+    gettimeofday(&t2, NULL);
+    tree_time = (double)(t2.tv_usec - t1.tv_usec)/1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
   }
 
   void JITBBProfiling::printAllWeights() {
@@ -571,5 +609,13 @@ namespace llvm {
 
   void JITBBProfiling::printEdge(Edge E, unsigned U) {
     DEBUG( dbgs() <<  E.first->getName() << ": " << E.second->getName() << " " << U << "\n" );
+  }
+
+  void JITBBProfiling::printTiming() {
+    DEBUG( dbgs() << "**** Timing results ****\n" );
+    DEBUG( dbgs() << "Weight generation: " << weight_time << "\n" );
+    DEBUG( dbgs() << "Tree construction: " << tree_time << "\n" );
+    DEBUG( dbgs() << "Inst Insertion:    " << insert_time << "\n" );
+    DEBUG( dbgs() << "Total:             " << total_time << "\n" );
   }
 } // llvm namespace

@@ -1,4 +1,4 @@
-//===- DCE.cpp - Code to perform dead code elimination --------------------===//
+//===- JITFunctionProfiling.cpp - Code to insert and remove profiling -----===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,15 +7,14 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the Aggressive Dead Code Elimination pass.  This pass
-// optimistically assumes that all instructions are dead until proven otherwise,
-// allowing it to eliminate dead computations that other DCE passes do not
-// catch, particularly involving loop computations.
+// This pass inserts profiling instructions in the beginning of the function
+// to perform a callback to the JITProfileData->FunctionCallback() function
+// every time the function is executed.
 //
 //===----------------------------------------------------------------------===//
 
-#define DEBUG_TYPE "jitfprofiling"
 // this name is used when -stats is used
+#define DEBUG_TYPE "jitfprofiling"
 
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/JITProfileData.h"
@@ -34,6 +33,7 @@
 #include <stdio.h>
 #include <string>
 #include <functional>
+#include <sys/time.h>
 
 using namespace llvm;
 
@@ -62,9 +62,15 @@ namespace {
         callBackInst.clear();
       }
 
-      virtual void getAnalysisUsage(AnalysisUsage& AU) const {}
+      virtual void getAnalysisUsage(AnalysisUsage& AU) const {
+        AU.setPreservesCFG();  
+      }
 
       virtual bool runOnFunction(Function &F) {
+        double time = 0.0;
+        struct timeval t1, t2;
+        gettimeofday(&t1, NULL);
+
         numInsertedCallbackFunc++;
 
         // Create a pointer type of size sizeof(void*)
@@ -112,7 +118,11 @@ namespace {
         callBackInst.push_back(JPDInst);
         callBackInst.push_back(CallbackInst);
 
-        DEBUG( dbgs() << "[JITProfiling] Inserted Callback to " << F.getName() << "\n" );
+        gettimeofday(&t2, NULL);
+        time += (double)(t2.tv_usec - t1.tv_usec)/1000000.0 + (double)(t2.tv_sec - t1.tv_sec);
+
+        DEBUG( dbgs() << "[JITProfiling] Inserted Callback function for <" << F.getName() << ">\n" );
+        DEBUG( dbgs() << "*** Total time: <" << time << " ***\n" );
         return true;
       }
 

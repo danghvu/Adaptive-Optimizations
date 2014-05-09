@@ -1,4 +1,4 @@
-//===- DCE.cpp - Code to perform dead code elimination --------------------===//
+//===- JITProfileData.cpp - Object for containing profiling info ----------===//
 //
 //                     The LLVM Compiler Infrastructure
 //
@@ -7,12 +7,10 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file implements the Aggressive Dead Code Elimination pass.  This pass
-// optimistically assumes that all instructions are dead until proven otherwise,
-// allowing it to eliminate dead computations that other DCE passes do not
-// catch, particularly involving loop computations.
+// TODO: Add overview of this file
 //
 //===----------------------------------------------------------------------===//
+
 #define DEBUG_TYPE "profiledata"
 
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
@@ -105,13 +103,13 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
     return 0;
   }
 
-  DEBUG( dbgs() << "Inside BB callback " << B->first->getName() << " -> " << B->second->getName() << "\n" );
+  DEBUG( dbgs() << "Inside BB callback <" << F->getName() << "> Edge: " << B->first->getName() << " -> " << B->second->getName() << "\n" );
 
   // Get the edge that the profiling exists on
   Edge E = *B;
   EdgeFreq[E] += 1;
   unsigned int stat = EdgeFreq[E];
-  DEBUG( dbgs() << "New edge count: " << stat << "\n" );
+  DEBUG( dbgs() << "\tNew edge count: " << stat << "\n" );
 
   // If we meet the threshold or are past the threshold
   if (stat == getThresholdT2()) {
@@ -151,7 +149,7 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
 void* JITProfileData::FunctionCallback(Function* F) {
   struct timeval t1, t2;
   gettimeofday(&t1, NULL);
-  DEBUG( dbgs() << "Inside Func callback " << F->getName() << "\n" );
+  DEBUG( dbgs() << "Inside Func callback <" << F->getName() << ">\n" );
 
   // Update the function frequency
   FuncFreq[F] += 1;
