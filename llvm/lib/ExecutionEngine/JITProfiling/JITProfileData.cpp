@@ -50,10 +50,11 @@ namespace llvm {
 FunctionPass *createJITFunctionProfilingPass(JITProfileData *);
 FunctionPass *createJITBBProfilingPass(JITProfileData *);
 
-JITProfileData::JITProfileData(int t1, int t2, ExecutionEngine* J) {
+JITProfileData::JITProfileData(int t1, int t2, double tol, ExecutionEngine* J) {
   // Set the thresholds
   TH_ENABLE_BB_PROFILE = t1;
   TH_ENABLE_APPLY_OPT  = t2;
+  TOL_ENABLE_APPLY_OPT = tol;
 
   TheJIT = J;
   fc_time = 0;
@@ -165,9 +166,10 @@ void* JITProfileData::FunctionCallback(Function* F) {
   bool changed = false;
 
   JITFunctionData* JFD = FuncData[F];
-  // If the updated frequency reaches the T2 threshold, then we need to add basic
-  // block profiling
-  if (stat == getThresholdT1()) {
+  // If the updated frequency reaches the T1 threshold, then we either need to
+  // add basic block profiling if T2 is non-zero, or just move right to the
+  // optimization pass.
+  if (stat == getThresholdT1() && getThresholdT2() > 0) {
     // Create a new pass manager for adding basic block profiling
     FunctionPassManager* FPM = new FunctionPassManager(F->getParent());
 

@@ -70,10 +70,12 @@ namespace {
   cl::opt<int> OnlineProfileConstT1("t1",
                               cl::desc("Online profile: threshold for basic block profile"),
                               cl::init(4));
-
   cl::opt<int> OnlineProfileConstT2("t2",
                               cl::desc("Online profile: threshold for applying optimization"),
                               cl::init(8));
+  cl::opt<double> OnlineProfileTolerance("tol",
+                              cl::desc("Online profile: tolerance for t2 in which to apply optimizations"),
+                              cl::init(1.0));
 
 
   cl::opt<std::string>
@@ -434,7 +436,7 @@ int main(int argc, char **argv, char * const *envp) {
                 JITEventListener::createIntelJITEventListener());
 
   if (OnlineProfile) {
-    ProfileData = new JITProfileData(OnlineProfileConstT1, OnlineProfileConstT2, EE);
+    ProfileData = new JITProfileData(OnlineProfileConstT1, OnlineProfileConstT2, OnlineProfileTolerance, EE);
     EE->setProfileData(ProfileData);
   }
 

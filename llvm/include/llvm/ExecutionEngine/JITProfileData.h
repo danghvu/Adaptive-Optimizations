@@ -33,7 +33,7 @@ namespace llvm {
   // temporarily save this class here for easy compilation
   class JITProfileData {
     public:
-      JITProfileData(int t1, int t2, ExecutionEngine* J);
+      JITProfileData(int t1, int t2, double tol, ExecutionEngine* J);
       ~JITProfileData() {
         for (FuncDataMap::iterator I = FuncData.begin(), E = FuncData.end(); I != E; ++I) {
           if (I->second->FPM != NULL)
@@ -44,8 +44,9 @@ namespace llvm {
         }
       }
 
-      unsigned int getThresholdT1() { return TH_ENABLE_BB_PROFILE; };
-      unsigned int getThresholdT2() { return TH_ENABLE_APPLY_OPT; }
+      unsigned int getThresholdT1() const { return TH_ENABLE_BB_PROFILE; };
+      unsigned int getThresholdT2() const { return TH_ENABLE_APPLY_OPT; }
+      double getTolerance() const { return TOL_ENABLE_APPLY_OPT; }
 
       const BlockCountMap& getBlockMap() const { return BlockFreq; }
 
@@ -77,6 +78,7 @@ namespace llvm {
       // Thresholds
       unsigned int TH_ENABLE_BB_PROFILE;
       unsigned int TH_ENABLE_APPLY_OPT;
+      double TOL_ENABLE_APPLY_OPT;
 
       // Function data
       FuncDataMap FuncData;
