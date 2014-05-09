@@ -16,6 +16,7 @@
 #define DEBUG_TYPE "profiledata"
 
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
+#include "llvm/ExecutionEngine/JITOptimization.h"
 #include "llvm/ExecutionEngine/JITProfileData.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Utils/UnifyFunctionExitNodes.h"
@@ -50,7 +51,6 @@ namespace llvm {
 
 FunctionPass *createJITFunctionProfilingPass(JITProfileData *);
 FunctionPass *createJITBBProfilingPass(JITProfileData *);
-FunctionPass *createJITOptimizationsPass(JITProfileData *);
 
 JITProfileData::JITProfileData(int t1, int t2, ExecutionEngine* J) {
   // Set the thresholds

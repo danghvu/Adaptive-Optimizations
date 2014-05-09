@@ -46,7 +46,8 @@
 
 using namespace llvm;
 
-STATISTIC(numInsertedBB, "Number of profiling basic blocks inserted");
+// TODO: Is this needed?
+//STATISTIC(numInsertedBB, "Number of profiling basic blocks inserted");
 STATISTIC(numInsertedInsts, "Number of profiling instructions inserted");
 
 namespace llvm {

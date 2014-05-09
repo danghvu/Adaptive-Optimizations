@@ -11,7 +11,7 @@ LIBRARYNAME = LLVMExecutionEngine
 
 include $(LEVEL)/Makefile.config
 
-PARALLEL_DIRS = Interpreter JIT MCJIT JITProfiling RuntimeDyld
+PARALLEL_DIRS = Interpreter JIT MCJIT JITProfiling JITOptimization RuntimeDyld
 
 ifeq ($(USE_INTEL_JITEVENTS), 1)
 PARALLEL_DIRS += IntelJITEvents

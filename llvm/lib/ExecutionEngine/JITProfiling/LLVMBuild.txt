@@ -21,3 +21,4 @@
 type = Library
 name = JITProfiling
 parent = ExecutionEngine
+required_libraries = JITOptimization

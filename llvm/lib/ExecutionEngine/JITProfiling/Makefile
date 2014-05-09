@@ -11,7 +11,7 @@ LIBRARYNAME = LLVMJITProfiling
 
 include $(LEVEL)/Makefile.config
 
-SOURCES += JITFunctionProfiling.cpp JITBBProfiling.cpp JITOptimizations.cpp JITProfileData.cpp
+SOURCES += JITFunctionProfiling.cpp JITBBProfiling.cpp JITProfileData.cpp
 CPPFLAGS += -I$(PROJ_OBJ_DIR)/.. -I$(PROJ_SRC_DIR)/..
 
 include $(LLVM_SRC_ROOT)/Makefile.rules
