@@ -113,13 +113,15 @@ bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
 // For now this function just checks to see if the BasicBlock containing the
 // call site has hit the threshold. If so, always inline, otherwise don't.
 InlineCost DynamicInliner::getInlineCost(CallSite CS) {
+  if (data->getThresholdT2() == 0) return InlineCost::getAlways();
+
   unsigned freq = 0;
   BasicBlock* B = CS.getInstruction()->getParent();
   if (data->getBlockMap().count(B)) {
     freq = data->getBlockMap().find(B)->second;
   }
 
-  if (freq >= data->getThresholdT2()) return InlineCost::getAlways();
+  if (freq >= data->getThresholdT2() * data->getTolerance()) return InlineCost::getAlways();
   else return InlineCost::getNever();
 }
 
