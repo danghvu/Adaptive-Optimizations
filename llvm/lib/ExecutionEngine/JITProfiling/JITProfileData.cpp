@@ -277,10 +277,7 @@ void JITProfileData::updateEdgeCounts(Function* F, BasicBlock* B, Edge E) {
   }
 
   for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
-    if ((*PI)->getName().str().find("ProfileBB") != std::string::npos)
-      E1 = std::make_pair(*pred_begin(*PI), B);
-    else
-      E1 = std::make_pair(*PI, B);
+    E1 = std::make_pair(*PI, B);
     if ((E1.first != E.first || E1.second != E.second) && ES.count(E1) != 0) {
       updateEdgeCounts(F, E1.first, E1);
     }
@@ -290,11 +287,7 @@ void JITProfileData::updateEdgeCounts(Function* F, BasicBlock* B, Edge E) {
   // Calculate the out dependencies
   unsigned out = 0;
   for (succ_iterator SI = succ_begin(B), SE = succ_end(B); SI != SE; ++SI) {
-    if ((*SI)->getName().str().find("ProfileBB") != std::string::npos)
-      E1 = std::make_pair(B, *succ_begin(*SI));
-    else
-      E1 = std::make_pair(B, *SI);
-
+    E1 = std::make_pair(B, *SI);
     if ((E1.first != E.first || E1.second != E.second) && ES.count(E1) != 0) {
       updateEdgeCounts(F, E1.second, E1);
     }
@@ -315,11 +308,7 @@ void JITProfileData::updateBlockCounts(Function* F) {
       BlockFreq[B] = 0;
 
     for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
-      Edge E1;
-      if ((*PI)->getName().str().find("ProfileBB") != std::string::npos)
-        E1 = std::make_pair(*pred_begin(B), B);
-      else
-        E1 = std::make_pair(*PI, B);
+      Edge E1 = std::make_pair(*PI, B);
       BlockFreq[B] += EdgeFreq[E1];
     }
   }

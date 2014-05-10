@@ -437,10 +437,9 @@ namespace llvm {
 
       // Insert the instructions
       if (B == E1) {
-        B->getInstList().pop_back();
-        B->getInstList().push_back(EdgeInst);
-        B->getInstList().push_back(FuncCall);
-        B->getInstList().push_back(BranchInst::Create(E2));
+        Instruction* LastInst = B->getTerminator();
+        EdgeInst->insertBefore(LastInst);
+        FuncCall->insertBefore(LastInst);
 
         ProfileInsts.push_back(FuncCall);
         ProfileInsts.push_back(EdgeInst);
@@ -448,9 +447,10 @@ namespace llvm {
         numInsertedInsts += 3;
       }
       else if (B == E2) {
-        // Push everything to the front of E2 (everything has to be pushed in reverse)
-        B->getInstList().push_front(FuncCall);
-        B->getInstList().push_front(EdgeInst);
+        // Insert them as the first instructions that are non-phi and non-landing pad instructions
+        Instruction* FirstSafeInst = B->getFirstInsertionPt();
+        EdgeInst->insertBefore(FirstSafeInst);
+        FuncCall->insertBefore(FirstSafeInst);
 
         ProfileInsts.push_back(FuncCall);
         ProfileInsts.push_back(EdgeInst);
@@ -512,19 +512,6 @@ namespace llvm {
     MaxSpanningTree.insert(E);
 
     SmallVector<EdgeWeight, 16> Backup;
-
-    // We need to make sure no invoke()/landingpad edges contain profiling, so
-    // add the non-exception edges FIRST to prevent infinite loops in this
-    // construction
-    // TODO: Make sure the invoke()/normaldest edge is reachable!
-    for (Function::iterator FI = F->begin(), FE = F->end(); FI != FE; ++FI) {
-      if (InvokeInst* InvInst = dyn_cast<InvokeInst>(FI->getTerminator())) {
-        E = std::make_pair(FI, InvInst->getUnwindDest());
-        TreeNodes.insert(E.first);
-        TreeNodes.insert(E.second);
-        MaxSpanningTree.insert(E);
-      }
-    }
 
     // This does not include unreachable basic blocks
     unsigned numBB = BlockWeights.size();
