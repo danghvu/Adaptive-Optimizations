@@ -17,15 +17,16 @@ worst = []
 total = []
 
 def main():
-  t1_start = 4
-  t1_end   = 4
-  t2_start = 8
-  t2_end   = 8
+  t1_start = 5
+  t1_end   = 100
+  t2_start = 50
+  t2_end   = 50
+  step     = 10
 
   remove_output()
 
-  for i in range(t1_start, t1_end+1):
-    for j in range(t2_start, t2_end+1):
+  for i in range(t1_start, t1_end+1, step):
+    for j in range(t2_start, t2_end+1, step):
       print(str(i) + " - " + str(j))
       del data[0:len(data)]
       cmd = 'make -j 8 TEST=nightly EXTRA_LLIFLAGS="-enable-online-profile -t1 ' + str(i) + ' -t2 ' + str(j) + '" DISABLE_LLC=1 report.html'
@@ -36,8 +37,9 @@ def main():
       output_data(i, j, t)
       remove_output()
 
-  best.sort(key=lambda tup: tup[2])
+  best.sort(key=lambda tup: -tup[2])
   worst.sort(key=lambda tup: -tup[2])
+  total.sort(key=lambda tup: -tup[2])
 
   top = 5
   if (len(best) < 5):
@@ -53,6 +55,19 @@ def main():
   print(">>> Top configs [total avg] for (t1: " + str(t1_start) + ", t2: " + str(t2_start) + ") to (t1: " + str(t1_end) + ", t2: " + str(t2_end) + ")")
   for i in range(0, top):
     print("t1: " + str(total[i][0]) + " t2: " + str(total[i][1]) + "[" + str(total[i][2]) + "]")
+
+  with open("final_res.txt", "a") as myfile:
+    myfile.write("*** Completed tests ***\n")
+    myfile.write(">>> Top configs [best avg] for (t1: " + str(t1_start) + ", t2: " + str(t2_start) + ") to (t1: " + str(t1_end) + ", t2: " + str(t2_end) + ")\n")
+    for i in range(0, top):
+      myfile.write("t1: " + str(best[i][0]) + " t2: " + str(best[i][1]) + "[" + str(best[i][2]) + "]\n")
+    myfile.write(">>> Top configs [worst avg] for (t1: " + str(t1_start) + ", t2: " + str(t2_start) + ") to (t1: " + str(t1_end) + ", t2: " + str(t2_end) + ")\n")
+    for i in range(0, top):
+      myfile.write("t1: " + str(worst[i][0]) + " t2: " + str(worst[i][1]) + "[" + str(worst[i][2]) + "]\n")
+    myfile.write(">>> Top configs [total avg] for (t1: " + str(t1_start) + ", t2: " + str(t2_start) + ") to (t1: " + str(t1_end) + ", t2: " + str(t2_end) + ")\n")
+    for i in range(0, top):
+      myfile.write("t1: " + str(total[i][0]) + " t2: " + str(total[i][1]) + "[" + str(total[i][2]) + "]\n")
+
 
 def parse_results(t1, t2, t):
   f = open('report.nightly.raw.out', 'r')
