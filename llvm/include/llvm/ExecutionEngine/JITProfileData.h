@@ -73,6 +73,7 @@ namespace llvm {
       }
 
       void doOptimization(Function *);
+      std::vector<const PassInfo*> &getPassList() { return CustomPasses; };
 
     private:
       // Thresholds
@@ -99,6 +100,9 @@ namespace llvm {
       // The JIT object
       ExecutionEngine* TheJIT;
       BasicBlock *ExitBB;
+
+      // List of custom passes
+      std::vector<const PassInfo *> CustomPasses;
   };
 }
 

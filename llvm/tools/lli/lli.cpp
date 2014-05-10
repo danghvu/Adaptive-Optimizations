@@ -48,6 +48,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/PassNameParser.h"
 #include "llvm/Transforms/Instrumentation.h"
 #include <cerrno>
 #include <stdio.h>
@@ -77,6 +78,11 @@ namespace {
                               cl::desc("Online profile: tolerance for t2 in which to apply optimizations"),
                               cl::init(1.0));
 
+  extern const char allowedPasses[] = "-loop-simplify -scalarrepl -sccp";
+
+  cl::list<const PassInfo*, bool,
+      FilteredPassNameParser<PassArgFilter<allowedPasses> > >
+      PassList(cl::desc("Online profile: optimizations to apply"));
 
   cl::opt<std::string>
   InputFile(cl::desc("<input bitcode>"), cl::Positional, cl::init("-"));
@@ -303,8 +309,20 @@ int main(int argc, char **argv, char * const *envp) {
   InitializeNativeTargetAsmParser();
 
   // This is also need to be added to be used in JIT
+  // This also enable Parser to add to cl::list
   PassRegistry &Registry = *PassRegistry::getPassRegistry();
   initializeCore(Registry);
+  initializeDebugIRPass(Registry);
+  initializeScalarOpts(Registry);
+  initializeObjCARCOpts(Registry);
+  initializeVectorization(Registry);
+  initializeIPO(Registry);
+  initializeAnalysis(Registry);
+  initializeIPA(Registry);
+  initializeTransformUtils(Registry);
+  initializeInstCombine(Registry);
+  initializeInstrumentation(Registry);
+  initializeTarget(Registry);
 
   cl::ParseCommandLineOptions(argc, argv,
                               "llvm interpreter & dynamic compiler\n");
@@ -438,6 +456,14 @@ int main(int argc, char **argv, char * const *envp) {
   if (OnlineProfile) {
     ProfileData = new JITProfileData(OnlineProfileConstT1, OnlineProfileConstT2, OnlineProfileTolerance, EE);
     EE->setProfileData(ProfileData);
+
+    if (PassList.size() > 0) {
+      std::vector<const PassInfo *> &customPass = ProfileData->getPassList();
+      for (unsigned i = 0; i < PassList.size(); ++i) {
+        const PassInfo *PassInf = PassList[i];
+        customPass.push_back(PassInf);
+      }
+    }
   }
 
   if (!NoLazyCompilation && RemoteMCJIT) {

@@ -91,35 +91,44 @@ namespace llvm {
 
     FPM = new FunctionPassManager(F.getParent());
 
-    // Optimization ordering:
-    //  - ADCE
-    //  - inline
-    //  - DSE <---- THIS causes seg faults when running on sqlite3
-    //              test in llvm test-suite
-    //  - Instruction Combining
-    //  ---- IF LOOPS ----
-    //  - LICM
-    //  - Loop Simplify
-    //  - Loop Strength Reduction
-    //  ------------------
-    //  - SCCP
-    //  - Simplify CFG
-    //  - SROA
-    FPM->add(createAggressiveDCEPass());
-    FPM->add(createDynamicInlinerPass(JPD));
-    FPM->add(createInstructionCombiningPass());
+    // if the user input something we use those passes
+    std::vector<const PassInfo *> &customPasses = JPD->getPassList();
+    if (customPasses.size() > 0) {
+      for (int i=0; i<customPasses.size();i++) {
+        const PassInfo *pass = customPasses[i];
+        FPM->add(pass->createPass());
+      }
+    } else {
+      // Optimization ordering:
+      //  - ADCE
+      //  - inline
+      //  - DSE <---- THIS causes seg faults when running on sqlite3
+      //              test in llvm test-suite
+      //  - Instruction Combining
+      //  ---- IF LOOPS ----
+      //  - LICM
+      //  - Loop Simplify
+      //  - Loop Strength Reduction
+      //  ------------------
+      //  - SCCP
+      //  - Simplify CFG
+      //  - SROA
+      FPM->add(createAggressiveDCEPass());
+      FPM->add(createDynamicInlinerPass(JPD));
+      FPM->add(createInstructionCombiningPass());
 
-    // --- Loop optimizations --- //
-    if (LI->begin() != LI->end()) {
-      FPM->add(createLICMPass());
-      FPM->add(createLoopSimplifyPass());
-      FPM->add(createLoopStrengthReducePass());
+      // --- Loop optimizations --- //
+      if (LI->begin() != LI->end()) {
+        FPM->add(createLICMPass());
+        FPM->add(createLoopSimplifyPass());
+        FPM->add(createLoopStrengthReducePass());
+      }
+      // -------------------------- //
+
+      FPM->add(createSCCPPass());
+      FPM->add(createCFGSimplificationPass());
+      FPM->add(createSROAPass(false));
     }
-    // -------------------------- //
-
-    FPM->add(createSCCPPass());
-    FPM->add(createCFGSimplificationPass());
-    FPM->add(createSROAPass(false));
 
     changed = changed | FPM->doInitialization();
     changed = changed | FPM->run(F);
