@@ -114,7 +114,8 @@ namespace llvm {
       //  - Simplify CFG
       //  - SROA
       FPM->add(createAggressiveDCEPass());
-      FPM->add(createDynamicInlinerPass(JPD));
+      if (JPD->getThresholdT2() != 0)
+        FPM->add(createDynamicInlinerPass(JPD));
       FPM->add(createInstructionCombiningPass());
 
       // --- Loop optimizations --- //

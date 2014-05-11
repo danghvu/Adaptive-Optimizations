@@ -44,6 +44,7 @@
 
 STATISTIC(fc_time, "Time for Function callback (usec)");
 STATISTIC(bb_time, "Time for BasicBlock callback (usec)");
+STATISTIC(compile_time, "Time for recompile (usec)");
 
 namespace llvm {
 
@@ -59,6 +60,7 @@ JITProfileData::JITProfileData(int t1, int t2, double tol, ExecutionEngine* J) {
   TheJIT = J;
   fc_time = 0;
   bb_time = 0;
+  compile_time = 0;
 }
 
 
@@ -216,8 +218,12 @@ void* JITProfileData::FunctionCallback(Function* F) {
   // If we get here, there is something that was changed
   // Re-emit the function so the profiling is actually executed!
   if (changed) {
+    struct timeval t3, t4;
     DEBUG(dbgs() << "stat == T2 for function: " << F->getName() << "\n");
+    gettimeofday(&t3, NULL);
     TheJIT->recompileAndRelinkFunction(F);
+    gettimeofday(&t4, NULL);
+    compile_time += (t4.tv_usec - t3.tv_usec) + (t4.tv_sec - t3.tv_sec) * 1000000;
   }
 
   gettimeofday(&t2, NULL);
