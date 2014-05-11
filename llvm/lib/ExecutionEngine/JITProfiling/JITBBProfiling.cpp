@@ -241,6 +241,7 @@ namespace llvm {
     float weight;
 
     SmallVector<BasicBlock*, 128> Worklist;
+    SmallVector<EdgeWeight, 128>  WorklistWeights;
     SmallPtrSet<BasicBlock*, 128> VisitedBlocks;
 
     VisitedBlocks.insert(ExitBB);
@@ -286,7 +287,8 @@ namespace llvm {
           for (SmallVectorImpl<ConstEdge>::iterator LEI = ExitEdges.begin(), LEE = ExitEdges.end(); LEI != LEE; ++LEI) {
             Edge E = std::make_pair(const_cast<BasicBlock*>(LEI->first), const_cast<BasicBlock*>(LEI->second));
             EdgeWeights[E] = weight / num_exits;
-            EdgePQ.push(std::make_pair(E, EdgeWeights[E]));
+            //EdgePQ.push(std::make_pair(E, EdgeWeights[E]));
+            WorklistWeights.push_back(std::make_pair(E, EdgeWeights[E]));
           }
 
           // Let W be the weight of b times LoopMultiplier (if b is loop header)
@@ -333,10 +335,21 @@ namespace llvm {
         }
         Edge E = std::make_pair(b1, b2);
         EdgeWeights[E] = (weight - w_e) / (float)(num_succ_nle);
-        EdgePQ.push(std::make_pair(E, EdgeWeights[E]));
+        //EdgePQ.push(std::make_pair(E, EdgeWeights[E]));
+        WorklistWeights.push_back(std::make_pair(E, EdgeWeights[E]));
       }
 
       VisitedBlocks.insert(CurrentBlock);
+    }
+
+    // We need to go back through and change the weights of edges leading from invoke instructions
+    // to landing pads.  This will make sure we always add them to the max spanning tree so that instructions are never inserted on them
+    for (SmallVectorImpl<EdgeWeight>::iterator IT = WorklistWeights.begin(), IE = WorklistWeights.end(); IT != IE; ++IT) {
+      EdgeWeight EW = *IT;
+      if (dyn_cast<InvokeInst>(EW.first.first->getTerminator())) {
+        EW.second = EW.second * LoopMultiplier * LoopMultiplier;
+      }
+      EdgePQ.push(EW);
     }
 
     gettimeofday(&t2, NULL);
@@ -513,19 +526,6 @@ namespace llvm {
 
     SmallVector<EdgeWeight, 16> Backup;
 
-    // Since BreakCriticalEdges can't handling breaking landing pads, we need to
-    // make sure we don't even try landing pads
-    // It is okay to add this edge even if it isn't reachable because it will
-    // not pass the condition below for adding insertion edges anyways
-    for (Function::iterator FI = F->begin(), FE = F->end(); FI != FE; ++FI) {
-      if (InvokeInst* InvInst = dyn_cast<InvokeInst>(FI->getTerminator())) {
-        E = std::make_pair(FI, InvInst->getUnwindDest());
-        TreeNodes.insert(E.first);
-        TreeNodes.insert(E.second);
-        MaxSpanningTree.insert(E);
-      }
-    }
-
     // This does not include unreachable basic blocks
     unsigned numBB = BlockWeights.size();
     while (TreeNodes.size() != numBB) {
@@ -559,6 +559,9 @@ namespace llvm {
         }
         // Otherwise both basic blocks are already nodes in the tree
         // meaning the edge will never be added
+        // HOWEVER, there is a special case where we HAVE to add an edge
+        // between two already added nodes (documented in the README file
+        // in the profiling sub-directory of the tests for this framework)
       }
       while (Backup.size() != 0)
         EdgePQ.push(Backup.pop_back_val());

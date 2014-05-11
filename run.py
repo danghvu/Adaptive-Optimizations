@@ -6,7 +6,7 @@ import re
 from decimal import Decimal
 
 # data tuple:
-#  (name, passed?, native-time, jit-time)
+#  (name, passed?, native-time, lli-time, our-time)
 data = []
 
 # (t1, t2, avg_best)
@@ -17,10 +17,10 @@ worst = []
 total = []
 
 def main():
-  t1_start = 5
-  t1_end   = 100
-  t2_start = 50
-  t2_end   = 50
+  t1_start = 20
+  t1_end   = 20
+  t2_start = 0
+  t2_end   = 0
   step     = 10
 
   remove_output()
@@ -81,6 +81,7 @@ def parse_results(t1, t2, t):
 
 def remove_output():
   os.system("find . -name *.out-jit | xargs -n 1 rm")
+  os.system("find . -name *.out-jit-origin | xargs -n 1 rm")
 
 def output_data(t1, t2, t):
   failed = []
@@ -97,36 +98,36 @@ def output_data(t1, t2, t):
     else:
       if (d[2] > d[3]):
         better.append(d)
-        better_avg += float(d[2] - d[3])
+        better_avg += float(d[3] - d[4])
       else:
         worse.append(d)
-        worse_avg  += float(d[2] - d[3])
-      total_avg += float(d[2] - d[3])
+        worse_avg  += float(d[3] - d[4])
+      total_avg += float(d[3] - d[4])
 
   better_avg = better_avg / len(better)
   worse_avg  = worse_avg / len(worse)
   total_avg  = total_avg / len(data)
 
-  worse.sort(key=lambda tup: tup[2] - tup[3])
-  better.sort(key=lambda tup: tup[3] - tup[2])
+  worse.sort(key=lambda tup: tup[3] - tup[4])
+  better.sort(key=lambda tup: tup[4] - tup[3])
 
   file_name = "results/data_" + str(t1) + "_" + str(t2) + "_" + str(t) + ".txt"
   with open(file_name, "a") as myfile:
+    myfile.write("Better: " + str(better_avg) + "[" + str(len(better)) + "]\n")
+    myfile.write("Worse:  " + str(worse_avg)  + "[" + str(len(worse))  + "]\n")
+    myfile.write("Total:  " + str(total_avg)  + "[" + str(len(data))   + "]\n")
+
     myfile.write("*** Failed tests ***\n")
     for fail in failed:
       myfile.write(fail[0] + "\n")
 
     myfile.write("*** Better tests ***\n")
     for b in better:
-      myfile.write(b[0] + " [" + str(b[2]) + ", " + str(b[3]) + "]\n")
+      myfile.write(b[0] + " [" + str(b[2]) + ", " + str(b[3]) + ", " + str(b[4]) + "]\n")
 
     myfile.write("*** Worse tests ***\n")
     for w in worse:
-      myfile.write(w[0] + " [" + str(w[2]) + ", " + str(w[3]) + "]\n")
-
-    myfile.write("Better: " + str(better_avg) + "[" + str(len(better)) + "]\n")
-    myfile.write("Worse:  " + str(worse_avg) + "[" + str(len(worse)) + "]\n")
-    myfile.write("Total:  " + str(total_avg) + "[" + str(len(data)) + "]\n")
+      myfile.write(w[0] + " [" + str(w[2]) + ", " + str(w[3]) + ", " + str(b[4]) + "]\n")
 
     best.append((t1, t2, better_avg))
     worst.append((t1, t2, worse_avg))
@@ -140,6 +141,8 @@ def output_data(t1, t2, t):
 #
 #TEST-PASS: jit /home/brooks8/LLVM/llvm-build/projects/test-suite/MultiSource/Applications/lua/lua
 #TEST-RESULT-jit-time: user       26.6090
+#
+#TEST-RESULT-jit-origin-time: user       26.6547
 #
 #TEST-RESULT-jit-comptime:   Total Execution Time: 0.2220 seconds (0.2219 wall clock)
 #
@@ -178,12 +181,14 @@ def get_next(f):
   nat_time = Decimal(f.readline()[26:])
   f.readline()
   if (f.readline()[:9] == "TEST-PASS"):
-    jit_time = Decimal(f.readline()[26:])
-    dat = (name, True, nat_time, jit_time)
+    lli_time = Decimal(f.readline()[26:])
+    f.readline()
+    our_time = Decimal(f.readline()[33:])
+    dat = (name, True, nat_time, lli_time, our_time)
     for _ in range(9):
       f.readline()
   else:
-    dat = (name, False, nat_time, -1)
+    dat = (name, False, nat_time, -1, -1)
     for _ in range(6):
       f.readline()
 
