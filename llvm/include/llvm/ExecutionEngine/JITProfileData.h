@@ -35,6 +35,7 @@ namespace llvm {
     public:
       JITProfileData(int t1, int t2, double tol, ExecutionEngine* J);
       ~JITProfileData() {
+        DumpBBFreq();
         for (FuncDataMap::iterator I = FuncData.begin(), E = FuncData.end(); I != E; ++I) {
           if (I->second->FPM != NULL)
             delete I->second->FPM;
@@ -67,10 +68,18 @@ namespace llvm {
       void updateBlockCounts(Function* F);
 
       void DumpFuncFreq() {
-        /*for (FuncCountMap::iterator I = FuncFreq.begin(), E=FuncFreq.end(); I != E; ++I) {
-          dbgs() << I->first->getName() << " " << I->second << "\n";
-        }*/
+        DEBUG( dbgs() << "*** Function Frequencies ****\n" );
+        for (FuncCountMap::iterator I = FuncFreq.begin(), E=FuncFreq.end(); I != E; ++I) {
+          DEBUG( dbgs() << I->first->getName() << " " << I->second << "\n" );
+        }
       }
+      void DumpBBFreq() {
+        DEBUG( dbgs() << "*** Basic Block Frequencies ****\n" );
+        for (BlockCountMap::iterator I = BlockFreq.begin(), E=BlockFreq.end(); I != E; ++I) {
+          DEBUG( dbgs() << I->first->getName() << " " << I->second << "\n" );
+        }
+      }
+
 
       void doOptimization(Function *);
       std::vector<const PassInfo*> &getPassList() { return CustomPasses; };
