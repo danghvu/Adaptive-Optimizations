@@ -1,0 +1,109 @@
+===-- README - Profiling tests ---------------------------------------------===
+
+ This file describes the reasoning behind each test, the layout of this
+ directory, and how to compile and run the tests provided in this directory
+
+===-------------------------------------------------------------------------===
+
+===-- Overview -------------------------------------------------------------===
+
+ The purpose of the tests in this directory are to verify the correctness
+ of the major components of the JITBBProfiling pass.  These components
+ include weight generation, maximum spanning tree construction,
+ instruction insertion, and callback functionality.
+
+ ----- Weight Generation -----
+
+ In order to test the correctness of weight generation, each aspect of the
+ heuristic as described in [T. Ball et al, 1994] must be tested.  Below is
+ the entire excerpt from [T. Ball et al, 1994] describing the weight
+ generation heuristic:
+
+   "The heuristic assumes each loop iterates LOOP_MULTIPLIER times (for our
+    implementation, 10 times) and that each branch of a predicate is equally
+    likely to be chosen. Loop-exit edges are specially handled, as described
+    below. The weight of the edge EXIT->root is fixed at 1 and does not
+    change. The edge EXIT->root is not treated as a backedge even though it is
+    identified as such by depth-first search. The following rules describe how
+    to compute vertex and edge weights:
+
+    (1) The weight of a vertex is the sum of the weights of its incoming edges
+        that are not backedges.
+    (2) If vertex v is a loop-entry with weight W and N = |loop−exits(v)|,
+        then each edge in loop−exits(v) has weight W/N.
+    (3) If v is a loop-entry vertex then let W be the weight of vertex v times
+        LOOP_MULTIPLIER, otherwise let W be the weight of vertex v. If W_E is
+        the sum of the weights of the outgoing edges of v that are loop-exit
+        edges, then each outgoing edge of v that is not a loop-exit edge has
+        weight (W−W_E)/N, where N is the number of outgoing edges of v that
+        are not loop-exit edges.
+
+    The rules are applied in a single topological traversal of the backedge-
+    free graph of a CFG. An edge (possibly a backedge) is assigned a weight by
+    the first rule that applies to it in the traversal, as follows. When
+    vertex v is first visited during the traversal, the weights of its
+    incoming non-backedges are known. Rule (1) determines the weight of vertex
+    v. If vertex v is a loop-entry then rule (2) is used to assign a weight to
+    each edge in loop−exits(v). Finally, rule (3) determines the weight of
+    each outgoing edge of v that is not a loop-exit edge." [T. Ball et al,
+    1994]
+
+ We can identify 3 main components to test to ensure correctness of our
+ implementation of this heuristic, indicated by the three described rules. In
+ order to test these, we have based the tests around using various terminator
+ instructions with multiple successors (i.e. un-conditional branch, switch,
+ and invoke), loops with single and multiple exit edges, and tests containing
+ unreachable code.
+
+ ----- Maximum Spanning Tree Construction -----
+
+ The algorithm to generate the maximum spanning tree of the edges of the CFG
+ of a function is a modified Prim's algorithm.  The tree generation is always
+ seeded with the imaginary Exit->root edge, guaranteeing that instructions
+ will not be inserted on this edge.  Further, before beginning Prim's
+ algorithm, we traverse the basic blocks in the function and add all of the
+ edges which lead from an invoke instruction to a landing pad.  This is
+ because we provide the guarantee that no basic blocks will be added in order
+ to insert profiling instructions, and this guarantee is provided in part by
+ the BreakCriticalEdges pass.  Consider the following CFG:
+
+   Entry -> B (weight: 0.5)
+   Entry -> C (weight: 0.5)
+   B -> C     (weight: 0.25)
+   B -> D     (weight: 0.25)
+   C -> D     (weight: 0.375)
+   C -> Exit  (weight: 0.375)
+   D -> Exit  (weight: 0.625)
+
+ The maximum spanning tree will contain the edges Entry->B, Entry->C, D->E,
+ and Exit->Entry.  However, edge B->C (and C->D) are critical edges, meaning
+ that B has multiple successors and C has multiple predecessors.  Therefore,
+ we are unable to insert instructions on this edge without adding a new basic
+ block. Since BreakCriticalEdges will remove all critical edges except those
+ containing landing pads, we must ensure that edges leading to a landing pad
+ are in the maximum spanning tree.  Therefore, if B->C or C->D is a "landing
+ pad edge", then they will both be inserted before executing prim's algorithm,
+ resulting in the maximum spanning tree containing 
+
+ The maximum spanning tree algorithm is tested by using the tests written
+ for the weight generation heuristic in order to ensure the correct sets
+ of possible edges in the CFG of a function are present in the spanning tree.
+
+ ----- Instruction Insertion -----
+
+ Instructions are inserted on each edge in the CFG of a function that is not
+ in the maximum spanning tree.
+
+===-------------------------------------------------------------------------===
+
+===-- Tests ----------------------------------------------------------------===
+
+ condtests.c:
+   This test contains two functions, one with a single if-else condition
+   (cond1) and one with nested if-else conditions (cond2).  The purpose of
+   this test is to verify that branches of predicates are equally likely to be
+   chosen.
+
+ 
+
+===-------------------------------------------------------------------------===
