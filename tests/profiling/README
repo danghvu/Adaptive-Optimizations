@@ -10,7 +10,7 @@
  The purpose of the tests in this directory are to verify the correctness
  of the major components of the JITBBProfiling pass.  These components
  include weight generation, maximum spanning tree construction,
- instruction insertion, and callback functionality.
+ and instruction insertion.
 
  ----- Weight Generation -----
 
@@ -53,57 +53,136 @@
  order to test these, we have based the tests around using various terminator
  instructions with multiple successors (i.e. un-conditional branch, switch,
  and invoke), loops with single and multiple exit edges, and tests containing
- unreachable code.
+ unreachable code.  Further, in order to satisfy some conditions for the max
+ spanning tree construction for certain applications, after generating the
+ weights for each edge through the heuristic,  We must increase the weight
+ of edges leading from invoke instructions to landing pads; the new weight
+ of the aforementioned edges are the old weight value multiplied by the
+ loop mulitplier^2, as defined in [T. Ball et al, 1994].  The reasoning
+ is described in the next sub-section.
 
  ----- Maximum Spanning Tree Construction -----
 
  The algorithm to generate the maximum spanning tree of the edges of the CFG
  of a function is a modified Prim's algorithm.  The tree generation is always
  seeded with the imaginary Exit->root edge, guaranteeing that instructions
- will not be inserted on this edge.  Further, before beginning Prim's
- algorithm, we traverse the basic blocks in the function and add all of the
- edges which lead from an invoke instruction to a landing pad.  This is
- because we provide the guarantee that no basic blocks will be added in order
- to insert profiling instructions, and this guarantee is provided in part by
- the BreakCriticalEdges pass.  Consider the following CFG:
+ will not be inserted on this edge.  Before constructing the tree, the
+ BreakCriticalEdges pass is run on the function so that all critical edges
+ excluding those containing landing pad instructions are broken.  Since this
+ pass does not break the aforementioned edges, we need to explicitly make
+ sure that these edges are contained in the maximum spanning tree so that
+ profiling edges are not inserted on them.  This is a simple way to
+ guarantee that no new basic blocks are required in order to insert profiling
+ instructions on an edge in the CFG. Consider the following CFG:
 
-   Entry -> B (weight: 0.5)
-   Entry -> C (weight: 0.5)
-   B -> C     (weight: 0.25)
-   B -> D     (weight: 0.25)
-   C -> D     (weight: 0.375)
-   C -> Exit  (weight: 0.375)
-   D -> Exit  (weight: 0.625)
+   Entry -> A    (weight: 0.5)
+   Entry -> Exit (weight: 0.5)
+   A -> B        (weight: 0.25)
+   A -> C        (weight: 0.25)
+   B -> C        (weight: 0.125)
+   B -> D        (weight: 0.125)
+   C -> D        (weight: 0.1875)
+   C -> Exit     (weight: 0.1875)
+   D -> Exit     (weight: 0.3125)
 
- The maximum spanning tree will contain the edges Entry->B, Entry->C, D->E,
- and Exit->Entry.  However, edge B->C (and C->D) are critical edges, meaning
- that B has multiple successors and C has multiple predecessors.  Therefore,
- we are unable to insert instructions on this edge without adding a new basic
- block. Since BreakCriticalEdges will remove all critical edges except those
- containing landing pads, we must ensure that edges leading to a landing pad
- are in the maximum spanning tree.  Therefore, if B->C or C->D is a "landing
- pad edge", then they will both be inserted before executing prim's algorithm,
- resulting in the maximum spanning tree containing 
+ Consider that both A and B contain invoke instructions and C is a shared
+ landing pad for A and B.  Normal construction of the max spanning tree will
+ go as follows: seed the tree with Exit->Entry (1); add edge Entry->A (0.5);
+ add edge D->Exit (0.3125).  At this point, we can either add edge A->B or
+ edge A->C to the max spanning tree, since they both have the same weight and
+ the maximum weight value left.  However, if we add A->B, then A->C must
+ containing profiling instructions, which is exactly what we don't want.
+ By modifying the weights of all edges leading to a landing pad from an invoke
+ instruction, we preserve the semantics of Prim's algorithm for constructing
+ the tree while ensuring that all such edges are contained in the tree.  By
+ updating the weights appropriately, we will have (for a loop multiplier of 5)
+ the weight of A->C to be 6.25 and B->C to be 3.125, resulting in a max
+ spanning tree containing: Exit->Entry, Entry->A, A->C, B->C, and D->Exit.
+ We conjecture that this method for handling edges leading to landing pads
+ will guarantee that these edges will always have the largest weight with
+ respect to the surrounding/attached edges.
+
 
  The maximum spanning tree algorithm is tested by using the tests written
  for the weight generation heuristic in order to ensure the correct sets
  of possible edges in the CFG of a function are present in the spanning tree.
+ These tests include examples with landing pads to test for correctness
+ in the aforementioned situations.
 
  ----- Instruction Insertion -----
 
  Instructions are inserted on each edge in the CFG of a function that is not
- in the maximum spanning tree.
+ in the maximum spanning tree.  Profiling instructions are always added to
+ an existing basic block, thanks to the RemoveCriticalEdges pass and the
+ modification to the weight heuristic described above.  Further, the
+ instructions will be inserted either at the beginning of a basic block B,
+ denoting profiling edge A->B such that A is B's only predecessor,
+ or at the end of a basic block C, denoting profiling edge C->D such that D
+ is C's only successor.
+
+ Profiling instructions on a single edge consist of two instructions, an
+ int to ptr instruction, casting the address of the edge associated with
+ the profiling to a pointer, and a call instruction, performing the callback
+ into our framework to perform frequency updates and optimizations when
+ applicable.  Further, at the beginning of a function, three instructions are
+ inserted: an int to ptr to convert the address of the JITProfileData object
+ (contains all profiling information for the framework) to a pointer, an int
+ to ptr to convert the address of the LLVM Function object for the function to
+ a pointer, and an int to ptr to convert the address of the callback function
+ to a pointer.
+
+ To test the correctness of inserting instructions (inserting on the correct
+ edges and inserting the correct addresses), we use the tests already written
+ for the sections of profiling described above.  In order to guarantee
+ correctness, the -debug-only=bbprofiling option must be used with lli and
+ the IR code after running the pass must be printed.
 
 ===-------------------------------------------------------------------------===
 
 ===-- Tests ----------------------------------------------------------------===
 
+ singleblocktests.c:
+   This test contains two functions, one with a single basic block (single1)
+   and one with a single reachable basic block (unreachable).  The purpose of
+   this test is to verify that no basic block profiling instructions are
+   inserted for either function.
+
  condtests.c:
    This test contains two functions, one with a single if-else condition
    (cond1) and one with nested if-else conditions (cond2).  The purpose of
    this test is to verify that branches of predicates are equally likely to be
-   chosen.
+   chosen in weight generation, max spanning tree construction is correct, and
+   instruction insertion is correct.
 
- 
+ swithctests.c:
+   This test contains three functions, one with a single small switch statement
+   (switch1), one with a single, longer switch statement (switch2), and one
+   with multiple nests of switch statements (switch3).  The purpose of
+   this test is to verify that branches of predicates are equally likely to be
+   chosen in weight generation (when more than two successors of a basic block
+   exit), max spanning tree construction is correct, and
+   instruction insertion is correct.
+
+ looptests.c:
+   This test contains three functions, one with a single loop with a single
+   exit edge (loop1), one with nested loops each with single exit edges
+   (loop2), and one with a mixed type of nested loops with varying
+   number of exit edges.  The purpose of this test is to verify that weights
+   of edges and basic blocks in loops and exit edges of the loops are
+   generated correctly, max spanning tree construction is correct, and
+   instruction insertion is correct.
+
+ irreducibleloop1.c:
+   This test contains one function (irreducible1()) to test the weight
+   generation algorithm for irreducible loops.  Because the LoopInfo pass does
+   not recognizing irreducible loops, the resulting weights may not be
+   deterministic.  To alleviate this, we could require a pass to convert all
+   irreducible loops to reducible loops.
+
+ irreducibletest.ll:
+   This test is a simplification on the irreducibleloop1.c test, resulting in
+   the most minimal case irreducible loop.
+
+   landingpadtests.cpp  multiexitbbtests.c  test1.c
 
 ===-------------------------------------------------------------------------===

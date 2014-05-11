@@ -17,10 +17,10 @@ worst = []
 total = []
 
 def main():
-  t1_start = 20
-  t1_end   = 20
-  t2_start = 0
-  t2_end   = 0
+  t1_start = 100
+  t1_end   = 100
+  t2_start = 100
+  t2_end   = 100
   step     = 10
 
   remove_output()
@@ -96,7 +96,7 @@ def output_data(t1, t2, t):
     if (not d[1]):
       failed.append(d)
     else:
-      if (d[2] > d[3]):
+      if (d[3] >= d[4]):
         better.append(d)
         better_avg += float(d[3] - d[4])
       else:
@@ -127,7 +127,7 @@ def output_data(t1, t2, t):
 
     myfile.write("*** Worse tests ***\n")
     for w in worse:
-      myfile.write(w[0] + " [" + str(w[2]) + ", " + str(w[3]) + ", " + str(b[4]) + "]\n")
+      myfile.write(w[0] + " [" + str(w[2]) + ", " + str(w[3]) + ", " + str(w[4]) + "]\n")
 
     best.append((t1, t2, better_avg))
     worst.append((t1, t2, worse_avg))
@@ -181,9 +181,9 @@ def get_next(f):
   nat_time = Decimal(f.readline()[26:])
   f.readline()
   if (f.readline()[:9] == "TEST-PASS"):
-    lli_time = Decimal(f.readline()[26:])
+    our_time = Decimal(f.readline()[26:])
     f.readline()
-    our_time = Decimal(f.readline()[33:])
+    lli_time = Decimal(f.readline()[33:])
     dat = (name, True, nat_time, lli_time, our_time)
     for _ in range(9):
       f.readline()

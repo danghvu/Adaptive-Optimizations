@@ -14,6 +14,12 @@ entry:
 declare i32 @printf(i8*, ...) #1
 
 ; Function Attrs: nounwind uwtable
+define i32 @unreachable() #0 {
+entry:
+  ret i32 5
+}
+
+; Function Attrs: nounwind uwtable
 define i32 @main() #0 {
 entry:
   %retval = alloca i32, align 4
