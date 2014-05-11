@@ -44,7 +44,8 @@
 
 STATISTIC(fc_time, "Time for Function callback (usec)");
 STATISTIC(bb_time, "Time for BasicBlock callback (usec)");
-STATISTIC(compile_time, "Time for recompile (usec)");
+STATISTIC(fc_compile_time, "Time for recompile in Function callback (usec)");
+STATISTIC(bb_compile_time, "Time for recompile in BasicBlock callback (usec)");
 
 namespace llvm {
 
@@ -60,7 +61,8 @@ JITProfileData::JITProfileData(int t1, int t2, double tol, ExecutionEngine* J) {
   TheJIT = J;
   fc_time = 0;
   bb_time = 0;
-  compile_time = 0;
+  fc_compile_time = 0;
+  bb_compile_time = 0;
 }
 
 
@@ -120,10 +122,12 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
     if (E.first->getParent() != F || E.second->getParent() != F) {
       delete JFD->FPM;
       JFD->removedProfiling = true;
+      struct timeval t3;
+      gettimeofday(&t3, NULL);
       TheJIT->recompileAndRelinkFunction(F);
-
       gettimeofday(&t2, NULL);
       bb_time += (t2.tv_usec - t1.tv_usec) + (t2.tv_sec - t1.tv_sec) * 1000000;
+      bb_compile_time += (t2.tv_usec - t3.tv_usec) + (t2.tv_sec - t3.tv_sec) * 1000000;
       return 0;
     }
 
@@ -141,7 +145,11 @@ void* JITProfileData::BasicBlockCallback(Edge* B, Function* F) {
     doOptimization(F);
 
     // Re-emit the function so the profiling is removed and optimizations are seen!
+    struct timeval t3, t4;
+    gettimeofday(&t3, NULL);
     TheJIT->recompileAndRelinkFunction(F);
+    gettimeofday(&t4, NULL);
+    bb_compile_time += (t4.tv_usec - t3.tv_usec) + (t4.tv_sec - t3.tv_sec) * 1000000;
   }
 
   gettimeofday(&t2, NULL);
@@ -223,7 +231,7 @@ void* JITProfileData::FunctionCallback(Function* F) {
     gettimeofday(&t3, NULL);
     TheJIT->recompileAndRelinkFunction(F);
     gettimeofday(&t4, NULL);
-    compile_time += (t4.tv_usec - t3.tv_usec) + (t4.tv_sec - t3.tv_sec) * 1000000;
+    fc_compile_time += (t4.tv_usec - t3.tv_usec) + (t4.tv_sec - t3.tv_sec) * 1000000;
   }
 
   gettimeofday(&t2, NULL);

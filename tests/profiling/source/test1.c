@@ -4,7 +4,8 @@
 int compute2(int a, int b, int *c, int *z) {
   int test= 5;
   int zzz = 4;
-  for (int i=0;i<10000;i++) {
+  int i;
+  for (i=0;i<10000;i++) {
     c[0] += test;
     c[1] += zzz;
     *z = 12;
@@ -20,8 +21,8 @@ int compute(int a, int b, int d, int e) {
 }
 
 int main() {
-  int x = 0;
-  for (int i=1;i<10000;i++) {
+  int x = 0, i;
+  for (i=1;i<10000;i++) {
     x += compute(i,20,30,40);
   }
   printf("test %d\n", x);

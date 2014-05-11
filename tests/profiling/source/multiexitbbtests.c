@@ -32,7 +32,8 @@ int multiexit2(int a) {
 }
 
 int multiexit3(int a) {
-  for (int i = 0; i < a; ++i) {
+  int i;
+  for (i = 0; i < a; ++i) {
     if (i == 20)
       return 5;
   }
@@ -40,7 +41,8 @@ int multiexit3(int a) {
 }
 
 int main() {
-  for (int i = 0; i < 100; ++i) {
+  int i;
+  for (i = 0; i < 100; ++i) {
     multiexit1();
     multiexit2(i);
     multiexit3(i);

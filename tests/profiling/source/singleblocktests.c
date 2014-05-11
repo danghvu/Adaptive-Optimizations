@@ -15,7 +15,8 @@ int unreachable() {
 }
 
 int main() {
-  for (int i = 0; i < 100; ++i) {
+  int i;
+  for (i = 0; i < 100; ++i) {
     single1();
   }
 }

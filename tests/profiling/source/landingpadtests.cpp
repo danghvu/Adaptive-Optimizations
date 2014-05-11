@@ -1,22 +1,26 @@
 #include <stdio.h>
+#include <stdint.h>
+#include <string>
+
+using namespace std;
 
 typedef struct {
   int a;
   double b;
 } data_t;
+
 void landingpad1() {
   try {
-    data_t* d;
-    printf("I'm trying to access a struct I haven't allocated to: %d\n", d->a);
+    string("abc").substr(10);
   }
   catch(...) {
-    printf("Oops!\n");
+    printf("Out of range exception!\n");
   }
 }
 
 int main() {
   for (int i = 0; i < 100; ++i) {
-    landingpad1();
+    //landingpad1();
   }
   return 0;
 }

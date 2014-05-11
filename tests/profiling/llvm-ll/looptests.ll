@@ -166,7 +166,6 @@ for.cond:                                         ; preds = %for.inc, %entry
 for.body:                                         ; preds = %for.cond
   call void @loop1()
   call void @loop2()
-  call void @loop3()
   br label %for.inc
 
 for.inc:                                          ; preds = %for.body

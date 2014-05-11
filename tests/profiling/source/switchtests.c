@@ -176,7 +176,8 @@ void switch3() {
 }
 
 int main() {
-  for (int i = 0; i < 100; ++i) {
+  int i;
+  for (i = 0; i < 100; ++i) {
     switch1();
     switch2();
     switch3();

@@ -19,8 +19,8 @@
 // -- Exit     : 1.0
 void loop1() {
 // Entry:
-  int x = 0;
-  for (int i = 0; /* For.cond: */ i < 10; /* For.inc: */ ++i) {
+  int x = 0, i;
+  for (i = 0; /* For.cond: */ i < 10; /* For.inc: */ ++i) {
 // For.body:
     x += i;
   }
@@ -51,10 +51,10 @@ void loop1() {
 // -- Exit      : 1.0
 void loop2() {
 // Entry:
-  int x = 0;
-  for (int i = 0; /* For.cond: */ i < 10; /* For.inc: */ ++i) {
+  int x = 0, i, j;
+  for (i = 0; /* For.cond: */ i < 10; /* For.inc: */ ++i) {
 // For.body:
-    for (int j = 0; /* For.cond2: */ j < 5; /* For.inc2: */ ++j) {
+    for (j = 0; /* For.cond2: */ j < 5; /* For.inc2: */ ++j) {
 // For.body2:
       x += i;
     }
@@ -81,9 +81,10 @@ void loop3() {
 }
 
 int main() {
-  for (int i = 0; i < 100; ++i) {
+  int i;
+  for (i = 0; i < 100; ++i) {
     loop1();
     loop2();
-    loop3();
+    //loop3();
   }
 }

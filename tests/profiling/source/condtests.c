@@ -84,7 +84,8 @@ void cond2() {
 }
 
 int main() {
-  for (int i = 0; i < 100; ++i) {
+  int i;
+  for (i = 0; i < 100; ++i) {
     cond1();
     cond2();
   }
