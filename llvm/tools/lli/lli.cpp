@@ -78,7 +78,7 @@ namespace {
                               cl::desc("Online profile: tolerance for t2 in which to apply optimizations"),
                               cl::init(1.0));
 
-  extern const char allowedPasses[] = "-loop-simplify -scalarrepl -sccp";
+  extern const char allowedPasses[] = "-instsimplify -instcombine -adce -sroa -simplifycfg -licm -loop-simplify -loop-reduce -dynamicinliner -loop-simplify -scalarrepl -sccp";
 
   cl::list<const PassInfo*, bool,
       FilteredPassNameParser<PassArgFilter<allowedPasses> > >
@@ -323,6 +323,7 @@ int main(int argc, char **argv, char * const *envp) {
   initializeInstCombine(Registry);
   initializeInstrumentation(Registry);
   initializeTarget(Registry);
+  initializeDynamicInlinerPass(Registry);
 
   cl::ParseCommandLineOptions(argc, argv,
                               "llvm interpreter & dynamic compiler\n");
