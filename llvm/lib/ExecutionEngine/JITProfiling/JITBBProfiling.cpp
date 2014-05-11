@@ -513,13 +513,32 @@ namespace llvm {
 
     SmallVector<EdgeWeight, 16> Backup;
 
+    // Since BreakCriticalEdges can't handling breaking landing pads, we need to
+    // make sure we don't even try landing pads
+    // It is okay to add this edge even if it isn't reachable because it will
+    // not pass the condition below for adding insertion edges anyways
+    for (Function::iterator FI = F->begin(), FE = F->end(); FI != FE; ++FI) {
+      if (InvokeInst* InvInst = dyn_cast<InvokeInst>(FI->getTerminator())) {
+        E = std::make_pair(FI, InvInst->getUnwindDest());
+        TreeNodes.insert(E.first);
+        TreeNodes.insert(E.second);
+        MaxSpanningTree.insert(E);
+      }
+    }
+
     // This does not include unreachable basic blocks
     unsigned numBB = BlockWeights.size();
     while (TreeNodes.size() != numBB) {
-      while (true) {
+      // If EdgePQ is empty at this point, this means we ran into a situation where
+      // at least one block could not be added because it had multiple predecessors
+      // and multiple successors (we would have had to insert a new block)
+      if (EdgePQ.empty())
+        assert(0 && "Unable to construct a max spanning tree for the function");
+      while (!EdgePQ.empty()) {
         EW = EdgePQ.top();
         E  = EW.first;
         EdgePQ.pop();
+
         unsigned c1 = TreeNodes.count(E.first);
         unsigned c2 = TreeNodes.count(E.second);
         // c1 == 1, c2 == 0
