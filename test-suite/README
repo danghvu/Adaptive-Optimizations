@@ -25,4 +25,9 @@
  values for T1 and T2 in the script to produce the desired tests.  Once these
  steps are complete, simply run the script by typing './run.py'.
 
+ Note that the only tests in the LLVM test-suite that our framework fails on
+ are tests that lli fail as well.  Further, any memory leaks that show up
+ when using valgrind have been due to features in LLVM that our framework
+ uses; none of them are a result of what we have directly written.
+
 ===-------------------------------------------------------------------------===
