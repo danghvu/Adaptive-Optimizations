@@ -1,28 +1,21 @@
-----------------------
-     Adding Tests
-----------------------
-To add a test, if the test is written in c, simply place the
-test in the 'source' directory.  Once this is done, run 'make'
-to create the LLVM IR code associated with the test, placed in
-the 'llvm-ll' directory.
+===-- README - tests -------------------------------------------------------===
 
-----------------------
-   Running  Tests
-----------------------
-In order to run a test with the developed online profile-
-guided JIT optimization framework, simply run the following
-command:
+ This file describes the layout of this directory and how to add tests
 
-lli -enable-online-profile FILE.ll
+===-------------------------------------------------------------------------===
 
-----------------------
-    Other Comments
-----------------------
-Currently, the only tests that are added which will run the
-profiling 'pass' are the following:
+===-- Overview -------------------------------------------------------------===
 
-thresh1.c
-thresh2.c
+ This directory contains the sub-directories which contain the tests for our
+ JIT framework.  The 'profile' directory contains tests specific to the
+ profiling aspects of the framework.  The 'inliner' directory contains tests
+ specific to the dynamic inliner pass.  The 'medium' directory contains
+ medium-sized tests.  The 'large' directory contains large-sized tests
 
-Further, running 'make clean' will delete only LLVM IR files
-which have associated (c) source files
+ To add a test, simply place the .c or .cpp file in the 'source' directory
+ of one of the sub-directories mentioned above.  Currently the Makefiles
+ in each sub-directory only support single-source programs.  Further, if the
+ .c or ,cpp file is unavailable, it is sufficient to put the .ll file in the
+ 'llvm-ll' directory of one of the sub-directories mentioned above.
+
+===-------------------------------------------------------------------------===

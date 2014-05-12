@@ -1,6 +1,6 @@
 ; ModuleID = 'source/two-call-sites.c'
 target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128"
-target triple = "x86_64-pc-linux-gnu"
+target triple = "x86_64-unknown-linux-gnu"
 
 @block_freq_1 = common global i32 0, align 4
 @block_freq_2 = common global i32 0, align 4
@@ -8,111 +8,119 @@ target triple = "x86_64-pc-linux-gnu"
 
 ; Function Attrs: nounwind uwtable
 define void @bar1() #0 {
+entry:
   ret void
 }
 
 ; Function Attrs: nounwind uwtable
 define void @bar2() #0 {
+entry:
   ret void
 }
 
 ; Function Attrs: nounwind uwtable
 define void @foo() #0 {
+entry:
   %i = alloca i32, align 4
   %i1 = alloca i32, align 4
   store i32 0, i32* %i, align 4
-  br label %for1.cond
+  br label %for.cond
 
-for1.cond:                                        ; preds = %for1.inc, %0
-  %1 = load i32* %i, align 4
-  %2 = load i32* @block_freq_1, align 4
-  %3 = icmp slt i32 %1, %2
-  br i1 %3, label %for1.body, label %for2.init
+for.cond:                                         ; preds = %for.inc, %entry
+  %0 = load i32* %i, align 4
+  %1 = load i32* @block_freq_1, align 4
+  %cmp = icmp slt i32 %0, %1
+  br i1 %cmp, label %for.body, label %for.end
 
-for1.body:                                        ; preds = %for1.cond
+for.body:                                         ; preds = %for.cond
   call void @bar1()
-  br label %for1.inc
+  br label %for.inc
 
-for1.inc:                                         ; preds = %for1.body
-  %4 = load i32* %i, align 4
-  %5 = add nsw i32 %4, 1
-  store i32 %5, i32* %i, align 4
-  br label %for1.cond
+for.inc:                                          ; preds = %for.body
+  %2 = load i32* %i, align 4
+  %inc = add nsw i32 %2, 1
+  store i32 %inc, i32* %i, align 4
+  br label %for.cond
 
-for2.init:                                        ; preds = %for1.cond
+for.end:                                          ; preds = %for.cond
   store i32 0, i32* %i1, align 4
-  br label %for2.cond
+  br label %for.cond2
 
-for2.cond:                                        ; preds = %15, %for2.init
-  %6 = load i32* %i1, align 4 
-  %7 = load i32* @block_freq_2, align 4
-  %8 = icmp slt i32 %6, %7
-  br i1 %8, label %for2.body, label %end
+for.cond2:                                        ; preds = %for.inc5, %for.end
+  %3 = load i32* %i1, align 4
+  %4 = load i32* @block_freq_2, align 4
+  %cmp3 = icmp slt i32 %3, %4
+  br i1 %cmp3, label %for.body4, label %for.end7
 
-for2.body:                                        ; preds = %for2.cond
+for.body4:                                        ; preds = %for.cond2
   call void @bar2()
-  br label %for2.inc
+  br label %for.inc5
 
-for2.inc:                                         ; preds = %for2.body
-  %9 = load i32* %i1, align 4
-  %10 = add nsw i32 %9, 1
-  store i32 %10, i32* %i1, align 4
-  br label %for2.cond
+for.inc5:                                         ; preds = %for.body4
+  %5 = load i32* %i1, align 4
+  %inc6 = add nsw i32 %5, 1
+  store i32 %inc6, i32* %i1, align 4
+  br label %for.cond2
 
-end:                                              ; preds = %for2.cond
+for.end7:                                         ; preds = %for.cond2
   ret void
 }
 
 ; Function Attrs: nounwind uwtable
 define i32 @main(i32 %argc, i8** %argv) #0 {
-  %1 = alloca i32, align 4
-  %2 = alloca i32, align 4
-  %3 = alloca i8**, align 8
+entry:
+  %retval = alloca i32, align 4
+  %argc.addr = alloca i32, align 4
+  %argv.addr = alloca i8**, align 8
   %i = alloca i32, align 4
-  store i32 0, i32* %1
-  store i32 %argc, i32* %2, align 4
-  store i8** %argv, i8*** %3, align 8
-  %4 = load i8*** %3, align 8
-  %5 = getelementptr inbounds i8** %4, i64 1
-  %6 = load i8** %5, align 8
-  %7 = call i32 @atoi(i8* %6) #2
-  store i32 %7, i32* @func_freq, align 4
-  %8 = load i8*** %3, align 8
-  %9 = getelementptr inbounds i8** %8, i64 2
-  %10 = load i8** %9, align 8
-  %11 = call i32 @atoi(i8* %10) #2
-  store i32 %11, i32* @block_freq_1, align 4
-  %12 = load i8*** %3, align 8
-  %13 = getelementptr inbounds i8** %12, i64 3
-  %14 = load i8** %13, align 8
-  %15 = call i32 @atoi(i8* %14) #2
-  store i32 %15, i32* @block_freq_2, align 4
+  store i32 0, i32* %retval
+  store i32 %argc, i32* %argc.addr, align 4
+  store i8** %argv, i8*** %argv.addr, align 8
+  %0 = load i8*** %argv.addr, align 8
+  %arrayidx = getelementptr inbounds i8** %0, i64 1
+  %1 = load i8** %arrayidx, align 8
+  %call = call i32 @atoi(i8* %1) #2
+  store i32 %call, i32* @func_freq, align 4
+  %2 = load i8*** %argv.addr, align 8
+  %arrayidx1 = getelementptr inbounds i8** %2, i64 2
+  %3 = load i8** %arrayidx1, align 8
+  %call2 = call i32 @atoi(i8* %3) #2
+  store i32 %call2, i32* @block_freq_1, align 4
+  %4 = load i8*** %argv.addr, align 8
+  %arrayidx3 = getelementptr inbounds i8** %4, i64 3
+  %5 = load i8** %arrayidx3, align 8
+  %call4 = call i32 @atoi(i8* %5) #2
+  store i32 %call4, i32* @block_freq_2, align 4
   store i32 0, i32* %i, align 4
-  br label %16
+  br label %for.cond
 
-; <label>:16                                      ; preds = %21, %0
-  %17 = load i32* %i, align 4
-  %18 = load i32* @func_freq, align 4
-  %19 = icmp slt i32 %17, %18
-  br i1 %19, label %20, label %24
+for.cond:                                         ; preds = %for.inc, %entry
+  %6 = load i32* %i, align 4
+  %7 = load i32* @func_freq, align 4
+  %cmp = icmp slt i32 %6, %7
+  br i1 %cmp, label %for.body, label %for.end
 
-; <label>:20                                      ; preds = %16
+for.body:                                         ; preds = %for.cond
   call void @foo()
-  br label %21
+  br label %for.inc
 
-; <label>:21                                      ; preds = %20
-  %22 = load i32* %i, align 4
-  %23 = add nsw i32 %22, 1
-  store i32 %23, i32* %i, align 4
-  br label %16
+for.inc:                                          ; preds = %for.body
+  %8 = load i32* %i, align 4
+  %inc = add nsw i32 %8, 1
+  store i32 %inc, i32* %i, align 4
+  br label %for.cond
 
-; <label>:24                                      ; preds = %16
+for.end:                                          ; preds = %for.cond
   ret i32 0
 }
 
 ; Function Attrs: nounwind readonly
 declare i32 @atoi(i8*) #1
 
-attributes #0 = { nounwind uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf"="true" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "unsafe-fp-math"="false" "use-soft-float"="false" }
-attributes #1 = { nounwind readonly "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf"="true" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { nounwind uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #1 = { nounwind readonly "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #2 = { nounwind readonly }
+
+!llvm.ident = !{!0}
+
+!0 = metadata !{metadata !"clang version 3.4 (tags/RELEASE_34/final)"}

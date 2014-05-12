@@ -1,0 +1,28 @@
+===-- README - test-suite --------------------------------------------------===
+
+ This file describes the files contained in this directory regarding running
+ the LLVM test-suite with our JIT framework.
+
+===-------------------------------------------------------------------------===
+
+===-- Overview -------------------------------------------------------------===
+
+ In order to run the LLVM test-suite with our JIT framework and lli, copy
+ the files 'TEST.nightly.Makefile' and 'Makefile.programs' to the build
+ directory of the test-suite (i.e. llvm-build/projects/test-suite/).  In order
+ to run the test, simply run the following command:
+
+  make -j 8 TEST=nightly EXTRA_LLIFLAGS="-enable-online-profile -t1 X -t2 Y"
+
+ where X and Y represent the desired T1 and T2 thresholds, respectively.  The
+ output will present native time, jit-origin (lli) time, and jit (ours) time.
+
+ Further, the 'run.py' file is provided as a convenience for running the
+ test-suite many times for different T1 and T2 values.  To use the script,
+ move 'run.py' to the build directory of the test-suite (i.e. llvm-build/
+ projects/test-suite/), create a 'results' directory in the test-suite (i.e.
+ llvm-build/projects/test-suite/results/), and change the start, end, and step
+ values for T1 and T2 in the script to produce the desired tests.  Once these
+ steps are complete, simply run the script by typing './run.py'.
+
+===-------------------------------------------------------------------------===
