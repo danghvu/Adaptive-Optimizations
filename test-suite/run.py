@@ -106,7 +106,7 @@ def output_data(t1, t2, t):
 
   better_avg = better_avg / len(better)
   worse_avg  = worse_avg / len(worse)
-  total_avg  = total_avg / len(data)
+  total_avg  = total_avg / (len(data)-len(failed))
 
   worse.sort(key=lambda tup: tup[3] - tup[4])
   better.sort(key=lambda tup: tup[4] - tup[3])
