@@ -84,31 +84,21 @@ namespace llvm {
       void doOptimization(Function *);
       std::vector<const PassInfo*> &getPassList() { return CustomPasses; };
 
+      // Function data
+      FuncDataMap FuncData;
     private:
       // Thresholds
       unsigned int TH_ENABLE_BB_PROFILE;
       unsigned int TH_ENABLE_APPLY_OPT;
       double TOL_ENABLE_APPLY_OPT;
 
-      // Function data
-      FuncDataMap FuncData;
-
-      // Function pass manager for running the function and
-      // basic block profiling passes
-      //FPMMap FPMs;
-
       // The frequency variables
       FuncCountMap  FuncFreq;
       EdgeCountMap  EdgeFreq;
       BlockCountMap BlockFreq;
 
-      // Edge information for each function
-      //EdgeMapSet*   ProfileEdges;
-      //EdgeMapSet*   NonProfileEdges;
-
       // The JIT object
       ExecutionEngine* TheJIT;
-      BasicBlock *ExitBB;
 
       // List of custom passes
       std::vector<const PassInfo *> CustomPasses;

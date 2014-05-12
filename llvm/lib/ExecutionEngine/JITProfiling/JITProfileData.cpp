@@ -241,6 +241,7 @@ void* JITProfileData::FunctionCallback(Function* F) {
 
 void JITProfileData::initializeEdgeCounts(Function* F) {
   JITFunctionData* JFD = FuncData[F];
+  EdgeFreq[std::make_pair(JFD->ExitBlock, &F->getEntryBlock())] = 0;
   for (EdgeSet::iterator I = JFD->NonProfileEdges.begin(), E = JFD->NonProfileEdges.end(); I != E; ++I) {
     EdgeFreq[*I] = 0;
   }
@@ -271,6 +272,11 @@ void JITProfileData::updateCounts(Function* F) {
   Edge E = std::make_pair((BasicBlock*)NULL, (BasicBlock*)NULL);
   updateEdgeCounts(F, &F->getEntryBlock(), E);
 
+/*
+  for (EdgeCountMap::iterator I = EdgeFreq.begin(), E = EdgeFreq.end(); I != E; ++I) {
+    DEBUG( dbgs() << I->first.first->getName() << "->" << I->first.second->getName() << " : " << I->second << "\n" );
+  }
+*/
   // Update all block counts for F
   updateBlockCounts(F);
 }
@@ -280,36 +286,48 @@ void JITProfileData::updateEdgeCounts(Function* F, BasicBlock* B, Edge E) {
   Edge E1;
   EdgeSet ES = JFD->NonProfileEdges;
 
+  DEBUG( dbgs() << "UpdateEdgeCounts(" << B->getName() << ", [" << ((E.first != NULL) ? E.first->getName() : "NULL") << "->" << ((E.second != NULL) ? E.second->getName() : "NULL") << "])\n" );
+
   // Calculate the in dependencies
   unsigned in = 0;
   // If B is the entry block, we have to do the exit->entry edge as well
   if (B == &F->getEntryBlock()) {
     E1 = std::make_pair(JFD->ExitBlock, B);
-    if ((E1.first != E.first || E1.second != E.second) && ES.count(E1) != 0) {
-      updateEdgeCounts(F, E1.first, E1);
-    }
-  }
+    DEBUG( dbgs() << "Pred of " << B->getName() << ": " << E1.first->getName() << "\n" );
 
-  for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
-    E1 = std::make_pair(*PI, B);
     if ((E1.first != E.first || E1.second != E.second) && ES.count(E1) != 0) {
       updateEdgeCounts(F, E1.first, E1);
     }
     in += EdgeFreq[E1];
+    DEBUG( dbgs() << "In of " << B->getName() << ": " << in << "\n" );
+  }
+
+  for (pred_iterator PI = pred_begin(B), PE = pred_end(B); PI != PE; ++PI) {
+    E1 = std::make_pair(*PI, B);
+    DEBUG( dbgs() << "Pred of " << B->getName() << ": " << E1.first->getName() << "\n" );
+    if ((E1.first != E.first || E1.second != E.second) && ES.count(E1) != 0) {
+      updateEdgeCounts(F, E1.first, E1);
+    }
+    in += EdgeFreq[E1];
+    DEBUG( dbgs() << "In of " << B->getName() << ": " << in << "\n" );
   }
 
   // Calculate the out dependencies
   unsigned out = 0;
   for (succ_iterator SI = succ_begin(B), SE = succ_end(B); SI != SE; ++SI) {
     E1 = std::make_pair(B, *SI);
+    DEBUG( dbgs() << "Succ of " << B->getName() << ": " << E1.second->getName() << "\n" );
     if ((E1.first != E.first || E1.second != E.second) && ES.count(E1) != 0) {
       updateEdgeCounts(F, E1.second, E1);
     }
     out += EdgeFreq[E1];
+    DEBUG( dbgs() << "Out of " << B->getName() << ": " << out << "\n" );
   }
+
 
   if (E.first != NULL) {
     EdgeFreq[E] = abs(in - out);
+    DEBUG( dbgs() << "Setting " << E.first->getName() << E.second->getName() << ": " << EdgeFreq[E] << "\n" );
   }
 }
 
@@ -317,7 +335,7 @@ void JITProfileData::updateBlockCounts(Function* F) {
   for (df_iterator<BasicBlock*> I = df_begin(&F->getEntryBlock()), E = df_end(&F->getEntryBlock()); I != E; ++I) {
     BasicBlock* B = *I;
     if (B == &F->getEntryBlock())
-      BlockFreq[B] = EdgeFreq[std::make_pair(ExitBB, B)];
+      BlockFreq[B] = EdgeFreq[std::make_pair(FuncData[F]->ExitBlock, B)];
     else
       BlockFreq[B] = 0;
 

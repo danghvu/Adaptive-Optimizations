@@ -123,6 +123,7 @@ namespace {
 
         DEBUG( dbgs() << "[JITProfiling] Inserted Callback function for <" << F.getName() << ">\n" );
         DEBUG( dbgs() << "*** Total time: <" << time << " ***\n" );
+        DEBUG( F.dump() );
         return true;
       }
 
