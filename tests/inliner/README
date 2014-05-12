@@ -1,0 +1,47 @@
+The tests in this directory are meant to test the decision logic in the inliner.
+
+Aside from the manyfunctions.c/ll test, each test takes a few parameters that
+will determine how many times certain blocks and functions will be executed.
+
+one-call-site.c/ll:
+===================
+This test takes two parameters. The first dictates how many times the foo()
+function will be called from main. The second dictates how many times bar()
+will be called from foo(). Depending on what t1 and t2 are, the bar() call site
+within foo() will either be inlined or not.
+
+To verify correctness, run lli with --stats and make sure the number of call
+sites inlined stat is correct based upon t1, t2, and the parameters p1 and p2:
+
+t1 > p1: 0
+t1 <= p1, t2 > p2: 0
+t1 <= p1, t2 <= p2: 1
+
+two-call-sites.c/ll:
+====================
+This test takes three parameters. The first dictates how many times the foo()
+function will be called from main. The second dictates how many times bar1()
+will be called from foo(), and the third how many times bar2() will be called
+from foo(). Because bar2() has a call site in a basic block after bar1() it will
+be impossible for both call sites to reach the t2 threshold.
+
+To get both call sites inlined will require the use of the tolerance parameter
+in the profiler.
+
+With t1=1, t2=10, p1=2, p2=3, p3=3 only the first call site will be inlined.
+However if we also pass tol=0.9 to lli then both call sites will be inlined.
+
+two-call-sites-separate-func.c/ll:
+==================================
+This test is a combination of the above two. The main difference is that bar()
+is called from foo1() and foo2(). So both call sites can be inlined without
+using the tolerance parameter.
+
+The number of call sites inlined based on thresholds and parameters is as
+follows:
+
+t1 > p1: 0
+t1 <= p1, t2 > p2, t2 > p3: 0
+t1 <= p1, t2 <= p2, t2 > p3: 1
+t1 <= p1, t2 > p2, t2 <= p3: 1
+t1 <= p1, t2 <= p2, t2 <= p3: 2
