@@ -42,6 +42,7 @@ namespace llvm {
           for (EdgePtrSet::iterator II = I->second->ProfileEdges.begin(), EE = I->second->ProfileEdges.end(); II != EE; ++II) {
               delete (*II);
           }
+          delete I->second;
         }
       }
 
