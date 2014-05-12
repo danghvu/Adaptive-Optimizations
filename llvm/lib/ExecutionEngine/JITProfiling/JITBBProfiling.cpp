@@ -86,6 +86,9 @@ namespace llvm {
 
     virtual ~JITBBProfiling() {
       removeInstructions();
+      for (EdgePtrSet::iterator I = NonProfileEdges.begin(), E=NonProfileEdges.end(); E != I; ++I) {
+        delete (*I);
+      }
     }
 
   private:
@@ -119,6 +122,7 @@ namespace llvm {
 
     // The edges which result in the optimal placement of profiling instructions
     EdgePtrSet     ProfileEdges;
+    EdgePtrSet     NonProfileEdges;
 
     // The basic blocks containing the profiling instructions
     BlockSet       ProfileBlocks;
@@ -579,6 +583,7 @@ namespace llvm {
       }
       else {
         JPDNonProfileEdges->insert(*temp);
+        NonProfileEdges.insert(temp);
       }
     }
 
