@@ -47,6 +47,8 @@
 #include <vector>
 #include <string>
 #include <sys/time.h>
+#include <float.h>
+#include <limits.h>
 
 using namespace llvm;
 
@@ -346,9 +348,8 @@ namespace llvm {
     // to landing pads.  This will make sure we always add them to the max spanning tree so that instructions are never inserted on them
     for (SmallVectorImpl<EdgeWeight>::iterator IT = WorklistWeights.begin(), IE = WorklistWeights.end(); IT != IE; ++IT) {
       EdgeWeight EW = *IT;
-      if (dyn_cast<InvokeInst>(EW.first.first->getTerminator())) {
-        EW.second = EW.second * LoopMultiplier * LoopMultiplier;
-      }
+      if (dyn_cast<InvokeInst>(EW.first.first->getTerminator()) && EW.first.second->isLandingPad())
+         EW.second = DBL_MAX;
       EdgePQ.push(EW);
     }
 
@@ -427,8 +428,11 @@ namespace llvm {
         // the profiling instructions at the beginning of E2
         else if (E2->getSinglePredecessor())
           B = E2;
-        else
+        else {
+          E1->dump();
+          E2->dump();
           assert( 0 && "Critical Edge found, should have applied splitting first" );
+        }
       }
       else {
         assert(0 && "Not well-formed basic block!\n");
