@@ -17,16 +17,17 @@ worst = []
 total = []
 
 def main():
-  t1_start = 100
-  t1_end   = 100
-  t2_start = 100
-  t2_end   = 100
-  step     = 10
+  t1_start = 50
+  t1_end   = 50
+  t2_start = 0
+  t2_end   = 50
+  step     = 50
 
   remove_output()
 
   for i in range(t1_start, t1_end+1, step):
     for j in range(t2_start, t2_end+1, step):
+      remove_output()
       print(str(i) + " - " + str(j))
       del data[0:len(data)]
       cmd = 'make -j 8 TEST=nightly EXTRA_LLIFLAGS="-enable-online-profile -t1 ' + str(i) + ' -t2 ' + str(j) + '" DISABLE_LLC=1 report.html'
@@ -35,7 +36,6 @@ def main():
       t = int(round(time.time()))
       parse_results(i, j, t)
       output_data(i, j, t)
-      remove_output()
 
   best.sort(key=lambda tup: -tup[2])
   worst.sort(key=lambda tup: -tup[2])
@@ -80,8 +80,8 @@ def parse_results(t1, t2, t):
   f.close()
 
 def remove_output():
-  os.system("find . -name *.out-jit | xargs -n 1 rm")
-  os.system("find . -name *.out-jit-origin | xargs -n 1 rm")
+  os.system("find . -name *.out-jit* | xargs -n 1 rm")
+  os.system("find . -name *.out-jit-origin* | xargs -n 1 rm")
 
 def output_data(t1, t2, t):
   failed = []
@@ -174,12 +174,20 @@ def get_next(f):
   if (line == ''):
     return False
 
-  match = re.search(r'\'([^&>]+)\'', f.readline())
+  line = f.readline()
+  print line
+  match = re.search(r'\'([^&>]+)\'', line)
   name = match.group(1)
   f.readline()
   f.readline()
-  nat_time = Decimal(f.readline()[26:])
-  f.readline()
+
+  x = f.readline()
+  if not x[26:]:
+    nat_time = 0
+  else:
+    nat_time = Decimal(x[26:])
+    f.readline()
+
   if (f.readline()[:9] == "TEST-PASS"):
     our_time = Decimal(f.readline()[26:])
     f.readline()
