@@ -183,6 +183,12 @@
    This test is a simplification on the irreducibleloop1.c test, resulting in
    the most minimal case irreducible loop.
 
-   landingpadtests.cpp  multiexitbbtests.c  test1.c
+ landingpadtests.cpp:
+   This test is to test the problems associated with landing pads in programs.
+   BreakCriticalEdges pass cannot break critical edges with landing pads.
+   There fore there are some cases where critical edges exist with landing pads
+   and we must handle them specially by increasing the weight of edges from
+   invoke instructions to landing pads to infinity.  The guarantees that the
+   non-critical edges contain the profiling.
 
 ===-------------------------------------------------------------------------===
