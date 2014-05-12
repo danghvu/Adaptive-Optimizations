@@ -61,13 +61,13 @@ namespace {
 }
 
 char DynamicInliner::ID = 0;
-INITIALIZE_PASS(DynamicInliner, "dynamicinliner", "Mikida2-Profiling", false, false)
+INITIALIZE_PASS(DynamicInliner, "dynamicinliner", "Dynamic inliner pass", false, false)
 FunctionPass *llvm::createDynamicInlinerPass(JITProfileData* data) { return new DynamicInliner(data); }
 
 bool DynamicInliner::runOnFunction(Function& F) {
   if (!data) return false;
 
-  DEBUG( dbgs() << "DynamicInliner: Attempting to inline calls in " << F.getName() << "\n" );
+  DEBUG( dbgs() << "DynamicInliner: Attempting to inline calls in function: " << F.getName() << "\n" );
   bool changed = false;
 
   std::vector<BasicBlock*> wl;
@@ -79,14 +79,20 @@ bool DynamicInliner::runOnFunction(Function& F) {
     changed = changed | runOnBasicBlock(*(*II));
   }
 
-  DEBUG( dbgs() << "DynamicInliner: Finished with " << F.getName() << "\n" );
+  DEBUG( dbgs() << "DynamicInliner: Finished with function: " << F.getName() << "\n" );
   return changed;
 }
 
 bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
   if (!data) return false;
 
-  DEBUG( dbgs() << "DynamicInliner: Attempting to inline calls in " << B.getName() << "\n" );
+  DEBUG( dbgs() << "DynamicInliner: Attempting to inline calls in block: " << B.getName() << "\n" );
+  unsigned freq = 0;
+  if (data->getBlockMap().count(&B)) {
+    freq = data->getBlockMap().find(&B)->second;
+  }
+  DEBUG( dbgs() << "DynamicInliner: Block executed : " << freq << " times.\n" );
+
   bool changed = false;
 
   std::vector<CallSite> worklist;
@@ -106,7 +112,7 @@ bool DynamicInliner::runOnBasicBlock(BasicBlock& B) {
     changed = true;
   }
 
-  DEBUG( dbgs() << "DynamicInliner: Finished with " << B.getName() << "\n" );
+  DEBUG( dbgs() << "DynamicInliner: Finished with block: " << B.getName() << "\n" );
   return changed;
 }
 
@@ -120,6 +126,8 @@ InlineCost DynamicInliner::getInlineCost(CallSite CS) {
   if (data->getBlockMap().count(B)) {
     freq = data->getBlockMap().find(B)->second;
   }
+
+  DEBUG( dbgs() << "DynamicInliner: CallSite " << *CS.getInstruction() << " called " << freq << " times.\n" );
 
   if (freq >= data->getThresholdT2() * data->getTolerance()) return InlineCost::getAlways();
   else return InlineCost::getNever();

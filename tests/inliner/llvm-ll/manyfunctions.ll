@@ -1,26 +1,26 @@
 ; ModuleID = 'source/manyfunctions.c'
 target datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v64:64:64-v128:128:128-a0:0:64-s0:64:64-f80:128:128-n8:16:32:64-S128"
-target triple = "x86_64-apple-macosx10.9.0"
+target triple = "x86_64-pc-linux-gnu"
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @clear_map() #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @reset_world() #0 {
   call void @clear_map()
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @reset_enemy(i32 %i) #0 {
   %1 = alloca i32, align 4
   store i32 %i, i32* %1, align 4
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @init() #0 {
   %i = alloca i32, align 4
   call void @reset_world()
@@ -47,34 +47,34 @@ define void @init() #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @render_map() #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @check_collisions() #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @update_world() #0 {
   call void @render_map()
   call void @check_collisions()
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @move() #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @attack() #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @update_enemy(i32 %i) #0 {
   %1 = alloca i32, align 4
   store i32 %i, i32* %1, align 4
@@ -83,7 +83,7 @@ define void @update_enemy(i32 %i) #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @update() #0 {
   %i = alloca i32, align 4
   call void @update_world()
@@ -110,17 +110,17 @@ define void @update() #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @finalize_world() #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @adjust_health() #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @finalize_enemy(i32 %i) #0 {
   %1 = alloca i32, align 4
   store i32 %i, i32* %1, align 4
@@ -128,7 +128,7 @@ define void @finalize_enemy(i32 %i) #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define void @finalize() #0 {
   %i = alloca i32, align 4
   call void @finalize_world()
@@ -155,7 +155,7 @@ define void @finalize() #0 {
   ret void
 }
 
-; Function Attrs: nounwind ssp uwtable
+; Function Attrs: nounwind uwtable
 define i32 @main(i32 %argc, i8** %argv) #0 {
   %1 = alloca i32, align 4
   %2 = alloca i32, align 4
@@ -188,8 +188,4 @@ define i32 @main(i32 %argc, i8** %argv) #0 {
   ret i32 0
 }
 
-attributes #0 = { nounwind ssp uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "stack-protector-buffer-size"="8" "unsafe-fp-math"="false" "use-soft-float"="false" }
-
-!llvm.ident = !{!0}
-
-!0 = metadata !{metadata !"Apple LLVM version 5.1 (clang-503.0.40) (based on LLVM 3.4svn)"}
+attributes #0 = { nounwind uwtable "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf"="true" "no-infs-fp-math"="false" "no-nans-fp-math"="false" "unsafe-fp-math"="false" "use-soft-float"="false" }
